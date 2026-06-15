@@ -1,0 +1,80 @@
+name: Docker Build Test
+
+on:
+  push:
+    paths:
+      - 'meta-numaker/doc/docker/**'
+  pull_request:
+    paths:
+      - 'meta-numaker/doc/docker/**'
+  workflow_dispatch:
+
+jobs:
+  docker-build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        working-directory: meta-numaker/doc/docker
+        run: |
+          docker build -t openbmc-numaker-test:latest .
+
+      - name: Verify image exists
+        run: |
+          docker images openbmc-numaker-test:latest
+          docker images openbmc-numaker-test:latest --format '{{.Repository}}:{{.Tag}}' | grep -q 'openbmc-numaker-test:latest'
+
+      - name: Create and start container
+        run: |
+          docker create -it --name openbmc-numaker-test openbmc-numaker-test:latest bash
+          docker start openbmc-numaker-test
+
+      - name: Verify essential tools
+        run: |
+          docker exec openbmc-numaker-test bash -c "
+            echo '=== Checking build tools ==='
+            git --version
+            gcc --version | head -1
+            g++ --version | head -1
+            make --version | head -1
+            python3 --version
+            locale | grep LANG
+
+            echo '=== Checking Yocto dependencies ==='
+            which gawk diffstat chrpath cpio wget file
+            which flex bison rsync xz
+
+            echo '=== Checking zstd/lz4 ==='
+            zstd --version
+            lz4 --version
+
+            echo '=== Checking Python packages ==='
+            python3 -c 'import usb; print(\"pyusb OK\")'
+            python3 -c 'import ecdsa; print(\"ecdsa OK\")'
+            python3 -c 'import crcmod; print(\"crcmod OK\")'
+            python3 -c 'import tqdm; print(\"tqdm OK\")'
+            python3 -c 'import Crypto; print(\"pycryptodome OK\")'
+            python3 -c 'import elftools; print(\"pyelftools OK\")'
+
+            echo '=== All checks passed ==='
+          "
+
+      - name: Test build.sh script (syntax check)
+        working-directory: meta-numaker/doc/docker
+        run: |
+          bash -n build.sh
+          echo "build.sh syntax OK"
+
+      - name: Test join.sh script (syntax check)
+        working-directory: meta-numaker/doc/docker
+        run: |
+          bash -n join.sh
+          echo "join.sh syntax OK"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f openbmc-numaker-test || true
+          docker rmi openbmc-numaker-test:latest || true

@@ -1,0 +1,19 @@
+# NUC980 has no host power control hardware.
+# Skip the mapper-wait and just mark power as started.
+[Unit]
+Description=Start Power On for Chassis%i (NUC980: stub)
+Wants=obmc-power-start@%i.target
+Before=obmc-power-start@%i.target
+Wants=obmc-power-start-pre@%i.target
+After=obmc-power-start-pre@%i.target
+Conflicts=obmc-chassis-poweroff@%i.target
+ConditionPathExists=!/run/openbmc/chassis@%i-on
+
+[Service]
+RemainAfterExit=yes
+Type=oneshot
+ExecStart=/bin/sh -c "mkdir -p /run/openbmc && touch /run/openbmc/chassis@%i-on"
+SyslogIdentifier=phosphor-power-start
+
+[Install]
+# Handled by bitbake recipe

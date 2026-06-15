@@ -1,0 +1,1120 @@
+====================================================
+      NUC980 OpenBMC Functions Integration Test      
+====================================================
+
+[Test] GET Service Root...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1",
+  "@odata.type": "#ServiceRoot.v1_15_0.ServiceRoot",
+  "AccountService": {
+    "@odata.id": "/redfish/v1/AccountService"
+  },
+  "Cables": {
+    "@odata.id": "/redfish/v1/Cables"
+  },
+  "CertificateService": {
+    "@odata.id": "/redfish/v1/CertificateService"
+  },
+  "Chassis": {
+    "@odata.id": "/redfish/v1/Chassis"
+  },
+  "EventService": {
+    "@odata.id": "/redfish/v1/EventService"
+  },
+  "Fabrics": {
+    "@odata.id": "/redfish/v1/Fabrics"
+  },
+  "Id": "RootService",
+  "JsonSchemas": {
+    "@odata.id": "/redfish/v1/JsonSchemas"
+  },
+  "Links": {
+    "ManagerProvidingService": {
+      "@odata.id": "/redfish/v1/Managers/bmc"
+    },
+    "Sessions": {
+      "@odata.id": "/redfish/v1/SessionService/Sessions"
+    }
+  },
+  "Managers": {
+    "@odata.id": "/redfish/v1/Managers"
+  },
+  "Name": "Root Service",
+  "ProtocolFeaturesSupported": {
+    "DeepOperations": {
+      "DeepPATCH": false,
+      "DeepPOST": false
+    },
+    "ExcerptQuery": false,
+    "ExpandQuery": {
+      "ExpandAll": false,
+      "Levels": false,
+      "Links": false,
+      "NoLinks": false
+    },
+    "FilterQuery": false,
+    "OnlyMemberQuery": true,
+    "SelectQuery": true
+  },
+  "RedfishVersion": "1.17.0",
+  "Registries": {
+    "@odata.id": "/redfish/v1/Registries"
+  },
+  "SessionService": {
+    "@odata.id": "/redfish/v1/SessionService"
+  },
+  "Systems": {
+    "@odata.id": "/redfish/v1/Systems"
+  },
+  "Tasks": {
+    "@odata.id": "/redfish/v1/TaskService"
+  },
+  "TelemetryService": {
+    "@odata.id": "/redfish/v1/TelemetryService"
+  },
+  "UUID": "7911ee92-38fc-4111-ab6d-6cd4dddf48d8",
+  "UpdateService": {
+    "@odata.id": "/redfish/v1/UpdateService"
+  }
+}
+
+[Test] GET Chassis Collection...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1/Chassis",
+  "@odata.type": "#ChassisCollection.ChassisCollection",
+  "Members": [
+    {
+      "@odata.id": "/redfish/v1/Chassis/system"
+    }
+  ],
+  "Members@odata.count": 1,
+  "Name": "Chassis Collection"
+}
+
+[Test] GET Chassis Details (system)...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1/Chassis/system",
+  "@odata.type": "#Chassis.v1_22_0.Chassis",
+  "Actions": {
+    "#Chassis.Reset": {
+      "@Redfish.ActionInfo": "/redfish/v1/Chassis/system/ResetActionInfo",
+      "target": "/redfish/v1/Chassis/system/Actions/Chassis.Reset"
+    }
+  },
+  "Assembly": {
+    "@odata.id": "/redfish/v1/Chassis/system/Assembly"
+  },
+  "ChassisType": "RackMount",
+  "EnvironmentMetrics": {
+    "@odata.id": "/redfish/v1/Chassis/system/EnvironmentMetrics"
+  },
+  "Id": "system",
+  "Links": {
+    "ComputerSystems": [
+      {
+        "@odata.id": "/redfish/v1/Systems/system"
+      }
+    ],
+    "ManagedBy": [
+      {
+        "@odata.id": "/redfish/v1/Managers/bmc"
+      }
+    ]
+  },
+  "LocationIndicatorActive": false,
+  "Name": "system",
+  "NetworkAdapters": {
+    "@odata.id": "/redfish/v1/Chassis/system/NetworkAdapters"
+  },
+  "PowerState": "Off",
+  "PowerSubsystem": {
+    "@odata.id": "/redfish/v1/Chassis/system/PowerSubsystem"
+  },
+  "Sensors": {
+    "@odata.id": "/redfish/v1/Chassis/system/Sensors"
+  },
+  "Status": {
+    "State": "StandbyOffline"
+  },
+  "ThermalSubsystem": {
+    "@odata.id": "/redfish/v1/Chassis/system/ThermalSubsystem"
+  }
+}
+
+[Test] GET System details...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1/Systems/system",
+  "@odata.type": "#ComputerSystem.v1_22_0.ComputerSystem",
+  "Actions": {
+    "#ComputerSystem.Reset": {
+      "@Redfish.ActionInfo": "/redfish/v1/Systems/system/ResetActionInfo",
+      "target": "/redfish/v1/Systems/system/Actions/ComputerSystem.Reset"
+    }
+  },
+  "Bios": {
+    "@odata.id": "/redfish/v1/Systems/system/Bios"
+  },
+  "Boot": {
+    "AutomaticRetryAttempts": 3,
+    "AutomaticRetryConfig": "RetryAttempts",
+    "AutomaticRetryConfig@Redfish.AllowableValues": [
+      "Disabled",
+      "RetryAttempts"
+    ],
+    "BootSourceOverrideEnabled": "Disabled",
+    "BootSourceOverrideMode": "UEFI",
+    "BootSourceOverrideMode@Redfish.AllowableValues": [
+      "Legacy",
+      "UEFI"
+    ],
+    "BootSourceOverrideTarget": "None",
+    "BootSourceOverrideTarget@Redfish.AllowableValues": [
+      "None",
+      "Pxe",
+      "Hdd",
+      "Cd",
+      "Diags",
+      "BiosSetup",
+      "Usb"
+    ],
+    "RemainingAutomaticRetryAttempts": 3,
+    "StopBootOnFault": "Never",
+    "TrustedModuleRequiredToBoot": "Disabled"
+  },
+  "BootProgress": {
+    "LastState": "None",
+    "LastStateTime": "1970-01-01T00:00:00.000000+00:00"
+  },
+  "Description": "Computer System",
+  "FabricAdapters": {
+    "@odata.id": "/redfish/v1/Systems/system/FabricAdapters"
+  },
+  "Id": "system",
+  "LastResetTime": "1970-01-01T00:00:00+00:00",
+  "Links": {
+    "Chassis": [
+      {
+        "@odata.id": "/redfish/v1/Chassis/system"
+      }
+    ],
+    "ManagedBy": [
+      {
+        "@odata.id": "/redfish/v1/Managers/bmc"
+      }
+    ]
+  },
+  "LocationIndicatorActive": false,
+  "LogServices": {
+    "@odata.id": "/redfish/v1/Systems/system/LogServices"
+  },
+  "Memory": {
+    "@odata.id": "/redfish/v1/Systems/system/Memory"
+  },
+  "MemorySummary": {
+    "TotalSystemMemoryGiB": 0.0
+  },
+  "Name": "system",
+  "PCIeDevices": [],
+  "PCIeDevices@odata.count": 0,
+  "PowerRestorePolicy": "AlwaysOff",
+  "PowerState": "Off",
+  "ProcessorSummary": {
+    "Count": 0
+  },
+  "Processors": {
+    "@odata.id": "/redfish/v1/Systems/system/Processors"
+  },
+  "SerialConsole": {
+    "IPMI": {
+      "ServiceEnabled": true
+    },
+    "MaxConcurrentSessions": 15,
+    "SSH": {
+      "HotKeySequenceDisplay": "Press ~. to exit console",
+      "Port": 2200,
+      "ServiceEnabled": true
+    }
+  },
+  "Status": {
+    "Health": "OK",
+    "State": "Disabled"
+  },
+  "Storage": {
+    "@odata.id": "/redfish/v1/Systems/system/Storage"
+  },
+  "SystemType": "Physical"
+}
+
+>>> Action: Enabling Identify LED (PB13 Blink) <<<
+
+[Test] PATCH Set LocationIndicatorActive=true...
+Payload: {"LocationIndicatorActive": true}
+✓ Patch Success (HTTP 204)
+  "LocationIndicatorActive": true,
+
+>>> Action: Disabling Identify LED (PB13 Off) <<<
+
+[Test] PATCH Set LocationIndicatorActive=false...
+Payload: {"LocationIndicatorActive": false}
+✓ Patch Success (HTTP 204)
+
+[Manual Verification Info]
+To verify physical D-Bus & Sysfs status of the Identify LED during blinking:
+1. SSH into the BMC: ssh root@192.168.0.57 (Password: 0penBmc)
+2. Check D-Bus:      busctl get-property xyz.openbmc_project.LED.Controller /xyz/openbmc_project/led/physical/front_id xyz.openbmc_project.Led.Physical State
+3. Check Kernel trigger: cat /sys/class/leds/front_id/trigger (Should show [timer])
+
+====================================================
+      Real-time Device Status / Logs / Power Tests     
+====================================================
+
+>>> Section: Real-time Access to Device Status <<<
+
+[Test] GET BMC Manager Status...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1/Managers/bmc",
+  "@odata.type": "#Manager.v1_15_0.Manager",
+  "Actions": {
+    "#Manager.Reset": {
+      "@Redfish.ActionInfo": "/redfish/v1/Managers/bmc/ResetActionInfo",
+      "target": "/redfish/v1/Managers/bmc/Actions/Manager.Reset"
+    },
+    "#Manager.ResetToDefaults": {
+      "ResetType@Redfish.AllowableValues": [
+        "ResetAll"
+      ],
+      "target": "/redfish/v1/Managers/bmc/Actions/Manager.ResetToDefaults"
+    }
+  },
+  "DateTime": "2026-06-11T03:14:52+00:00",
+  "DateTimeLocalOffset": "+00:00",
+  "Description": "Baseboard Management Controller",
+  "EthernetInterfaces": {
+    "@odata.id": "/redfish/v1/Managers/bmc/EthernetInterfaces"
+  },
+  "Id": "bmc",
+  "LastResetTime": "2026-06-11T02:55:30+00:00",
+  "Links": {
+    "ManagerForChassis": [
+      {
+        "@odata.id": "/redfish/v1/Chassis/system"
+      }
+    ],
+    "ManagerForChassis@odata.count": 1,
+    "ManagerForServers": [
+      {
+        "@odata.id": "/redfish/v1/Systems/system"
+      }
+    ],
+    "ManagerForServers@odata.count": 1,
+    "ManagerInChassis": {
+      "@odata.id": "/redfish/v1/Chassis/system"
+    }
+  },
+  "LogServices": {
+    "@odata.id": "/redfish/v1/Managers/bmc/LogServices"
+  },
+  "ManagerDiagnosticData": {
+    "@odata.id": "/redfish/v1/Managers/bmc/ManagerDiagnosticData"
+  },
+  "ManagerType": "BMC",
+  "Model": "OpenBmc",
+  "Name": "OpenBmc Manager",
+  "NetworkProtocol": {
+    "@odata.id": "/redfish/v1/Managers/bmc/NetworkProtocol"
+  },
+  "Oem": {
+    "OpenBmc": {
+      "@odata.id": "/redfish/v1/Managers/bmc#/Oem/OpenBmc",
+      "@odata.type": "#OpenBMCManager.v1_0_0.Manager",
+      "Certificates": {
+        "@odata.id": "/redfish/v1/Managers/bmc/Truststore/Certificates"
+      }
+    }
+  },
+  "PowerState": "On",
+  "ServiceEntryPointUUID": "7911ee92-38fc-4111-ab6d-6cd4dddf48d8",
+  "ServiceIdentification": "",
+  "Status": {
+    "Health": "OK",
+    "State": "Starting"
+  },
+  "TimeZoneName": "UTC",
+  "UUID": "d29964d7-117c-40cb-8b17-f8668bf78310"
+}
+
+[Test] Verify BMC key status fields...
+  PowerState:      On
+  Health:          OK
+  FirmwareVersion: N/A
+
+[Test] GET System/Host Status (PowerState, Health)...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1/Systems/system",
+  "@odata.type": "#ComputerSystem.v1_22_0.ComputerSystem",
+  "Actions": {
+    "#ComputerSystem.Reset": {
+      "@Redfish.ActionInfo": "/redfish/v1/Systems/system/ResetActionInfo",
+      "target": "/redfish/v1/Systems/system/Actions/ComputerSystem.Reset"
+    }
+  },
+  "Bios": {
+    "@odata.id": "/redfish/v1/Systems/system/Bios"
+  },
+  "Boot": {
+    "AutomaticRetryAttempts": 3,
+    "AutomaticRetryConfig": "RetryAttempts",
+    "AutomaticRetryConfig@Redfish.AllowableValues": [
+      "Disabled",
+      "RetryAttempts"
+    ],
+    "BootSourceOverrideEnabled": "Disabled",
+    "BootSourceOverrideMode": "UEFI",
+    "BootSourceOverrideMode@Redfish.AllowableValues": [
+      "Legacy",
+      "UEFI"
+    ],
+    "BootSourceOverrideTarget": "None",
+    "BootSourceOverrideTarget@Redfish.AllowableValues": [
+      "None",
+      "Pxe",
+      "Hdd",
+      "Cd",
+      "Diags",
+      "BiosSetup",
+      "Usb"
+    ],
+    "RemainingAutomaticRetryAttempts": 3,
+    "StopBootOnFault": "Never",
+    "TrustedModuleRequiredToBoot": "Disabled"
+  },
+  "BootProgress": {
+    "LastState": "None",
+    "LastStateTime": "1970-01-01T00:00:00.000000+00:00"
+  },
+  "Description": "Computer System",
+  "FabricAdapters": {
+    "@odata.id": "/redfish/v1/Systems/system/FabricAdapters"
+  },
+  "Id": "system",
+  "LastResetTime": "1970-01-01T00:00:00+00:00",
+  "Links": {
+    "Chassis": [
+      {
+        "@odata.id": "/redfish/v1/Chassis/system"
+      }
+    ],
+    "ManagedBy": [
+      {
+        "@odata.id": "/redfish/v1/Managers/bmc"
+      }
+    ]
+  },
+  "LocationIndicatorActive": false,
+  "LogServices": {
+    "@odata.id": "/redfish/v1/Systems/system/LogServices"
+  },
+  "Memory": {
+    "@odata.id": "/redfish/v1/Systems/system/Memory"
+  },
+  "MemorySummary": {
+    "TotalSystemMemoryGiB": 0.0
+  },
+  "Name": "system",
+  "PCIeDevices": [],
+  "PCIeDevices@odata.count": 0,
+  "PowerRestorePolicy": "AlwaysOff",
+  "PowerState": "Off",
+  "ProcessorSummary": {
+    "Count": 0
+  },
+  "Processors": {
+    "@odata.id": "/redfish/v1/Systems/system/Processors"
+  },
+  "SerialConsole": {
+    "IPMI": {
+      "ServiceEnabled": true
+    },
+    "MaxConcurrentSessions": 15,
+    "SSH": {
+      "HotKeySequenceDisplay": "Press ~. to exit console",
+      "Port": 2200,
+      "ServiceEnabled": true
+    }
+  },
+  "Status": {
+    "Health": "OK",
+    "State": "Disabled"
+  },
+  "Storage": {
+    "@odata.id": "/redfish/v1/Systems/system/Storage"
+  },
+  "SystemType": "Physical"
+}
+
+[Test] Verify System key status fields...
+  PowerState: Off
+  Health:     OK
+  State:      Disabled
+
+[Test] GET Chassis ThermalSubsystem...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1/Chassis/system/ThermalSubsystem",
+  "@odata.type": "#ThermalSubsystem.v1_0_0.ThermalSubsystem",
+  "Fans": {
+    "@odata.id": "/redfish/v1/Chassis/system/ThermalSubsystem/Fans"
+  },
+  "Id": "ThermalSubsystem",
+  "Name": "Thermal Subsystem",
+  "Status": {
+    "Health": "OK",
+    "State": "Enabled"
+  },
+  "ThermalMetrics": {
+    "@odata.id": "/redfish/v1/Chassis/system/ThermalSubsystem/ThermalMetrics"
+  }
+}
+
+[Test] GET Chassis PowerSubsystem...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1/Chassis/system/PowerSubsystem",
+  "@odata.type": "#PowerSubsystem.v1_1_0.PowerSubsystem",
+  "Id": "PowerSubsystem",
+  "Name": "Power Subsystem",
+  "PowerSupplies": {
+    "@odata.id": "/redfish/v1/Chassis/system/PowerSubsystem/PowerSupplies"
+  },
+  "Status": {
+    "Health": "OK",
+    "State": "Enabled"
+  }
+}
+
+[Test] GET Chassis Sensor Collection...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1/Chassis/system/Sensors",
+  "@odata.type": "#SensorCollection.SensorCollection",
+  "Description": "Collection of Sensors for this Chassis",
+  "Members": [],
+  "Members@odata.count": 0,
+  "Name": "Sensors"
+}
+
+>>> Section: System Logs <<<
+
+[Test] GET BMC Log Services Collection...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1/Managers/bmc/LogServices",
+  "@odata.type": "#LogServiceCollection.LogServiceCollection",
+  "Description": "Collection of LogServices for this Manager",
+  "Members": [
+    {
+      "@odata.id": "/redfish/v1/Managers/bmc/LogServices/Journal"
+    }
+  ],
+  "Members@odata.count": 1,
+  "Name": "Open BMC Log Services Collection"
+}
+
+[Test] GET BMC Journal Entries (latest 5)...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1/Managers/bmc/LogServices/Journal/Entries",
+  "@odata.type": "#LogEntryCollection.LogEntryCollection",
+  "Description": "Collection of BMC Journal Entries",
+  "Members": [
+    {
+      "@odata.id": "/redfish/v1/Managers/bmc/LogServices/Journal/Entries/cz00ZTM5YWI5MGQ0ZTg0OTdiOGFlNjk2ZTg4ZDhiZDU4MztpPTE7Yj03NDhjYzY1YzBmNGY0ZGQyODJmM2IzNDQ2NjU2NzU1NDttPTJjNTk5ODQ7dD02NGNlOTlmMTNiN2MxO3g9YTgyMmY1YTkxYjJkNWQyNQ==",
+      "@odata.type": "#LogEntry.v1_9_0.LogEntry",
+      "Created": "2026-03-13T15:35:40.224449+00:00",
+      "EntryType": "Oem",
+      "Id": "cz00ZTM5YWI5MGQ0ZTg0OTdiOGFlNjk2ZTg4ZDhiZDU4MztpPTE7Yj03NDhjYzY1YzBmNGY0ZGQyODJmM2IzNDQ2NjU2NzU1NDttPTJjNTk5ODQ7dD02NGNlOTlmMTNiN2MxO3g9YTgyMmY1YTkxYjJkNWQyNQ==",
+      "Message": "kernel: Booting Linux on physical CPU 0x0",
+      "Name": "BMC Journal Entry",
+      "OemRecordFormat": "BMC Journal Entry",
+      "Severity": "OK"
+    },
+    {
+      "@odata.id": "/redfish/v1/Managers/bmc/LogServices/Journal/Entries/cz00ZTM5YWI5MGQ0ZTg0OTdiOGFlNjk2ZTg4ZDhiZDU4MztpPTI7Yj03NDhjYzY1YzBmNGY0ZGQyODJmM2IzNDQ2NjU2NzU1NDttPTJjNmRiYzA7dD02NGNlOTlmMTRmOWZkO3g9MWEwZDgzM2VkZDU2YzdmZg==",
+      "@odata.type": "#LogEntry.v1_9_0.LogEntry",
+      "Created": "2026-03-13T15:35:40.306941+00:00",
+      "EntryType": "Oem",
+      "Id": "cz00ZTM5YWI5MGQ0ZTg0OTdiOGFlNjk2ZTg4ZDhiZDU4MztpPTI7Yj03NDhjYzY1YzBmNGY0ZGQyODJmM2IzNDQ2NjU2NzU1NDttPTJjNmRiYzA7dD02NGNlOTlmMTRmOWZkO3g9MWEwZDgzM2VkZDU2YzdmZg==",
+      "Message": "kernel: Linux version 6.6.93-yocto-s-patch-3d5ac57 (oe-user@oe-host) (arm-openbmc-linux-gnueabi-gcc (GCC) 15.2.0, GNU ld (GNU Binutils) 2.46) #1 PREEMPT Thu Jun  4 05:14:13 UTC 2026",
+      "Name": "BMC Journal Entry",
+      "OemRecordFormat": "BMC Journal Entry",
+      "Severity": "OK"
+    },
+    {
+      "@odata.id": "/redfish/v1/Managers/bmc/LogServices/Journal/Entries/cz00ZTM5YWI5MGQ0ZTg0OTdiOGFlNjk2ZTg4ZDhiZDU4MztpPTM7Yj03NDhjYzY1YzBmNGY0ZGQyODJmM2IzNDQ2NjU2NzU1NDttPTJjNmU0ZTY7dD02NGNlOTlmMTUwMzIzO3g9MTgwODdiYmNiMTc1NzJmNA==",
+      "@odata.type": "#LogEntry.v1_9_0.LogEntry",
+      "Created": "2026-03-13T15:35:40.309283+00:00",
+      "EntryType": "Oem",
+      "Id": "cz00ZTM5YWI5MGQ0ZTg0OTdiOGFlNjk2ZTg4ZDhiZDU4MztpPTM7Yj03NDhjYzY1YzBmNGY0ZGQyODJmM2IzNDQ2NjU2NzU1NDttPTJjNmU0ZTY7dD02NGNlOTlmMTUwMzIzO3g9MTgwODdiYmNiMTc1NzJmNA==",
+      "Message": "kernel: CPU: ARM926EJ-S [41069265] revision 5 (ARMv5TEJ), cr=0005317f",
+      "Name": "BMC Journal Entry",
+      "OemRecordFormat": "BMC Journal Entry",
+      "Severity": "OK"
+    },
+    {
+      "@odata.id": "/redfish/v1/Managers/bmc/LogServices/Journal/Entries/cz00ZTM5YWI5MGQ0ZTg0OTdiOGFlNjk2ZTg4ZDhiZDU4MztpPTQ7Yj03NDhjYzY1YzBmNGY0ZGQyODJmM2IzNDQ2NjU2NzU1NDttPTJjNzE1N2Y7dD02NGNlOTlmMTUzM2JjO3g9YjdlNjNlNjIwZmRkYzVhNw==",
+      "@odata.type": "#LogEntry.v1_9_0.LogEntry",
+      "Created": "2026-03-13T15:35:40.321724+00:00",
+      "EntryType": "Oem",
+      "Id": "cz00ZTM5YWI5MGQ0ZTg0OTdiOGFlNjk2ZTg4ZDhiZDU4MztpPTQ7Yj03NDhjYzY1YzBmNGY0ZGQyODJmM2IzNDQ2NjU2NzU1NDttPTJjNzE1N2Y7dD02NGNlOTlmMTUzM2JjO3g9YjdlNjNlNjIwZmRkYzVhNw==",
+      "Message": "kernel: CPU: VIVT data cache, VIVT instruction cache",
+      "Name": "BMC Journal Entry",
+      "OemRecordFormat": "BMC Journal Entry",
+      "Severity": "OK"
+    },
+    {
+      "@odata.id": "/redfish/v1/Managers/bmc/LogServices/Journal/Entries/cz00ZTM5YWI5MGQ0ZTg0OTdiOGFlNjk2ZTg4ZDhiZDU4MztpPTU7Yj03NDhjYzY1YzBmNGY0ZGQyODJmM2IzNDQ2NjU2NzU1NDttPTJjNzFiZDA7dD02NGNlOTlmMTUzYTE1O3g9N2E1ZWJiZDc5MTBiOGViNQ==",
+      "@odata.type": "#LogEntry.v1_9_0.LogEntry",
+      "Created": "2026-03-13T15:35:40.323349+00:00",
+      "EntryType": "Oem",
+      "Id": "cz00ZTM5YWI5MGQ0ZTg0OTdiOGFlNjk2ZTg4ZDhiZDU4MztpPTU7Yj03NDhjYzY1YzBmNGY0ZGQyODJmM2IzNDQ2NjU2NzU1NDttPTJjNzFiZDA7dD02NGNlOTlmMTUzYTE1O3g9N2E1ZWJiZDc5MTBiOGViNQ==",
+      "Message": "kernel: OF: fdt: Machine model: Nuvoton NUC980 IOT V1.0",
+      "Name": "BMC Journal Entry",
+      "OemRecordFormat": "BMC Journal Entry",
+      "Severity": "OK"
+    }
+  ],
+  "Members@odata.count": 664,
+  "Members@odata.nextLink": "/redfish/v1/Managers/bmc/LogServices/Journal/Entries?$skip=5",
+  "Name": "Open BMC Journal Entries"
+}
+
+[Test] GET System Log Services Collection...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1/Systems/system/LogServices",
+  "@odata.type": "#LogServiceCollection.LogServiceCollection",
+  "Description": "Collection of LogServices for this Computer System",
+  "Members": [
+    {
+      "@odata.id": "/redfish/v1/Systems/system/LogServices/EventLog"
+    }
+  ],
+  "Members@odata.count": 1,
+  "Name": "System Log Services Collection"
+}
+
+[Test] GET System EventLog Entries (latest 5)...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1/Systems/system/LogServices/EventLog/Entries",
+  "@odata.type": "#LogEntryCollection.LogEntryCollection",
+  "Description": "Collection of System Event Log Entries",
+  "Members": [],
+  "Members@odata.count": 0,
+  "Name": "System Event Log Entries"
+}
+
+[Test] GET Event Service Status...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1/EventService",
+  "@odata.type": "#EventService.v1_5_0.EventService",
+  "Actions": {
+    "#EventService.SubmitTestEvent": {
+      "target": "/redfish/v1/EventService/Actions/EventService.SubmitTestEvent"
+    }
+  },
+  "DeliveryRetryAttempts": 3,
+  "DeliveryRetryIntervalSeconds": 30,
+  "EventFormatTypes": [
+    "Event",
+    "MetricReport"
+  ],
+  "Id": "EventService",
+  "Name": "Event Service",
+  "RegistryPrefixes": [
+    "Base",
+    "OpenBMC",
+    "TaskEvent",
+    "HeartbeatEvent"
+  ],
+  "ResourceTypes": [
+    "Task",
+    "Heartbeat"
+  ],
+  "SSEFilterPropertiesSupported": {
+    "EventFormatType": true,
+    "MessageId": true,
+    "MetricReportDefinition": true,
+    "OriginResource": false,
+    "RegistryPrefix": true,
+    "ResourceType": false
+  },
+  "ServerSentEventUri": "/redfish/v1/EventService/SSE",
+  "ServiceEnabled": true,
+  "Status": {
+    "State": "Enabled"
+  },
+  "Subscriptions": {
+    "@odata.id": "/redfish/v1/EventService/Subscriptions"
+  }
+}
+
+>>> Section: Power Controls <<<
+
+[Pre-flight] Ensuring BMC Ready state for power tests...
+BMC not Ready (State: Starting), attempting SSH fix...
+  BMC State: Starting
+  Applied power service stubs via SSH
+
+[Test] GET Chassis Power State (before action)...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1/Chassis/system",
+  "@odata.type": "#Chassis.v1_22_0.Chassis",
+  "Actions": {
+    "#Chassis.Reset": {
+      "@Redfish.ActionInfo": "/redfish/v1/Chassis/system/ResetActionInfo",
+      "target": "/redfish/v1/Chassis/system/Actions/Chassis.Reset"
+    }
+  },
+  "Assembly": {
+    "@odata.id": "/redfish/v1/Chassis/system/Assembly"
+  },
+  "ChassisType": "RackMount",
+  "EnvironmentMetrics": {
+    "@odata.id": "/redfish/v1/Chassis/system/EnvironmentMetrics"
+  },
+  "Id": "system",
+  "Links": {
+    "ComputerSystems": [
+      {
+        "@odata.id": "/redfish/v1/Systems/system"
+      }
+    ],
+    "ManagedBy": [
+      {
+        "@odata.id": "/redfish/v1/Managers/bmc"
+      }
+    ]
+  },
+  "LocationIndicatorActive": false,
+  "Name": "system",
+  "NetworkAdapters": {
+    "@odata.id": "/redfish/v1/Chassis/system/NetworkAdapters"
+  },
+  "PowerState": "Off",
+  "PowerSubsystem": {
+    "@odata.id": "/redfish/v1/Chassis/system/PowerSubsystem"
+  },
+  "Sensors": {
+    "@odata.id": "/redfish/v1/Chassis/system/Sensors"
+  },
+  "Status": {
+    "State": "StandbyOffline"
+  },
+  "ThermalSubsystem": {
+    "@odata.id": "/redfish/v1/Chassis/system/ThermalSubsystem"
+  }
+}
+
+>>> Action: Request Host Power On <<<
+
+[Test] POST Host Power On...
+Payload: {"ResetType": "On"}
+✗ POST Failed! HTTP Code: 503
+{
+  "error": {
+    "@Message.ExtendedInfo": [
+      {
+        "@odata.type": "#Message.v1_1_1.Message",
+        "Message": "The service is temporarily unavailable.  Retry in 10 seconds.",
+        "MessageArgs": [
+          "10"
+        ],
+        "MessageId": "Base.1.19.ServiceTemporarilyUnavailable",
+        "MessageSeverity": "Critical",
+        "Resolution": "Wait for the indicated retry duration and retry the operation."
+      }
+    ],
+    "code": "Base.1.19.ServiceTemporarilyUnavailable",
+    "message": "The service is temporarily unavailable.  Retry in 10 seconds."
+  }
+}
+
+[Test] GET Verify Host PowerState after Power On...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1/Systems/system",
+  "@odata.type": "#ComputerSystem.v1_22_0.ComputerSystem",
+  "Actions": {
+    "#ComputerSystem.Reset": {
+      "@Redfish.ActionInfo": "/redfish/v1/Systems/system/ResetActionInfo",
+      "target": "/redfish/v1/Systems/system/Actions/ComputerSystem.Reset"
+    }
+  },
+  "Bios": {
+    "@odata.id": "/redfish/v1/Systems/system/Bios"
+  },
+  "Boot": {
+    "AutomaticRetryAttempts": 3,
+    "AutomaticRetryConfig": "RetryAttempts",
+    "AutomaticRetryConfig@Redfish.AllowableValues": [
+      "Disabled",
+      "RetryAttempts"
+    ],
+    "BootSourceOverrideEnabled": "Disabled",
+    "BootSourceOverrideMode": "UEFI",
+    "BootSourceOverrideMode@Redfish.AllowableValues": [
+      "Legacy",
+      "UEFI"
+    ],
+    "BootSourceOverrideTarget": "None",
+    "BootSourceOverrideTarget@Redfish.AllowableValues": [
+      "None",
+      "Pxe",
+      "Hdd",
+      "Cd",
+      "Diags",
+      "BiosSetup",
+      "Usb"
+    ],
+    "RemainingAutomaticRetryAttempts": 3,
+    "StopBootOnFault": "Never",
+    "TrustedModuleRequiredToBoot": "Disabled"
+  },
+  "BootProgress": {
+    "LastState": "None",
+    "LastStateTime": "1970-01-01T00:00:00.000000+00:00"
+  },
+  "Description": "Computer System",
+  "FabricAdapters": {
+    "@odata.id": "/redfish/v1/Systems/system/FabricAdapters"
+  },
+  "Id": "system",
+  "LastResetTime": "1970-01-01T00:00:00+00:00",
+  "Links": {
+    "Chassis": [
+      {
+        "@odata.id": "/redfish/v1/Chassis/system"
+      }
+    ],
+    "ManagedBy": [
+      {
+        "@odata.id": "/redfish/v1/Managers/bmc"
+      }
+    ]
+  },
+  "LocationIndicatorActive": false,
+  "LogServices": {
+    "@odata.id": "/redfish/v1/Systems/system/LogServices"
+  },
+  "Memory": {
+    "@odata.id": "/redfish/v1/Systems/system/Memory"
+  },
+  "MemorySummary": {
+    "TotalSystemMemoryGiB": 0.0
+  },
+  "Name": "system",
+  "PCIeDevices": [],
+  "PCIeDevices@odata.count": 0,
+  "PowerRestorePolicy": "AlwaysOff",
+  "PowerState": "Off",
+  "ProcessorSummary": {
+    "Count": 0
+  },
+  "Processors": {
+    "@odata.id": "/redfish/v1/Systems/system/Processors"
+  },
+  "SerialConsole": {
+    "IPMI": {
+      "ServiceEnabled": true
+    },
+    "MaxConcurrentSessions": 15,
+    "SSH": {
+      "HotKeySequenceDisplay": "Press ~. to exit console",
+      "Port": 2200,
+      "ServiceEnabled": true
+    }
+  },
+  "Status": {
+    "Health": "OK",
+    "State": "Disabled"
+  },
+  "Storage": {
+    "@odata.id": "/redfish/v1/Systems/system/Storage"
+  },
+  "SystemType": "Physical"
+}
+
+>>> Action: Request Host ForceOff <<<
+
+[Test] POST Host ForceOff...
+Payload: {"ResetType": "ForceOff"}
+✗ POST Failed! HTTP Code: 500
+{
+  "error": {
+    "@Message.ExtendedInfo": [
+      {
+        "@odata.type": "#Message.v1_1_1.Message",
+        "Message": "The request failed due to an internal service error.  The service is still operational.",
+        "MessageArgs": [],
+        "MessageId": "Base.1.19.InternalError",
+        "MessageSeverity": "Critical",
+        "Resolution": "Resubmit the request.  If the problem persists, consider resetting the service."
+      }
+    ],
+    "code": "Base.1.19.InternalError",
+    "message": "The request failed due to an internal service error.  The service is still operational."
+  }
+}
+
+[Test] GET Verify Host PowerState after ForceOff...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1/Systems/system",
+  "@odata.type": "#ComputerSystem.v1_22_0.ComputerSystem",
+  "Actions": {
+    "#ComputerSystem.Reset": {
+      "@Redfish.ActionInfo": "/redfish/v1/Systems/system/ResetActionInfo",
+      "target": "/redfish/v1/Systems/system/Actions/ComputerSystem.Reset"
+    }
+  },
+  "Bios": {
+    "@odata.id": "/redfish/v1/Systems/system/Bios"
+  },
+  "Boot": {
+    "AutomaticRetryAttempts": 3,
+    "AutomaticRetryConfig": "RetryAttempts",
+    "AutomaticRetryConfig@Redfish.AllowableValues": [
+      "Disabled",
+      "RetryAttempts"
+    ],
+    "BootSourceOverrideEnabled": "Disabled",
+    "BootSourceOverrideMode": "UEFI",
+    "BootSourceOverrideMode@Redfish.AllowableValues": [
+      "Legacy",
+      "UEFI"
+    ],
+    "BootSourceOverrideTarget": "None",
+    "BootSourceOverrideTarget@Redfish.AllowableValues": [
+      "None",
+      "Pxe",
+      "Hdd",
+      "Cd",
+      "Diags",
+      "BiosSetup",
+      "Usb"
+    ],
+    "RemainingAutomaticRetryAttempts": 3,
+    "StopBootOnFault": "Never",
+    "TrustedModuleRequiredToBoot": "Disabled"
+  },
+  "BootProgress": {
+    "LastState": "None",
+    "LastStateTime": "1970-01-01T00:00:00.000000+00:00"
+  },
+  "Description": "Computer System",
+  "FabricAdapters": {
+    "@odata.id": "/redfish/v1/Systems/system/FabricAdapters"
+  },
+  "Id": "system",
+  "LastResetTime": "1970-01-01T00:00:00+00:00",
+  "Links": {
+    "Chassis": [
+      {
+        "@odata.id": "/redfish/v1/Chassis/system"
+      }
+    ],
+    "ManagedBy": [
+      {
+        "@odata.id": "/redfish/v1/Managers/bmc"
+      }
+    ]
+  },
+  "LocationIndicatorActive": false,
+  "LogServices": {
+    "@odata.id": "/redfish/v1/Systems/system/LogServices"
+  },
+  "Memory": {
+    "@odata.id": "/redfish/v1/Systems/system/Memory"
+  },
+  "MemorySummary": {
+    "TotalSystemMemoryGiB": 0.0
+  },
+  "Name": "system",
+  "PCIeDevices": [],
+  "PCIeDevices@odata.count": 0,
+  "PowerRestorePolicy": "AlwaysOff",
+  "PowerState": "Off",
+  "ProcessorSummary": {
+    "Count": 0
+  },
+  "Processors": {
+    "@odata.id": "/redfish/v1/Systems/system/Processors"
+  },
+  "SerialConsole": {
+    "IPMI": {
+      "ServiceEnabled": true
+    },
+    "MaxConcurrentSessions": 15,
+    "SSH": {
+      "HotKeySequenceDisplay": "Press ~. to exit console",
+      "Port": 2200,
+      "ServiceEnabled": true
+    }
+  },
+  "Status": {
+    "Health": "OK",
+    "State": "Disabled"
+  },
+  "Storage": {
+    "@odata.id": "/redfish/v1/Systems/system/Storage"
+  },
+  "SystemType": "Physical"
+}
+
+>>> Action: Request Host ForceRestart <<<
+
+[Test] POST Host ForceRestart...
+Payload: {"ResetType": "ForceRestart"}
+✗ POST Failed! HTTP Code: 503
+{
+  "error": {
+    "@Message.ExtendedInfo": [
+      {
+        "@odata.type": "#Message.v1_1_1.Message",
+        "Message": "The service is temporarily unavailable.  Retry in 10 seconds.",
+        "MessageArgs": [
+          "10"
+        ],
+        "MessageId": "Base.1.19.ServiceTemporarilyUnavailable",
+        "MessageSeverity": "Critical",
+        "Resolution": "Wait for the indicated retry duration and retry the operation."
+      }
+    ],
+    "code": "Base.1.19.ServiceTemporarilyUnavailable",
+    "message": "The service is temporarily unavailable.  Retry in 10 seconds."
+  }
+}
+
+[Test] GET Verify Host PowerState after ForceRestart...
+✓ Success (HTTP 200)
+{
+  "@odata.id": "/redfish/v1/Systems/system",
+  "@odata.type": "#ComputerSystem.v1_22_0.ComputerSystem",
+  "Actions": {
+    "#ComputerSystem.Reset": {
+      "@Redfish.ActionInfo": "/redfish/v1/Systems/system/ResetActionInfo",
+      "target": "/redfish/v1/Systems/system/Actions/ComputerSystem.Reset"
+    }
+  },
+  "Bios": {
+    "@odata.id": "/redfish/v1/Systems/system/Bios"
+  },
+  "Boot": {
+    "AutomaticRetryAttempts": 3,
+    "AutomaticRetryConfig": "RetryAttempts",
+    "AutomaticRetryConfig@Redfish.AllowableValues": [
+      "Disabled",
+      "RetryAttempts"
+    ],
+    "BootSourceOverrideEnabled": "Disabled",
+    "BootSourceOverrideMode": "UEFI",
+    "BootSourceOverrideMode@Redfish.AllowableValues": [
+      "Legacy",
+      "UEFI"
+    ],
+    "BootSourceOverrideTarget": "None",
+    "BootSourceOverrideTarget@Redfish.AllowableValues": [
+      "None",
+      "Pxe",
+      "Hdd",
+      "Cd",
+      "Diags",
+      "BiosSetup",
+      "Usb"
+    ],
+    "RemainingAutomaticRetryAttempts": 3,
+    "StopBootOnFault": "Never",
+    "TrustedModuleRequiredToBoot": "Disabled"
+  },
+  "BootProgress": {
+    "LastState": "None",
+    "LastStateTime": "1970-01-01T00:00:00.000000+00:00"
+  },
+  "Description": "Computer System",
+  "FabricAdapters": {
+    "@odata.id": "/redfish/v1/Systems/system/FabricAdapters"
+  },
+  "Id": "system",
+  "LastResetTime": "1970-01-01T00:00:00+00:00",
+  "Links": {
+    "Chassis": [
+      {
+        "@odata.id": "/redfish/v1/Chassis/system"
+      }
+    ],
+    "ManagedBy": [
+      {
+        "@odata.id": "/redfish/v1/Managers/bmc"
+      }
+    ]
+  },
+  "LocationIndicatorActive": false,
+  "LogServices": {
+    "@odata.id": "/redfish/v1/Systems/system/LogServices"
+  },
+  "Memory": {
+    "@odata.id": "/redfish/v1/Systems/system/Memory"
+  },
+  "MemorySummary": {
+    "TotalSystemMemoryGiB": 0.0
+  },
+  "Name": "system",
+  "PCIeDevices": [],
+  "PCIeDevices@odata.count": 0,
+  "PowerRestorePolicy": "AlwaysOff",
+  "PowerState": "Off",
+  "ProcessorSummary": {
+    "Count": 0
+  },
+  "Processors": {
+    "@odata.id": "/redfish/v1/Systems/system/Processors"
+  },
+  "SerialConsole": {
+    "IPMI": {
+      "ServiceEnabled": true
+    },
+    "MaxConcurrentSessions": 15,
+    "SSH": {
+      "HotKeySequenceDisplay": "Press ~. to exit console",
+      "Port": 2200,
+      "ServiceEnabled": true
+    }
+  },
+  "Status": {
+    "Health": "OK",
+    "State": "Disabled"
+  },
+  "Storage": {
+    "@odata.id": "/redfish/v1/Systems/system/Storage"
+  },
+  "SystemType": "Physical"
+}
+
+[Test] Query supported ResetType values...
+{
+  "@Redfish.ActionInfo": "/redfish/v1/Systems/system/ResetActionInfo",
+  "target": "/redfish/v1/Systems/system/Actions/ComputerSystem.Reset"
+}
+
+====================================================
+Integration Test Script Finished!
+====================================================

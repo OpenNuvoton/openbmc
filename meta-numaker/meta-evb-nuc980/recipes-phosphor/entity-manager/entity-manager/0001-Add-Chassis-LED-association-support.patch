@@ -1,0 +1,49 @@
+From 3e436baf127d04dcc930d72c3d7f56045213cc6a Mon Sep 17 00:00:00 2001
+From: Wayne <wayne@wayne-desktop>
+Date: Mon, 1 Jun 2026 15:30:00 +0800
+Subject: [PATCH] Add Chassis LED association support dynamically
+
+This patch automatically registers the enclosure_identify LED association
+for any Chassis device instantiated by EntityManager.
+
+Upstream-Status: Inappropriate [board specific]
+Signed-off-by: Wayne <wayne@wayne-desktop>
+---
+diff --git a/src/entity_manager/entity_manager.cpp b/src/entity_manager/entity_manager.cpp
+index 3d104108d..aa8d8330e 100644
+--- a/src/entity_manager/entity_manager.cpp
++++ b/src/entity_manager/entity_manager.cpp
+@@ -95,6 +95,7 @@ void EntityManager::postToDbus(const nlohmann::json& newConfiguration)
+         postBoardToDBus(boardId, *boardConfigPtr, newBoards);
+     }
+ 
++    std::set<std::string> registeredAssocs;
+     for (const auto& [assocPath, assocPropValue] :
+          topology.getAssocs(std::views::keys(newBoards)))
+     {
+@@ -112,6 +113,26 @@ void EntityManager::postToDbus(const nlohmann::json& newConfiguration)
+ 
+         ifacePtr->register_property("Associations", assocPropValue);
+         dbus_interface::tryIfaceInitialize(ifacePtr);
++        registeredAssocs.insert(assocPath);
++    }
++
++    for (const auto& [boardPath, boardService] : newBoards)
++    {
++        if (boardPath.find("/chassis/") != std::string::npos &&
++            registeredAssocs.find(boardPath) == registeredAssocs.end())
++        {
++            auto ifacePtr = dbus_interface.createInterface(
++                boardPath,
++                sdbusplus::common::xyz::openbmc_project::association::Definitions::
++                    interface,
++                boardService);
++
++            std::set<Association> myAssoc = {
++                {"identifying", "probed_by", "/xyz/openbmc_project/led/groups/enclosure_identify"}
++            };
++            ifacePtr->register_property("Associations", myAssoc);
++            dbus_interface::tryIfaceInitialize(ifacePtr);
++        }
+     }
+ }

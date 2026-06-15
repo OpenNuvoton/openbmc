@@ -1,0 +1,332 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Device Tree Source for NUC980 IoT Board — OpenBMC configuration
+ *
+ * Based on nuc980-iot-g2-v1.0.dts with BMC-specific customisations:
+ *   - SPI-NAND partitions sized for OpenBMC (u-boot/env/kernel/rofs/rwfs)
+ *   - GPIO LEDs on PB13 (front_id) and PG15 (power)
+ *   - Pinctrl: PD12/PD13/PF9/PF10 set to GPIO mode for x86-power-control
+ *   - UART1 reduced to TX/RX only (frees PF9/PF10)
+ *   - UART4 removed from PD pins (frees PD12/PD13)
+ *   - gpio-line-names for libgpiod (POWER_OUT, RESET_OUT, PS_PWROK, POST_COMPLETE)
+ *   - 128MB RAM
+ *
+ * Copyright (C) 2024 Nuvoton Technology Corp.
+ */
+/dts-v1/;
+#include <dt-bindings/gpio/gpio.h>
+#include "nuc980.dtsi"
+
+/ {
+	model = "Nuvoton NUC980 IoT OpenBMC";
+	compatible = "nuvoton,nuc980-dev-v1.0", "nuvoton,nuc980";
+
+	chosen {
+		bootargs = "root=/dev/ram0 console=ttyS0,115200n8 rdinit=/sbin/init mem=128M lpj=744448";
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		front_id {
+			label = "front_id";
+			gpios = <&gpio 0x2D GPIO_ACTIVE_LOW>; /* PB13 = 1*32+13 = 0x2D */
+			default-state = "off";
+		};
+
+		power {
+			label = "power";
+			gpios = <&gpio 0xCF GPIO_ACTIVE_LOW>; /* PG15 = 6*32+15 = 0xCF */
+			default-state = "on";
+		};
+	};
+
+	apb {
+		/* UART1: disabled to free PF7-PF10 */
+		uart1: serial@b0071000 {
+			pinctrl-0 = <>;
+			status = "disabled";
+		};
+
+		uart2: serial@b0072000 {
+			status = "disabled";
+		};
+
+		uart3: serial@b0073000 {
+			status = "disabled";
+		};
+
+		/* UART4: disable and remove PD pinctrl (frees PD12/PD13) */
+		uart4: serial@b0074000 {
+			pinctrl-names = "default";
+			pinctrl-0 = <>;
+			status = "disabled";
+		};
+
+		uart5: serial@b0075000 {
+			status = "disabled";
+		};
+
+		uart6: serial@b0076000 {
+			status = "disabled";
+		};
+
+		uart7: serial@b0077000 {
+			status = "disabled";
+		};
+
+		uart8: serial@b0078000 {
+			status = "disabled";
+		};
+
+		uart9: serial@b0079000 {
+			status = "disabled";
+		};
+
+		can0: can@b00a0000 {
+			status = "disabled";
+		};
+
+		can1: can@b00a1000 {
+			status = "disabled";
+		};
+
+		can2: can@b00a2000 {
+			status = "disabled";
+		};
+
+		can3: can@b00a3000 {
+			status = "disabled";
+		};
+
+		rtc: rtc@b0041000 {
+			status = "disabled";
+		};
+
+		nadc: nadc@b0043000 {
+			status = "disabled";
+		};
+
+		pwm0: pwm@b0058000 {
+			status = "disabled";
+		};
+
+		pwm1: pwm@b0059000 {
+			status = "disabled";
+		};
+
+		pinctrl: pinctrl@b0000000 {
+			/* QSPI0 quad-mode pins (PD2-PD7) */
+			qspi0 {
+				pinctrl_qspi0_quad: qspi0_quad {
+					nuvoton,pins =
+						<3 0x2 0x1 0
+						 3 0x3 0x1 0
+						 3 0x4 0x1 0
+						 3 0x5 0x1 0
+						 3 0x6 0x1 0
+						 3 0x7 0x1 0
+						>;
+				};
+			};
+		};
+
+		qspi0: spi@b0060000 {
+			status = "okay";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&pinctrl_qspi0_quad>;
+			num_cs  = <2>;
+			lsb     = <0>;
+			txneg   = <1>;
+			rxneg   = <0>;
+			clkpol  = <0>;
+			divider = <4>;
+			sleep   = <0>;
+			txnum   = <0>;
+			txbitlen = <8>;
+			bus_num = <0>;
+
+			flash: flash@0 {
+				compatible = "spi-nand";
+				#address-cells = <1>;
+				#size-cells = <1>;
+				reg = <0>;
+				spi-max-frequency = <30000000>;
+				spi-rx-bus-width = <4>;
+				spi-tx-bus-width = <1>;
+
+				/* OpenBMC partition layout for 128MB SPI-NAND */
+				partition@0 {
+					label = "u-boot";
+					reg = <0x00000000 0x00100000>; /* 1MB */
+				};
+				partition@1 {
+					label = "u-boot-env";
+					reg = <0x00100000 0x00080000>; /* 512KB */
+				};
+				partition@2 {
+					label = "kernel";
+					reg = <0x00180000 0x00680000>; /* ~6.5MB */
+				};
+				partition@3 {
+					label = "rofs";
+					reg = <0x00800000 0x03000000>; /* 48MB */
+				};
+				partition@4 {
+					label = "rwfs";
+					reg = <0x03800000 0x04800000>; /* 72MB */
+				};
+			};
+		};
+
+		spi0: spi@b0061000 {
+			status = "okay";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			num_cs  = <2>;
+			lsb     = <0>;
+			txneg   = <1>;
+			rxneg   = <0>;
+			clkpol  = <0>;
+			divider = <4>;
+			sleep   = <0>;
+			txnum   = <0>;
+			txbitlen = <8>;
+			bus_num = <1>;
+		};
+
+		spi1: spi@b0062000 {
+			status = "disabled";
+		};
+
+		etimer0: etimer0@b0050000 {
+			status = "disabled";
+		};
+
+		etimer1: etimer1@b0050100 {
+			status = "disabled";
+		};
+
+		etimer2: etimer2@b0051000 {
+			status = "disabled";
+		};
+
+		etimer3: etimer3@b0051100 {
+			status = "disabled";
+		};
+
+		i2c0: i2c0@b0080000 {
+			status = "okay";
+		};
+
+		i2c1: i2c1@b0081000 {
+			status = "disabled";
+			pinctrl-0 = <&pinctrl_i2c1_PB>;
+		};
+
+		i2c2: i2c2@b0082000 {
+			status = "okay";
+			pinctrl-0 = <&pinctrl_i2c2_PB>;
+		};
+
+		i2c3: i2c3@b0083000 {
+			status = "disabled";
+		};
+	};
+
+	ahb {
+		usbh_ehci@b0015000 {
+			status = "disabled";
+		};
+
+		usbh_ohci@b0017000 {
+			status = "disabled";
+		};
+
+		usbdev@b0016000 {
+			status = "disabled";
+		};
+
+		fmi@b0019000 {
+			status = "disabled";
+		};
+
+		sdh@b0018000 {
+			status = "disabled";
+		};
+
+		emac0@b0012000 {
+			status = "okay";
+		};
+
+		emac1@b0022000 {
+			status = "disabled";
+		};
+
+		cap0@b0024000 {
+			status = "disabled";
+		};
+
+		cap1@b0014000 {
+			status = "disabled";
+		};
+
+		dma@b0008000 {
+			status = "okay";
+		};
+
+		i2s: i2s@b0020000 {
+			status = "disabled";
+		};
+
+		ebi: ebi@b0010000 {
+			status = "disabled";
+		};
+	};
+};
+
+/*
+ * Override nodes defined in nuc980.dtsi using label references.
+ * This avoids patching the dtsi directly.
+ */
+
+/* Set PD12/PD13/PF9/PF10/PB13/PG15 to GPIO mode (func=0) */
+&pinctrl_gpio {
+	nuvoton,pins =
+		<3 12 0 0	/* PD12 → GPIO (POWER_OUT)      */
+		 3 13 0 0	/* PD13 → GPIO (RESET_OUT)      */
+		 5  9 0 0	/* PF9  → GPIO (PS_PWROK)       */
+		 5 10 0 0	/* PF10 → GPIO (POST_COMPLETE)  */
+		 1 13 0 0	/* PB13 → GPIO (front_id LED)   */
+		 6 15 0 0	/* PG15 → GPIO (power LED)      */
+		>;
+};
+
+/* Add gpio-line-names so libgpiod/x86-power-control can find pins by name */
+&gpio {
+	gpio-line-names =
+		/* PA0-PA15, padding to 32 */
+		"","","","","","","","","","","","","","","","",
+		"","","","","","","","","","","","","","","","",
+		/* PB0-PB15, padding to 32 */
+		"","","","","","","","","","","","","","","","",
+		"","","","","","","","","","","","","","","","",
+		/* PC0-PC15, padding to 32 */
+		"","","","","","","","","","","","","","","","",
+		"","","","","","","","","","","","","","","","",
+		/* PD0-PD11 */
+		"","","","","","","","","","","","",
+		/* PD12-PD13: x86-power-control */
+		"POWER_OUT","RESET_OUT",
+		/* PD14-PD15, padding to 32 */
+		"","","","","","","","","","","","","","","","","","",
+		/* PE0-PE15, padding to 32 */
+		"","","","","","","","","","","","","","","","",
+		"","","","","","","","","","","","","","","","",
+		/* PF0-PF8 */
+		"","","","","","","","","",
+		/* PF9-PF10: x86-power-control */
+		"PS_PWROK","POST_COMPLETE";
+};

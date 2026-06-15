@@ -1,0 +1,62 @@
+From f1a78b31a89735d4cc22f092f6ce19e35aa09f0f Mon Sep 17 00:00:00 2001
+From: Wayne <wclin@nuvoton.com>
+Date: Tue, 2 Jun 2026 19:30:00 +0800
+Subject: [PATCH] add-led-action: implement retry logic for D-Bus call to avoid race conditions
+Upstream-Status: Inappropriate [workaround]
+Signed-off-by: Wayne <wclin@nuvoton.com>
+
+--- a/add_led_action.cpp
++++ b/add_led_action.cpp
+@@ -5,6 +5,8 @@
+ #include <sdbusplus/bus.hpp>
+ 
+ #include <filesystem>
++#include <thread>
++#include <chrono>
+ 
+ static constexpr auto devPath = "/sys/class/leds/";
+ 
+@@ -38,19 +40,30 @@
+ void addLed(std::string ledName)
+ {
+     lg2::debug("Adding LED name - {LEDNAME}", "LEDNAME", ledName);
+-    try
+-    {
+-        auto bus = sdbusplus::bus::new_default();
+-        auto method = bus.new_method_call(busName, ledPath, internalInterface,
+-                                          ledAddMethod);
+-
+-        method.append(ledName);
+-        bus.call(method);
+-    }
+-    catch (const std::exception& e)
+-    {
+-        lg2::error("Unable to add LED name - {LEDNAME}", "LEDNAME", ledName);
+-        throw e;
++    int retries = 15;
++    while (retries > 0)
++    {
++        try
++        {
++            auto bus = sdbusplus::bus::new_default();
++            auto method = bus.new_method_call(busName, ledPath, internalInterface,
++                                              ledAddMethod);
++
++            method.append(ledName);
++            bus.call(method);
++            return; // Success!
++        }
++        catch (const std::exception& e)
++        {
++            retries--;
++            if (retries == 0)
++            {
++                lg2::error("Unable to add LED name - {LEDNAME} after retries", "LEDNAME", ledName);
++                throw e;
++            }
++            lg2::warning("D-Bus call failed for {LEDNAME}, retrying in 1 second... ({RETRIES} left)", "LEDNAME", ledName, "RETRIES", retries);
++            std::this_thread::sleep_for(std::chrono::seconds(1));
++        }
+     }
+ }
+ 

@@ -1,0 +1,33 @@
+PREFERRED_PROVIDER_virtual/kernel ?= "linux-nuc980"
+PREFERRED_VERSION_linux-nuc980 ?= "6.6%"
+PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot-nuc980"
+PREFERRED_PROVIDER_u-boot ?= "u-boot-nuc980"
+
+# NUC980 is ARM926EJ-S
+DEFAULTTUNE ?= "arm926ejs"
+
+IMAGE_FSTYPES += "ubi ubifs"
+
+# UBI/UBIFS parameters for 128MB SPI NAND (2048 page, 128KB PEB)
+MKUBIFS_ARGS = "-m 2048 -e 126976 -c 920 -x lzo -F"
+UBINIZE_ARGS = "-m 2048 -p 131072 -s 2048"
+UBI_VOLNAME = "rootfs"
+
+# Flash layout for 128MB SPI NAND
+# 0x000000 - 0x080000: U-Boot SPL (512KB)
+# 0x080000 - 0x100000: U-Boot Env (512KB)
+# 0x100000 - 0x800000: Kernel + DTB (7MB)
+# 0x800000 - 0x8000000: RootFS UBI (120MB)
+
+FLASH_UBOOT_OFFSET = "0"
+FLASH_UBOOT_ENV_OFFSET = "1024"
+FLASH_KERNEL_OFFSET = "1536" 
+FLASH_ROFS_OFFSET = "6144"
+FLASH_RWFS_OFFSET = "29696"
+FLASH_SIZE = "32768"
+
+SERIAL_CONSOLES = "115200;ttyS0"
+
+MACHINEOVERRIDES .= ":nuc980"
+
+require conf/machine/include/arm/armv5/tune-arm926ejs.inc

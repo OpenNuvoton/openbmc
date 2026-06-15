@@ -1,0 +1,18 @@
+# NUC980 has no host power control hardware.
+# Skip the mapper-wait and just mark power as stopped.
+[Unit]
+Description=Start Power Off for Chassis%i (NUC980: stub)
+Wants=obmc-power-stop@%i.target
+Before=obmc-power-stop@%i.target
+Wants=obmc-power-stop-pre@%i.target
+After=obmc-power-stop-pre@%i.target
+Conflicts=obmc-chassis-poweron@%i.target
+
+[Service]
+RemainAfterExit=yes
+Type=oneshot
+ExecStart=/bin/sh -c "rm -f /run/openbmc/chassis@%i-on"
+SyslogIdentifier=obmc-power-stop
+
+[Install]
+# Handled by bitbake recipe
