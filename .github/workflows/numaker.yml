@@ -25,32 +25,21 @@ jobs:
     runs-on: self-hosted
     steps:
     - uses: actions/checkout@v2
-    - name: Clone source code
-      run: |
-        git clone ${{github.event.inputs.git-address}} /opt/openbmc
-        cd /opt/openbmc
 
-    - name: Install packages
-      run: |
-        sudo apt-get update
-        sudo apt-get upgrade
-        sudo apt-get install -y git gcc g++ make file wget gawk diffstat bzip2 cpio chrpath zstd lz4 bzip2
-    
+    #- name: Install packages
+    #  run: |
+        #sudo apt-get update
+        #sudo apt-get upgrade
+        #sudo apt-get install -y git gcc g++ make file wget gawk diffstat bzip2 cpio chrpath zstd lz4 bzip2
+
     - name: Bulid
       run: |
-
-        cd /opt/openbmc
-        mkdir /opt/firmware
-
-        git checkout ${{github.event.inputs.branches-tags}}
-        
-        git pull origin ${{github.event.inputs.branches-tags}}
 
         sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
         TEMPLATECONF=meta-numaker/${{github.event.inputs.machine}}/conf/templates/default source oe-init-build-env build-nuc980
 
         bitbake ${{github.event.inputs.target}} --runall=fetch
-        
+
         bitbake ${{github.event.inputs.target}}
 
     #- name : Upload buildroot-${{github.event.inputs.branches-tags}}-${{github.event.inputs.board}}
