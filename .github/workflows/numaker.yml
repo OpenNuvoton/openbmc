@@ -34,7 +34,7 @@ jobs:
 
     - name: Bulid
       run: |
-        sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+        #sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
         TEMPLATECONF=meta-numaker/${{github.event.inputs.machine}}/conf/templates/default source oe-init-build-env build-nuc980
         bitbake ${{github.event.inputs.target}} --runall=fetch
         bitbake ${{github.event.inputs.target}}
