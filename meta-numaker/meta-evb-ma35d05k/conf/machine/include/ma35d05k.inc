@@ -1,13 +1,13 @@
 #@TYPE: Machine Include
-#@NAME: Nuvoton MA35D0
-#@DESCRIPTION: Common machine settings for Nuvoton MA35D0 SoC (Cortex-A35)
+#@NAME: Nuvoton MA35D0K5
+#@DESCRIPTION: Common machine settings for Nuvoton MA35D0K5 SoC (Cortex-A35)
 
-PREFERRED_PROVIDER_virtual/kernel ?= "linux-ma35d0"
-PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot-ma35d0"
-PREFERRED_PROVIDER_u-boot ?= "u-boot-ma35d0"
-PREFERRED_PROVIDER_virtual/trusted-firmware-a ?= "tf-a-ma35d0"
+PREFERRED_PROVIDER_virtual/kernel ?= "linux-ma35d05k"
+PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot-ma35d05k"
+PREFERRED_PROVIDER_u-boot ?= "u-boot-ma35d05k"
+PREFERRED_PROVIDER_virtual/trusted-firmware-a ?= "tf-a-ma35d05k"
 
-# MA35D0 is a dual Cortex-A35
+# MA35D0K5 is a dual Cortex-A35
 DEFAULTTUNE ?= "cortexa35-crypto"
 require conf/machine/include/arm/armv8a/tune-cortexa35.inc
 
@@ -40,4 +40,4 @@ SERIAL_CONSOLES = "115200;ttyS0"
 UBOOT_ENTRYPOINT = "0x80E00000"
 UBOOT_LOADADDRESS = "0x80E00000"
 
-MACHINEOVERRIDES .= ":ma35d0"
+MACHINEOVERRIDES .= ":ma35d05k"

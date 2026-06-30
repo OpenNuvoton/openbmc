@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       machine:
-        description: 'machine (nuc980,ma35d0)'
+        description: 'machine (nuc980,ma35d0,ma35d05k)'
         required: true
         default: 'nuc980'
 

@@ -1,8 +1,8 @@
 # Copyright 2025 Nuvoton
 # Released under the MIT license (see COPYING.MIT for the terms)
 
-SUMMARY = "Linux Kernel for Nuvoton MA35D0"
-DESCRIPTION = "Linux Kernel provided and supported by Nuvoton for MA35D0 SoC (OpenBMC)"
+SUMMARY = "Linux Kernel for Nuvoton MA35D0K5"
+DESCRIPTION = "Linux Kernel provided and supported by Nuvoton for MA35D0K5 SoC (OpenBMC)"
 
 inherit kernel
 
@@ -14,9 +14,9 @@ KERNEL_EXTRA_ARGS += "LOADADDR=${MA35D0_KERNEL_LOADADDR}"
 
 KERNEL_SRC ?= "git://github.com/OpenNuvoton/MA35D1_linux-6.6.y.git;branch=master;protocol=https"
 SRC_URI = "${KERNEL_SRC}"
-SRC_URI += "file://ma35d0_bmc_defconfig"
-SRC_URI += "file://ma35d0-iot-256m-bmc.dts"
-SRC_URI += "file://0001-dma-ma35d0-fix-swiotlb-leak.patch"
+SRC_URI += "file://ma35d05k_bmc_defconfig"
+SRC_URI += "file://ma35d05k-iot-ma35d05ki1-v1-256m.dts"
+SRC_URI += "file://0001-dma-ma35d05k-fix-swiotlb-leak.patch"
 SRCREV = "${KERNEL_SRCREV}"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
@@ -24,7 +24,7 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 KERNEL_SRCREV ?= "${AUTOREV}"
 
 SRCBRANCH = "6.6.93"
-LOCALVERSION = "-ma35d0-openbmc"
+LOCALVERSION = "-ma35d05k-openbmc"
 
 PV = "${SRCBRANCH}+git${SRCPV}"
 S = "${UNPACKDIR}/${BP}"
@@ -37,16 +37,16 @@ KERNEL_IMAGETYPE = "Image"
 
 do_configure:prepend() {
     bbnote "Using BMC-optimized defconfig"
-    cp ${UNPACKDIR}/ma35d0_bmc_defconfig ${UNPACKDIR}/defconfig
+    cp ${UNPACKDIR}/ma35d05k_bmc_defconfig ${UNPACKDIR}/defconfig
 
-    # Replace upstream DTS with our BMC-customized version
-    cp ${UNPACKDIR}/ma35d0-iot-256m-bmc.dts \
-        ${S}/arch/arm64/boot/dts/nuvoton/ma35d0-iot-256m.dts
+    # Replace upstream DTS with BMC-merged version (UBI/UBIFS boot, LED, PDMA)
+    cp ${UNPACKDIR}/ma35d05k-iot-ma35d05ki1-v1-256m.dts \
+        ${S}/arch/arm64/boot/dts/nuvoton/ma35d0-iot-ma35d05ki1-v1-256m.dts
 
-    # Expand SPI-NAND rootfs partition for 512MB flash
+    # Expand SPI-NAND rootfs partition for 256MB flash
     # Original: 0x6400000 (100MB), New: 0x1E400000 (484MB)
     sed -i '/spinand-rootfs/{n;s|reg = <0x1c00000 0x6400000>|reg = <0x1c00000 0x1E400000>|}' \
-        ${S}/arch/arm64/boot/dts/nuvoton/ma35d0.dtsi
+        ${S}/arch/arm64/boot/dts/nuvoton/ma35d05k.dtsi
 }
 
 do_deploy:append() {
@@ -58,7 +58,7 @@ do_deploy:append() {
     done
 }
 
-COMPATIBLE_MACHINE = "(ma35d0)"
+COMPATIBLE_MACHINE = "(ma35d05k)"
 
 # Suppress buildpaths QA for kernel debug sources (common for out-of-tree builds)
 ERROR_QA:remove = "buildpaths"

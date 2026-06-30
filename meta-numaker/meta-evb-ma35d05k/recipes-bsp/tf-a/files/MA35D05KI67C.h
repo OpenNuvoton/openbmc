@@ -1,16 +1,16 @@
 /*
- * MA35D03F867C_MCP_WBDDR3L_256M_1PCS.h
+ * MA35D05KI67C.h
  *
- * DDR configuration header for NuMaker-IoT-MA35D06F80
- * MA35D03F867C - 256MB WB DDR3L, single chip select
+ * DDR configuration header for NuMaker-IoT-MA35D05KI1
+ * MA35D05KI67C - 256MB DDR3L, single chip select
  *
- * Parameters sourced from Nuvoton MA35D0 TF-A BSP
- * (ma35d0_wb_ddr3_256mb configuration)
+ * Parameters sourced from Nuvoton MA35D05K TF-A BSP
+ * (ma35d05k_wb_ddr3_256mb configuration)
  */
 #ifndef __CUSTOM_DDR_H__
 #define __CUSTOM_DDR_H__
 
-#include <ma35d0_ddr.h>
+#include <ma35d1_ddr.h>
 
 struct nvt_ddr_init_param custom_ddr = {
         0x00000001,   // 0  DBG1_1
