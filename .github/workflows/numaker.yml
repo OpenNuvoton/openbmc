@@ -4,9 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       machine:
-        description: 'machine (nuc980,ma35d0,ma35d05k)'
+        description: 'Target machine'
         required: true
-        default: 'nuc980'
+        default: 'numaker-iot-nuc980g2'
+        type: choice
+        options:
+          - numaker-iot-nuc980g2
+          - numaker-iot-ma35d0
+          - numaker-iot-ma35d05ki1
 
 jobs:
   build:
@@ -30,25 +35,25 @@ jobs:
     #     xz-utils debianutils iputils-ping python3-git python3-jinja2 libegl1-mesa \
     #     libsdl1.2-dev pylint xterm zstd lz4
 
-    - name: Bulid
+    - name: Build
       run: |
         # OpenBMC/Yocto builds often need unprivileged user namespaces enabled 
         # (Uncomment the line below if you run into Bitbake sanity checker issues)
         # sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
-        TEMPLATECONF=meta-numaker/meta-evb-${{github.event.inputs.machine}}/conf/templates/default source oe-init-build-env build-numaker
+        MACHINE=${{ github.event.inputs.machine }} source setup ${{ github.event.inputs.machine }} build-numaker
 
         # Prefetch sources to avoid mid-build download failures
-        bitbake nuwriter-${{github.event.inputs.machine}}-pack --runall=fetch
+        bitbake nuwriter-pack --runall=fetch
         
         # Execute the actual build
-        bitbake nuwriter-${{github.event.inputs.machine}}-pack
+        bitbake nuwriter-pack
 
     - name: Upload OpenBMC Images
       uses: actions/upload-artifact@v4
       with:
         name: openbmc-${{ github.event.inputs.machine }}
-        # Note: Depending on your exact target, you might want to narrow this path down 
-        # to a specific machine folder inside /images/ to avoid bloating the artifact size.
-        path: build-numaker/tmp/deploy/images/
+        path: |
+          build-numaker/tmp/deploy/images/**/nuwriter-pack-*.bin
+          build-numaker/tmp/deploy/images/**/*.bat
         if-no-files-found: error

@@ -82,14 +82,12 @@ git clone -b numaker https://github.com/OpenNuvoton/openbmc.git
 cd openbmc
 
 # Build NUC980
-TEMPLATECONF=meta-numaker/meta-evb-nuc980/conf/templates/default \
-  source oe-init-build-env build-nuc980
-bitbake nuwriter-nuc980-pack
+MACHINE=numaker-iot-nuc980g2 source setup numaker-iot-nuc980g2 build-nuc980
+bitbake nuwriter-pack
 
-# Or build MA35D0
-TEMPLATECONF=meta-numaker/meta-evb-ma35d0/conf/templates/default \
-  source oe-init-build-env build-ma35d0
-bitbake nuwriter-ma35d0-pack
+# Or build MA35 machine, EX: numaker-iot-ma35d05ki1
+MACHINE=numaker-iot-ma35d05ki1 source setup numaker-iot-ma35d05ki1 build-ma35
+bitbake nuwriter-pack
 ```
 
 ---

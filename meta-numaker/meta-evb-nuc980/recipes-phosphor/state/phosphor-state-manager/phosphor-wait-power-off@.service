@@ -1,9 +1,0 @@
-[Unit]
-Description=Wait for Power Off Chassis%i (stub)
-
-[Service]
-RemainAfterExit=yes
-Type=oneshot
-ExecStart=/bin/true
-
-[Install]

@@ -1,0 +1,23 @@
+[Unit]
+Description=SSH Key Generation
+
+[Service]
+Environment="DROPBEAR_RSAKEY_DIR=/etc/dropbear"
+EnvironmentFile=-/etc/default/dropbear
+Type=oneshot
+# NUC980 (ARM926 ~300MHz): Skip RSA key generation (takes minutes).
+# Only generate ecdsa + ed25519 which are fast and sufficient.
+ExecStart=@BASE_BINDIR@/sh -c \
+     "if [[ ! -f ${DROPBEAR_RSAKEY_DIR}/dropbear_ecdsa_host_key ]]; then \
+        @BASE_BINDIR@/mkdir -p ${DROPBEAR_RSAKEY_DIR}; \
+        @SBINDIR@/dropbearkey -t ecdsa -f ${DROPBEAR_RSAKEY_DIR}/dropbear_ecdsa_host_key -s 384; \
+     fi"
+ExecStart=@BASE_BINDIR@/sh -c \
+     "if [[ ! -f ${DROPBEAR_RSAKEY_DIR}/dropbear_ed25519_host_key ]]; then \
+        @BASE_BINDIR@/mkdir -p ${DROPBEAR_RSAKEY_DIR}; \
+        @SBINDIR@/dropbearkey -t ed25519 -f ${DROPBEAR_RSAKEY_DIR}/dropbear_ed25519_host_key; \
+     fi"
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

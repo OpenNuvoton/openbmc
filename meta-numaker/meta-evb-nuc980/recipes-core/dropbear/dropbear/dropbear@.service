@@ -1,0 +1,13 @@
+[Unit]
+Description=SSH Per-Connection Server
+Wants=dropbearkey.service
+After=syslog.target dropbearkey.service
+
+[Service]
+Environment="DROPBEAR_RSAKEY_DIR=/etc/dropbear"
+EnvironmentFile=-/etc/default/dropbear
+# NUC980: Remove hardcoded RSA key reference; keys are specified via DROPBEAR_EXTRA_ARGS
+ExecStart=-/usr/sbin/dropbear -i $DROPBEAR_EXTRA_ARGS
+ExecReload=/usr/bin/kill -HUP $MAINPID
+StandardInput=socket
+KillMode=process

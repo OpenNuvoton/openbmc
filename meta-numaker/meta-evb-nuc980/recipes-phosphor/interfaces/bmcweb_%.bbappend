@@ -1,10 +1,6 @@
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
-SRC_URI += " \
-    file://0001-Simplify-system-LED-LocationIndicatorActive.patch \
-"
-
-# Minimal set for NUC980 (64MB)
+# Minimal set for NUC980 (128MB)
 # Disable non-Redfish features to save space
 
 EXTRA_OEMESON:append:nuc980 = " \

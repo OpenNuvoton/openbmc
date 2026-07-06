@@ -33,35 +33,35 @@ GND ──────────────────────── GND
 ```bash
 # Power On (short press 200ms)
 curl -k -s -u root:0penBmc -X POST \
-  https://192.168.0.57/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" \
   -d '{"ResetType": "On"}'
 
 # Force Off (long press 4s)
 curl -k -s -u root:0penBmc -X POST \
-  https://192.168.0.57/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" \
   -d '{"ResetType": "ForceOff"}'
 
 # Graceful Shutdown (short press, OS handles ACPI event)
 curl -k -s -u root:0penBmc -X POST \
-  https://192.168.0.57/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" \
   -d '{"ResetType": "GracefulShutdown"}'
 
 # Force Restart (Reset pulse 500ms)
 curl -k -s -u root:0penBmc -X POST \
-  https://192.168.0.57/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" \
   -d '{"ResetType": "ForceRestart"}'
 
 # Query Host Power State
 curl -k -s -u root:0penBmc \
-  https://192.168.0.57/redfish/v1/Systems/system | jq '.PowerState'
+  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system | jq '.PowerState'
 
 # Query Supported ResetTypes
 curl -k -s -u root:0penBmc \
-  https://192.168.0.57/redfish/v1/Systems/system | jq '.Actions."#ComputerSystem.Reset"'
+  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system | jq '.Actions."#ComputerSystem.Reset"'
 ```
 
 ### D-Bus Commands (SSH into BMC)
@@ -176,7 +176,7 @@ Oscilloscope probe connections:
 ```bash
 # Redfish
 curl -k -s -u root:0penBmc -X POST \
-  https://192.168.0.57/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" -d '{"ResetType": "On"}'
 
 # Or D-Bus (SSH into BMC)
@@ -197,7 +197,7 @@ busctl set-property xyz.openbmc_project.State.Host \
 ```bash
 # Redfish
 curl -k -s -u root:0penBmc \
-  https://192.168.0.57/redfish/v1/Systems/system | jq '.PowerState'
+  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system | jq '.PowerState'
 # Expected: "On"
 
 # D-Bus (SSH into BMC)
@@ -222,7 +222,7 @@ busctl set-property xyz.openbmc_project.State.Host \
 
 # Or Redfish GracefulShutdown
 curl -k -s -u root:0penBmc -X POST \
-  https://192.168.0.57/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" -d '{"ResetType": "GracefulShutdown"}'
 ```
 
@@ -239,7 +239,7 @@ curl -k -s -u root:0penBmc -X POST \
 ```bash
 # Redfish ForceOff (sends 4000ms directly, no graceful wait)
 curl -k -s -u root:0penBmc -X POST \
-  https://192.168.0.57/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" -d '{"ResetType": "ForceOff"}'
 ```
 
@@ -254,7 +254,7 @@ curl -k -s -u root:0penBmc -X POST \
 ```bash
 # Redfish ForceRestart
 curl -k -s -u root:0penBmc -X POST \
-  https://192.168.0.57/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" -d '{"ResetType": "ForceRestart"}'
 
 # Or D-Bus Reboot

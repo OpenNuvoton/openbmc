@@ -1,7 +1,5 @@
 FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
-SRC_URI += "file://0001-add-led-action-retry.patch"
-
 do_install:append() {
     # Create systemd D-Bus activation symlink to map dbus-broker activation to the real service
     install -d ${D}${sysconfdir}/systemd/system

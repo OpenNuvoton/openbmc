@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # --- Configuration Area ---
-BMC_IP="192.168.0.57"  # Replace with your NUC980 BMC IP address
+BMC_IP="numaker-iot-nuc980g2.local"  # mDNS hostname (avahi)
 USER="root"
 PASS="0penBmc"
 REPORT_FILE="$(dirname "$0")/test_nuc980_functions_report.md"
@@ -140,8 +140,25 @@ run_get "/redfish/v1/" "Service Root"
 # 2. Test Chassis Collection
 run_get "/redfish/v1/Chassis" "Chassis Collection"
 
-# 3. Test Chassis Details
-run_get "/redfish/v1/Chassis/system" "Chassis Details (system)"
+# 3. Test Chassis Details (with retry for entity-manager startup delay)
+echo -e "\n${BLUE}[Test] GET Chassis Details (system)...${NC}"
+CHASSIS_RETRIES=5
+CHASSIS_OK=0
+for i in $(seq 1 $CHASSIS_RETRIES); do
+    HTTP_CODE=$(curl -k -s -o /dev/null -w "%{http_code}" -u "${USER}:${PASS}" "https://${BMC_IP}/redfish/v1/Chassis/system")
+    if [ "$HTTP_CODE" -eq 200 ]; then
+        CHASSIS_OK=1
+        break
+    fi
+    echo -e "  ${YELLOW}Waiting for entity-manager... (attempt ${i}/${CHASSIS_RETRIES})${NC}"
+    sleep 3
+done
+if [ "$CHASSIS_OK" -eq 1 ]; then
+    run_get "/redfish/v1/Chassis/system" "Chassis Details (system)"
+else
+    echo -e "${RED}✗ Chassis/system not available after ${CHASSIS_RETRIES} retries${NC}"
+    report "- **GET Chassis Details (system)**: ✗ HTTP ${HTTP_CODE} (after ${CHASSIS_RETRIES} retries)"
+fi
 
 # 4. Test Systems details & LocationIndicatorActive
 run_get "/redfish/v1/Systems/system" "System details"

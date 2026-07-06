@@ -9,6 +9,7 @@ PACKAGES = " \
 "
 
 RDEPENDS:packagegroup-nuc980-apps = " \
+    avahi-daemon \
     bmcweb \
     entity-manager \
 "

@@ -32,10 +32,11 @@ OpenBMC Board Support Package for the **Nuvoton NuMaker IoT NUC980G2** board.
 ## Features
 
 - **Redfish**: bmcweb service providing DMTF Redfish API
+- **mDNS**: avahi-daemon for zero-config networking (`numaker-iot-nuc980g2.local`)
+- **SSH**: dropbear (ed25519 + ecdsa only, no RSA for fast boot)
 - **LED Management**: phosphor-led-manager + phosphor-led-sysfs
 - **Entity Manager**: hardware inventory via entity-manager
 - **Power Control**: x86-power-control (GPIO-based host power/reset)
-- **Health Monitoring**: phosphor-health-monitor (BMC health metrics)
 
 ---
 
@@ -47,11 +48,10 @@ git clone -b numaker https://github.com/OpenNuvoton/openbmc.git
 cd openbmc
 
 # First-time setup
-TEMPLATECONF=meta-numaker/meta-evb-nuc980/conf/templates/default \
-  source oe-init-build-env build-nuc980
+MACHINE=numaker-iot-nuc980g2 source setup numaker-iot-nuc980g2 build-nuc980
 
 # Build (generates nuwriter_pack.bin automatically)
-bitbake nuwriter-nuc980-pack
+bitbake nuwriter-pack
 ```
 
 Output: `tmp/deploy/images/numaker-iot-nuc980g2/nuwriter_pack.bin`
@@ -107,7 +107,7 @@ Loading kernel from NAND 0x200000...
 numaker-iot-nuc980g2 login:
 ```
 
-Default login: `root` (no password). Set password via Redfish after first login.
+Default login: `root` (Password: 0penBmc).
 
 ---
 
@@ -176,33 +176,36 @@ See [PowerControl.md](PowerControl.md) for detailed wiring, configuration, and v
 
 ## Redfish API
 
-BMC IP is obtained via DHCP (e.g. `192.168.0.57`). Check your DHCP server or serial console for the assigned address.
+BMC is accessible via mDNS hostname: `numaker-iot-nuc980g2.local`
 
 ### Quick Examples
 
 ```bash
 # Service Root
-curl -k -s https://192.168.0.57/redfish/v1/
+curl -k -s https://numaker-iot-nuc980g2.local/redfish/v1/
 
 # Query host power state
 curl -k -s -u root:0penBmc \
-  https://192.168.0.57/redfish/v1/Systems/system | jq '.PowerState'
+  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system | jq '.PowerState'
 
 # Power On
 curl -k -s -u root:0penBmc -X POST \
-  https://192.168.0.57/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" -d '{"ResetType": "On"}'
 
 # Force Off
 curl -k -s -u root:0penBmc -X POST \
-  https://192.168.0.57/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" -d '{"ResetType": "ForceOff"}'
 
 # Toggle Chassis Identify LED
 curl -k -s -u root:0penBmc -X PATCH \
-  https://192.168.0.57/redfish/v1/Chassis/system \
+  https://numaker-iot-nuc980g2.local/redfish/v1/Chassis/system \
   -H "Content-Type: application/json" \
   -d '{"LocationIndicatorActive": true}'
+
+# SSH access
+ssh root@numaker-iot-nuc980g2.local
 ```
 
 ### Verified Endpoints
@@ -235,6 +238,9 @@ meta-evb-nuc980/
 ├── recipes-bsp/u-boot/
 │   └── u-boot-nuc980_git.bb
 ├── recipes-core/
+│   ├── dropbear/
+│   │   ├── dropbear_%.bbappend
+│   │   └── dropbear/ (dropbearkey.service, dropbear@.service)
 │   ├── systemd/
 │   │   ├── phosphor-systemd-policy.bbappend
 │   │   ├── systemd_%.bbappend
@@ -242,7 +248,7 @@ meta-evb-nuc980/
 │   └── volatile-binds/
 │       └── volatile-binds.bbappend
 ├── recipes-devtools/python/
-│   ├── nuwriter-nuc980-pack_1.0.bb
+│   ├── nuwriter-pack_1.0.bb
 │   └── files/ (NUC980DK71YC.ini, nuwriter_pack.py, uboot-env.txt)
 ├── recipes-kernel/linux/
 │   ├── linux-nuc980_6.6.93.bb
