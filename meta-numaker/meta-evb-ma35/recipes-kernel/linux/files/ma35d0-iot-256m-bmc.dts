@@ -201,6 +201,19 @@
 	pinctrl-0 = <&pinctrl_can1>;
 };
 
+/* GPIO line names for x86-power-control (libgpiod) */
+&gpion {
+	gpio-line-names =
+		"RESET_OUT",	/* PN0 */
+		"POWER_OUT";	/* PN1 */
+};
+
+&gpiok {
+	gpio-line-names =
+		"","","","","","","","","","","","",
+		"PS_PWROK";	/* PK12 */
+};
+
 &pinctrl {
 	emac0 {
 		pinctrl_emac0: emac0grp{

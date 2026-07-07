@@ -24,11 +24,11 @@ OpenBMC Board Support Package for the Nuvoton MA35 Family evaluation boards.
 
 ```bash
 # MA35D05K
-MACHINE=numaker-iot-ma35d05ki1 source setup numaker-iot-ma35d05ki1 build-ma35d05k
+MACHINE=numaker-iot-ma35d05ki1 source setup numaker-iot-ma35d05ki1 build-ma35
 bitbake nuwriter-pack
 
 # MA35D0
-MACHINE=numaker-iot-ma35d0 source setup numaker-iot-ma35d0 build-ma35d0
+MACHINE=numaker-iot-ma35d0 source setup numaker-iot-ma35d0 build-ma35
 bitbake nuwriter-pack
 ```
 

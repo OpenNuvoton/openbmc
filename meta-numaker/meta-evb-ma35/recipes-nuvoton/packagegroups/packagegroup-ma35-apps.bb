@@ -35,4 +35,5 @@ SUMMARY:${PN}-system = "MA35 System"
 RDEPENDS:${PN}-system = " \
     bmcweb \
     entity-manager \
+    x86-power-control \
 "

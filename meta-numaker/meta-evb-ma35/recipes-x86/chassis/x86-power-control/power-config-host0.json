@@ -1,0 +1,30 @@
+{
+    "gpio_configs": [
+        {
+            "Name": "PowerOut",
+            "LineName": "POWER_OUT",
+            "Type": "GPIO",
+            "Polarity": "ActiveLow"
+        },
+        {
+            "Name": "PowerOk",
+            "LineName": "PS_PWROK",
+            "Type": "GPIO",
+            "Polarity": "ActiveHigh"
+        },
+        {
+            "Name": "ResetOut",
+            "LineName": "RESET_OUT",
+            "Type": "GPIO",
+            "Polarity": "ActiveLow"
+        }
+    ],
+    "timing_configs": {
+        "PowerPulseMs": 200,
+        "ForceOffPulseMs": 4000,
+        "ResetPulseMs": 500,
+        "PowerOkWatchdogMs": 8000,
+        "GracefulPowerOffS": 300,
+        "WarmResetCheckMs": 500
+    }
+}

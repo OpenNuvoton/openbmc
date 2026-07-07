@@ -1,8 +1,8 @@
-# NUC980 OpenBMC Functions Integration Test Report
+# MA35D05K OpenBMC Functions Integration Test Report
 
-**Date**: 2026-07-06 18:58:25
-**BMC IP**: numaker-iot-nuc980g2.local
-**Platform**: NuMaker-IoT-NUC980G2
+**Date**: 2026-07-07 17:49:01
+**BMC IP**: numaker-iot-ma35d05ki1.local
+**Platform**: NuMaker-IoT-MA35D05KI1
 
 ---
 
@@ -32,15 +32,15 @@
 
 ### Power Control Tests
 
-- **Power On**: 已提示操作者在 PF9 接上 HIGH 信號
+- **Power On**: Operator prompted to connect PC7 to HIGH
 - **POST Host Power On**: ✓ HTTP 204
 - **GET Verify Host PowerState after Power On**: ✓ HTTP 200
 - **Verify Power On**: PowerState=On
-- **Force Off**: 已提示操作者準備讓 PF9 回到 LOW
+- **Force Off**: Operator prompted to disconnect PC7 to LOW
 - **POST Host ForceOff**: ✓ HTTP 204
 - **GET Verify Host PowerState after ForceOff**: ✓ HTTP 200
 - **Verify Force Off**: PowerState=Off
-- **Force Restart**: 已確認 PF9=HIGH
+- **Force Restart**: Confirmed PC7=HIGH
 - **POST Host ForceRestart**: ✓ HTTP 204
 - **GET Verify Host PowerState after ForceRestart**: ✓ HTTP 200
 - **Verify Force Restart**: PowerState=On
@@ -49,5 +49,5 @@
 
 ## Summary
 
-- Test completed at: 2026-07-06 19:00:01
-- Report file: ./test_nuc980_functions_report.md
+- Test completed at: 2026-07-07 17:50:06
+- Report file: ./numaker-iot-ma35d05ki1.md

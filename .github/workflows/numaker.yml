@@ -54,6 +54,6 @@ jobs:
       with:
         name: openbmc-${{ github.event.inputs.machine }}
         path: |
-          build-numaker/tmp/deploy/images/**/nuwriter-pack-*.bin
+          build-numaker/tmp/deploy/images/**/nuwriter-pack*.bin
           build-numaker/tmp/deploy/images/**/*.bat
         if-no-files-found: warn

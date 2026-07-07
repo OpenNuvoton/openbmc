@@ -109,6 +109,16 @@
 	pinctrl-0 = <&pinctrl_qspi0>;
 };
 
+/* GPIO line names for x86-power-control (libgpiod) */
+&gpioc {
+	gpio-line-names =
+		"","",
+		"POWER_OUT",	/* PC2 */
+		"RESET_OUT",	/* PC3 */
+		"","","",
+		"PS_PWROK";	/* PC7 */
+};
+
 &pinctrl {
 	gmac0 {
 		pinctrl_gmac0: gmac0grp{
