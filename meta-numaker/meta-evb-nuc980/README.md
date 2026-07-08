@@ -1,6 +1,6 @@
-# meta-evb-nuc980: OpenBMC BSP Layer for Nuvoton NUC980 IoT-G2
+# meta-evb-nuc980: OpenBMC BSP Layer for NuMaker-IoT-NUC980G2
 
-OpenBMC Board Support Package for the **Nuvoton NuMaker IoT NUC980G2** board.
+OpenBMC Board Support Package for the **Nuvoton NuMaker-IoT-NUC980G2** board.
 
 ## Table of Contents
 
@@ -9,8 +9,6 @@ OpenBMC Board Support Package for the **Nuvoton NuMaker IoT NUC980G2** board.
 - [Build](#build)
 - [Flashing (NuWriter)](#flashing-nuwriter)
 - [SPI NAND Flash Layout](#spi-nand-flash-layout)
-- [GPIO](#gpio)
-- [Power Control](#power-control)
 - [Redfish API](#redfish-api)
 - [Layer Structure](#layer-structure)
 
@@ -54,9 +52,20 @@ MACHINE=numaker-iot-nuc980g2 source setup numaker-iot-nuc980g2 build-nuc980
 bitbake nuwriter-pack
 ```
 
-Output: `tmp/deploy/images/numaker-iot-nuc980g2/nuwriter_pack.bin`
+Output: `tmp/deploy/images/numaker-iot-nuc980g2/nuwriter-pack.bin`
 
 > On subsequent builds, just `source oe-init-build-env build-nuc980` to re-enter.
+
+### Prebuilt Images
+
+Prebuilt images are available from GitHub Actions:
+
+[OpenBMC building → Artifacts](https://github.com/OpenNuvoton/openbmc/actions/workflows/numaker.yml)
+
+1. Open the workflow page and select the latest successful run.
+2. Scroll to the **Artifacts** section at the bottom.
+3. Download the artifact for `numaker-iot-nuc980g2`.
+4. Extract the zip and flash using NuWriter.
 
 ---
 
@@ -76,7 +85,7 @@ Writes all components at once (SPL + env + U-Boot + DTB + kernel + rootfs):
 
 1. Open `NuWriter.exe` → Storage Type: **SPI NAND**.
 2. Click **Erase** → check **Erase All** → execute.
-3. Set Image Type to **Pack** → browse `nuwriter_pack.bin`.
+3. Set Image Type to **Pack** → browse `nuwriter-pack.bin`.
 4. Click **Burn** and wait (~2-3 minutes).
 5. Power off → set DIP switch back to **SPI NAND Boot** → power on.
 
@@ -87,7 +96,7 @@ Writes all components at once (SPL + env + U-Boot + DTB + kernel + rootfs):
 | SPL | `u-boot-spl.bin` | Loader | `0x0` |
 | U-Boot Env | `uboot-env.txt` | Environment | `0x80000` |
 | U-Boot | `u-boot.bin` | Data | `0x100000` |
-| DTB | `nuc980-iot-g2-v1.0.dtb` | Data | `0x180000` |
+| DTB | `nuc980-iot-128m-bmc.dtb` | Data | `0x180000` |
 | Kernel | `uImage` | Data | `0x200000` |
 | RootFS | `obmc-phosphor-image-*.ubi` | Data | `0x800000` |
 
@@ -117,60 +126,11 @@ Total: 128 MB (`0x0`–`0x8000000`)
 
 | MTD | Label | Address Range | Size | Contents |
 |-----|-------|---------------|------|----------|
-| mtd0 | `u-boot` | `0x000000`–`0x100000` | 1 MB | SPL + U-Boot |
-| mtd1 | `u-boot-env` | `0x100000`–`0x180000` | 512 KB | U-Boot environment |
+| mtd0 | `u-boot` | `0x000000`–`0x100000` | 1 MB | SPL + U-Boot env |
+| mtd1 | `u-boot-env` | `0x100000`–`0x180000` | 512 KB | U-Boot |
 | mtd2 | `kernel` | `0x180000`–`0x800000` | 6.5 MB | DTB + uImage |
 | mtd3 | `rofs` | `0x800000`–`0x3800000` | 48 MB | UBI volume (UBIFS rootfs) |
 | mtd4 | `rwfs` | `0x3800000`–`0x8000000` | 72 MB | UBI volume (UBIFS rwfs) |
-
----
-
-## GPIO
-
-### LED
-
-| LED | GPIO | Active | sysfs |
-|-----|------|--------|-------|
-| front_id | PB13 | Low | `/sys/class/leds/front_id/brightness` |
-| power | PG15 | Low | `/sys/class/leds/power/brightness` |
-
----
-
-## Power Control
-
-Host power control is implemented via `x86-power-control` daemon using GPIO.
-
-### Pin Assignment
-
-| Signal | Direction | GPIO | Function |
-|--------|-----------|------|----------|
-| `POWER_OUT` | Output | PD12 (108) | Power button (200ms=On, 4s=ForceOff) |
-| `RESET_OUT` | Output | PD13 (109) | Reset button (500ms pulse) |
-| `PS_PWROK` | Input | PF9 (169) | Host PSU Power Good |
-
-### Wiring
-
-```
-NUC980 (BMC)                   Host Motherboard
-─────────────                  ────────────────
-PD12 (POWER_OUT)  ─────────── PWR_BTN# (power button header)
-PD13 (RESET_OUT)  ─────────── RST_BTN# (reset button header)
-PF9  (PS_PWROK)   ◄────────── PWROK (ATX PSU / VRM output)
-GND ──────────────────────── GND (common ground)
-```
-
-> NUC980 GPIO is 3.3V. POWER_OUT/RESET_OUT are active-low (pulled low to trigger). PF9 requires a 10kΩ pull-down when no host is connected.
-
-### Supported Operations
-
-| Operation | Redfish ResetType | Pulse Pin | Duration |
-|-----------|-------------------|-----------|----------|
-| Power On | `On` | PD12 | 200ms |
-| Graceful Shutdown | `GracefulShutdown` | PD12 | 200ms (then 4s after 300s timeout) |
-| Force Off | `ForceOff` | PD12 | 4000ms |
-| Force Restart | `ForceRestart` | PD13 | 500ms |
-
-See [PowerControl.md](PowerControl.md) for detailed wiring, configuration, and verification steps.
 
 ---
 
@@ -178,25 +138,13 @@ See [PowerControl.md](PowerControl.md) for detailed wiring, configuration, and v
 
 BMC is accessible via mDNS hostname: `numaker-iot-nuc980g2.local`
 
+For power control (wiring, GPIO pin assignment, Redfish/D-Bus commands), see [doc/x86-power-control/numaker-iot-nuc980g2.md](../../doc/x86-power-control/numaker-iot-nuc980g2.md).
+
 ### Quick Examples
 
 ```bash
 # Service Root
 curl -k -s https://numaker-iot-nuc980g2.local/redfish/v1/
-
-# Query host power state
-curl -k -s -u root:0penBmc \
-  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system | jq '.PowerState'
-
-# Power On
-curl -k -s -u root:0penBmc -X POST \
-  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
-  -H "Content-Type: application/json" -d '{"ResetType": "On"}'
-
-# Force Off
-curl -k -s -u root:0penBmc -X POST \
-  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
-  -H "Content-Type: application/json" -d '{"ResetType": "ForceOff"}'
 
 # Toggle Chassis Identify LED
 curl -k -s -u root:0penBmc -X PATCH \
@@ -207,19 +155,6 @@ curl -k -s -u root:0penBmc -X PATCH \
 # SSH access
 ssh root@numaker-iot-nuc980g2.local
 ```
-
-### Verified Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/redfish/v1/` | GET | Service Root |
-| `/redfish/v1/Chassis/system` | GET/PATCH | Chassis info, LocationIndicatorActive |
-| `/redfish/v1/Systems/system` | GET | Host power state, health |
-| `/redfish/v1/Systems/system/Actions/ComputerSystem.Reset` | POST | Power control actions |
-| `/redfish/v1/Managers/bmc` | GET | BMC manager status |
-| `/redfish/v1/Chassis/system/Thermal` | GET | Thermal subsystem |
-| `/redfish/v1/Chassis/system/Power` | GET | Power subsystem |
-| `/redfish/v1/Chassis/system/Sensors` | GET | Sensor collection |
 
 ---
 
@@ -257,12 +192,10 @@ meta-evb-nuc980/
 │   └── packagegroup-nuc980-apps.bb
 ├── recipes-phosphor/
 │   ├── entity-manager/ (nuc980-evb.json, LED association patch)
-│   ├── health/ (bmc_health_config.json)
 │   ├── images/obmc-phosphor-image.bbappend
 │   ├── interfaces/bmcweb_%.bbappend
 │   ├── leds/ (led-group-config.json, sysfs retry patch)
-│   ├── packagegroups/packagegroup-obmc-apps.bbappend
-│   └── state/phosphor-state-manager_%.bbappend
+│   └── packagegroups/packagegroup-obmc-apps.bbappend
 └── recipes-x86/chassis/
     ├── x86-power-control_%.bbappend
     └── x86-power-control/power-config-host0.json
