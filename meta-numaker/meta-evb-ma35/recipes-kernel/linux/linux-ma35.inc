@@ -15,7 +15,6 @@ KERNEL_SRC ?= "git://github.com/OpenNuvoton/MA35D1_linux-6.6.y.git;branch=master
 SRC_URI = "${KERNEL_SRC}"
 SRC_URI += "file://${MA35_DEFCONFIG}"
 SRC_URI += "file://${MA35_DTS}"
-SRC_URI += "file://${MA35_PATCH}"
 SRCREV = "${KERNEL_SRCREV}"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
