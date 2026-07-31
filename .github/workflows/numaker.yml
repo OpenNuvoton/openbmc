@@ -47,7 +47,7 @@ jobs:
 
   build:
     needs: set-matrix
-    runs-on: ubuntu-latest
+    runs-on: self-hosted #ubuntu-latest
     strategy:
       fail-fast: false # Prevent failure in one machine from canceling other builds
       matrix:
