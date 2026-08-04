@@ -75,6 +75,7 @@ jobs:
             pylint xterm zstd lz4 jq
 
       - name: Cache Bitbake Downloads
+        if: ${{ runner.environment == 'github-hosted' }}
         uses: actions/cache@v4
         with:
           path: build-numaker/downloads
