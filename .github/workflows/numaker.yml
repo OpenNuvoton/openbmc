@@ -59,9 +59,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        uses: actions/checkout@v4.2.2
 
       # Yocto/Bitbake host dependencies
       - name: Install Required Packages
@@ -76,7 +74,7 @@ jobs:
 
       - name: Cache Bitbake Downloads
         if: ${{ runner.environment == 'github-hosted' }}
-        uses: actions/cache@v4
+        uses: actions/cache@v4.2.0
         with:
           path: build-numaker/downloads
           key: yocto-downloads-${{ matrix.target_machine }}-${{ github.ref_name }}
@@ -113,7 +111,7 @@ jobs:
           bitbake nuwriter-pack
 
       - name: Upload OpenBMC Images
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.4.3
         with:
           name: openbmc-${{ matrix.target_machine }}
           path: |
