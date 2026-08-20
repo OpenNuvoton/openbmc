@@ -33,7 +33,13 @@ RDEPENDS:${PN}-flash = ""
 
 SUMMARY:${PN}-system = "MA35 System"
 RDEPENDS:${PN}-system = " \
+    avahi-daemon \
     bmcweb \
     entity-manager \
     x86-power-control \
+    can-utils \
+    iproute2 \
+    net-tools \
+    ethtool \
+    ma35-soc-temp \
 "

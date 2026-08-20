@@ -1,0 +1,805 @@
+From: OpenBMC Developer <openbmc@openbmc.org>
+Date: Wed, 19 Aug 2026 16:05:00 +0800
+Subject: [PATCH] Add real-time dynamic sensor chart and KPI monitoring to Sensors page
+
+Upstream-Status: Inappropriate [embedded specific]
+Signed-off-by: OpenBMC Developer <openbmc@openbmc.org>
+---
+ src/locales/en-US.json                             |   4 +
+ .../HardwareStatus/Sensors/SensorLiveChart.vue     | 748 +++++++++++++++++++++
+ .../views/HardwareStatus/Sensors/Sensors.vue       |   3 +
+ 3 files changed, 755 insertions(+)
+ create mode 100644 src/views/HardwareStatus/Sensors/SensorLiveChart.vue
+
+diff --git a/src/locales/en-US.json b/src/locales/en-US.json
+index 1052601..091a45e 100644
+--- a/src/locales/en-US.json
++++ b/src/locales/en-US.json
+@@ -887,6 +887,10 @@
+     "pageSensors": {
+         "exportFilePrefix": "sensors_",
+         "searchForSensors": "Search for sensors",
++        "liveMonitor": "Live Temperature & Sensor Monitor",
++        "minTemp": "Minimum",
++        "maxTemp": "Maximum",
++        "avgTemp": "Average",
+         "table": {
+             "currentValue": "Current value",
+             "lowerWarning": "Lower warning",
+diff --git a/src/views/HardwareStatus/Sensors/SensorLiveChart.vue b/src/views/HardwareStatus/Sensors/SensorLiveChart.vue
+new file mode 100644
+index 0000000..6788d22
+--- /dev/null
++++ b/src/views/HardwareStatus/Sensors/SensorLiveChart.vue
+@@ -0,0 +1,748 @@
++<template>
++  <div class="sensor-live-chart-card mb-4">
++    <!-- Header / Controls Bar -->
++    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
++      <div class="d-flex align-items-center gap-2 mb-2 mb-md-0">
++        <h5 class="m-0 fw-bold d-flex align-items-center text-primary">
++          <span class="live-dot me-2" :class="{ 'live-dot-active': isPolling }"></span>
++          {{ $t('pageSensors.liveMonitor') || 'Live Temperature Monitor' }}
++        </h5>
++        <span v-if="selectedSensorName" class="badge bg-secondary ms-2">
++          {{ selectedSensorName }}
++        </span>
++      </div>
++
++      <!-- Toolbar Buttons -->
++      <div class="d-flex align-items-center gap-2">
++        <!-- Sensor Selector (if multiple sensors) -->
++        <select
++          v-if="availableSensors.length > 1"
++          v-model="selectedSensorPath"
++          class="form-select form-select-sm"
++          style="width: auto"
++          @change="onSensorChange"
++        >
++          <option
++            v-for="s in availableSensors"
++            :key="s.uri"
++            :value="s.uri"
++          >
++            {{ s.name }}
++          </option>
++        </select>
++
++        <!-- Interval Selector -->
++        <div class="btn-group btn-group-sm" role="group">
++          <button
++            type="button"
++            class="btn"
++            :class="pollingInterval === 2000 ? 'btn-primary' : 'btn-outline-secondary'"
++            @click="setPollingInterval(2000)"
++          >
++            2s
++          </button>
++          <button
++            type="button"
++            class="btn"
++            :class="pollingInterval === 5000 ? 'btn-primary' : 'btn-outline-secondary'"
++            @click="setPollingInterval(5000)"
++          >
++            5s
++          </button>
++          <button
++            type="button"
++            class="btn"
++            :class="pollingInterval === 10000 ? 'btn-primary' : 'btn-outline-secondary'"
++            @click="setPollingInterval(10000)"
++          >
++            10s
++          </button>
++        </div>
++
++        <!-- Play / Pause Toggle -->
++        <button
++          type="button"
++          class="btn btn-sm"
++          :class="isPolling ? 'btn-outline-warning' : 'btn-success'"
++          @click="togglePolling"
++          :title="isPolling ? 'Pause real-time updates' : 'Resume real-time updates'"
++        >
++          <span v-if="isPolling">⏸ Pause</span>
++          <span v-else>▶ Resume</span>
++        </button>
++
++        <!-- Clear Button -->
++        <button
++          type="button"
++          class="btn btn-sm btn-outline-secondary"
++          @click="clearHistory"
++          title="Clear history"
++        >
++          Clear
++        </button>
++      </div>
++    </div>
++
++    <!-- KPI Metric Cards -->
++    <div class="row g-3 mb-3">
++      <!-- Current Value KPI -->
++      <div class="col-6 col-md-3">
++        <div class="kpi-card p-3 rounded-3 border bg-light h-100 position-relative overflow-hidden">
++          <div class="text-muted small fw-semibold text-uppercase">
++            {{ $t('pageSensors.table.currentValue') || 'Current Temp' }}
++          </div>
++          <div class="d-flex align-items-baseline mt-1">
++            <span class="fs-2 fw-bolder" :class="valueColorClass">
++              {{ currentValueDisplay }}
++            </span>
++            <span class="ms-2 fs-6 fw-bold" :class="trendClass">
++              {{ trendSymbol }}
++            </span>
++          </div>
++          <div class="kpi-subtext small text-muted">
++            Status: <span class="badge" :class="statusBadgeClass">{{ currentStatus }}</span>
++          </div>
++        </div>
++      </div>
++
++      <!-- Min KPI -->
++      <div class="col-6 col-md-3">
++        <div class="kpi-card p-3 rounded-3 border bg-light h-100">
++          <div class="text-muted small fw-semibold text-uppercase">
++            {{ $t('pageSensors.minTemp') || 'Minimum' }}
++          </div>
++          <div class="d-flex align-items-baseline mt-1">
++            <span class="fs-3 fw-bold text-dark">
++              {{ minTemp !== null ? `${minTemp.toFixed(1)} ${unit}` : '--' }}
++            </span>
++          </div>
++          <div class="kpi-subtext small text-muted">Since session start</div>
++        </div>
++      </div>
++
++      <!-- Max KPI -->
++      <div class="col-6 col-md-3">
++        <div class="kpi-card p-3 rounded-3 border bg-light h-100">
++          <div class="text-muted small fw-semibold text-uppercase">
++            {{ $t('pageSensors.maxTemp') || 'Maximum' }}
++          </div>
++          <div class="d-flex align-items-baseline mt-1">
++            <span class="fs-3 fw-bold text-dark">
++              {{ maxTemp !== null ? `${maxTemp.toFixed(1)} ${unit}` : '--' }}
++            </span>
++          </div>
++          <div class="kpi-subtext small text-muted">
++            Warning: {{ upperCaution !== null ? `${upperCaution} ${unit}` : 'N/A' }}
++          </div>
++        </div>
++      </div>
++
++      <!-- Avg KPI -->
++      <div class="col-6 col-md-3">
++        <div class="kpi-card p-3 rounded-3 border bg-light h-100">
++          <div class="text-muted small fw-semibold text-uppercase">
++            {{ $t('pageSensors.avgTemp') || 'Average' }}
++          </div>
++          <div class="d-flex align-items-baseline mt-1">
++            <span class="fs-3 fw-bold text-dark">
++              {{ avgTemp !== null ? `${avgTemp.toFixed(1)} ${unit}` : '--' }}
++            </span>
++          </div>
++          <div class="kpi-subtext small text-muted">
++            {{ dataPoints.length }} data points
++          </div>
++        </div>
++      </div>
++    </div>
++
++    <!-- Canvas Chart Container -->
++    <div class="chart-wrapper rounded-3 border p-3 bg-white position-relative">
++      <canvas
++        ref="canvasRef"
++        class="live-chart-canvas"
++        @mousemove="onCanvasMouseMove"
++        @mouseleave="onCanvasMouseLeave"
++      ></canvas>
++
++      <!-- Floating Hover Tooltip -->
++      <div
++        v-if="hoverTooltip.visible"
++        class="chart-tooltip shadow-sm"
++        :style="{ left: `${hoverTooltip.x}px`, top: `${hoverTooltip.y}px` }"
++      >
++        <div class="fw-bold">{{ hoverTooltip.value }} {{ unit }}</div>
++        <div class="small text-muted">{{ hoverTooltip.time }}</div>
++      </div>
++
++      <!-- Empty State -->
++      <div
++        v-if="dataPoints.length === 0"
++        class="empty-overlay d-flex flex-column justify-content-center align-items-center"
++      >
++        <div class="spinner-border text-primary mb-2" role="status">
++          <span class="visually-hidden">Loading...</span>
++        </div>
++        <div class="text-muted small">Gathering sensor telemetry data...</div>
++      </div>
++    </div>
++  </div>
++</template>
++
++<script setup>
++import {
++  ref,
++  computed,
++  onMounted,
++  onBeforeUnmount,
++  nextTick,
++} from 'vue';
++import api from '@/store/api';
++
++const props = defineProps({
++  sensors: {
++    type: Array,
++    default: () => [],
++  },
++});
++
++const emit = defineEmits(['sensor-update']);
++
++// State
++const canvasRef = ref(null);
++const isPolling = ref(true);
++const pollingInterval = ref(2000);
++const dataPoints = ref([]);
++const maxPoints = 50;
++const selectedSensorPath = ref('/redfish/v1/Chassis/system/Sensors/temperature_cpu_thermal');
++const selectedSensorName = ref('cpu thermal');
++const currentValue = ref(null);
++const currentStatus = ref('OK');
++const unit = ref('°C');
++const lowerCaution = ref(null);
++const upperCaution = ref(95);
++const upperCritical = ref(105);
++const previousValue = ref(null);
++let timerId = null;
++
++// Tooltip state
++const hoverTooltip = ref({
++  visible: false,
++  x: 0,
++  y: 0,
++  value: 0,
++  time: '',
++});
++
++// Available Sensors for dropdown
++const availableSensors = computed(() => {
++  if (!props.sensors || props.sensors.length === 0) {
++    return [
++      {
++        name: 'cpu thermal',
++        uri: '/redfish/v1/Chassis/system/Sensors/temperature_cpu_thermal',
++      },
++    ];
++  }
++  return props.sensors.map((s) => {
++    const id = s.name ? s.name.toLowerCase().replace(/\s+/g, '_') : 'cpu_thermal';
++    return {
++      name: s.name || 'Sensor',
++      uri: `/redfish/v1/Chassis/system/Sensors/temperature_${id}`,
++    };
++  });
++});
++
++// Display formatters
++const currentValueDisplay = computed(() => {
++  if (currentValue.value === null) return '--';
++  return `${currentValue.value.toFixed(1)} ${unit.value}`;
++});
++
++const valueColorClass = computed(() => {
++  if (currentValue.value === null) return 'text-secondary';
++  if (upperCritical.value && currentValue.value >= upperCritical.value) {
++    return 'text-danger';
++  }
++  if (upperCaution.value && currentValue.value >= upperCaution.value) {
++    return 'text-warning';
++  }
++  return 'text-primary';
++});
++
++const statusBadgeClass = computed(() => {
++  switch (currentStatus.value) {
++    case 'OK':
++      return 'bg-success';
++    case 'Warning':
++      return 'bg-warning text-dark';
++    case 'Critical':
++      return 'bg-danger';
++    default:
++      return 'bg-secondary';
++  }
++});
++
++const trendSymbol = computed(() => {
++  if (previousValue.value === null || currentValue.value === null) return '→';
++  const diff = currentValue.value - previousValue.value;
++  if (diff > 0.05) return '↗';
++  if (diff < -0.05) return '↘';
++  return '→';
++});
++
++const trendClass = computed(() => {
++  if (previousValue.value === null || currentValue.value === null) return 'text-muted';
++  const diff = currentValue.value - previousValue.value;
++  if (diff > 0.05) return 'text-danger';
++  if (diff < -0.05) return 'text-success';
++  return 'text-muted';
++});
++
++// Computed Statistics
++const minTemp = computed(() => {
++  if (dataPoints.value.length === 0) return null;
++  return Math.min(...dataPoints.value.map((p) => p.value));
++});
++
++const maxTemp = computed(() => {
++  if (dataPoints.value.length === 0) return null;
++  return Math.max(...dataPoints.value.map((p) => p.value));
++});
++
++const avgTemp = computed(() => {
++  if (dataPoints.value.length === 0) return null;
++  const sum = dataPoints.value.reduce((acc, p) => acc + p.value, 0);
++  return sum / dataPoints.value.length;
++});
++
++// Fetch latest sensor reading from Redfish
++async function fetchSensorReading() {
++  try {
++    const timestamp = Date.now();
++    const url = `${selectedSensorPath.value}?_t=${timestamp}`;
++    const res = await api.get(url, {
++      cache: false,
++    });
++    const data = res.data;
++
++    const val =
++      data.Reading ?? data.ReadingCelsius ?? data.ReadingVolts ?? null;
++    if (typeof val === 'number') {
++      previousValue.value = currentValue.value;
++      currentValue.value = val;
++
++      if (data.Name) selectedSensorName.value = data.Name;
++      if (data.Status?.Health) currentStatus.value = data.Status.Health;
++      if (data.Thresholds?.UpperCaution?.Reading !== undefined) {
++        upperCaution.value = data.Thresholds.UpperCaution.Reading;
++      }
++      if (data.Thresholds?.UpperCritical?.Reading !== undefined) {
++        upperCritical.value = data.Thresholds.UpperCritical.Reading;
++      }
++      if (data.ReadingUnits) {
++        unit.value = data.ReadingUnits === 'Cel' ? '°C' : data.ReadingUnits;
++      }
++
++      const now = new Date();
++      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(
++        now.getMinutes(),
++      ).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
++
++      dataPoints.value.push({
++        time: timeStr,
++        timestamp,
++        value: val,
++      });
++
++      if (dataPoints.value.length > maxPoints) {
++        dataPoints.value.shift();
++      }
++
++      emit('sensor-update', {
++        name: selectedSensorName.value,
++        value: val,
++        status: currentStatus.value,
++      });
++
++      renderChart();
++    }
++  } catch (err) {
++    console.debug('Failed to fetch sensor reading:', err);
++  }
++}
++
++// Canvas Drawing Routine
++function renderChart() {
++  const canvas = canvasRef.value;
++  if (!canvas) return;
++
++  const rect = canvas.getBoundingClientRect();
++  if (rect.width === 0 || rect.height === 0) return;
++
++  const dpr = window.devicePixelRatio || 1;
++  canvas.width = rect.width * dpr;
++  canvas.height = rect.height * dpr;
++
++  const ctx = canvas.getContext('2d');
++  ctx.scale(dpr, dpr);
++
++  const w = rect.width;
++  const h = rect.height;
++
++  ctx.clearRect(0, 0, w, h);
++
++  const paddingLeft = 45;
++  const paddingRight = 20;
++  const paddingTop = 25;
++  const paddingBottom = 30;
++
++  const plotW = w - paddingLeft - paddingRight;
++  const plotH = h - paddingTop - paddingBottom;
++
++  if (dataPoints.value.length < 2) {
++    return;
++  }
++
++  const values = dataPoints.value.map((p) => p.value);
++  let minV = Math.min(...values);
++  let maxV = Math.max(...values);
++
++  if (upperCaution.value && maxV > upperCaution.value - 15) {
++    maxV = Math.max(maxV, upperCaution.value + 5);
++  }
++
++  const range = maxV - minV;
++  const buffer = range > 1 ? range * 0.15 : 2;
++  minV = Math.floor(minV - buffer);
++  maxV = Math.ceil(maxV + buffer);
++  if (minV < 0) minV = 0;
++  if (maxV === minV) maxV = minV + 10;
++
++  const getY = (val) => {
++    const norm = (val - minV) / (maxV - minV);
++    return paddingTop + plotH * (1 - norm);
++  };
++
++  const getX = (idx) => {
++    return paddingLeft + (idx / (dataPoints.value.length - 1)) * plotW;
++  };
++
++  // Draw Horizontal Grid Lines & Y-Axis labels
++  const gridSteps = 4;
++  ctx.lineWidth = 1;
++  ctx.strokeStyle = '#e9ecef';
++  ctx.fillStyle = '#6c757d';
++  ctx.font = '11px sans-serif';
++  ctx.textAlign = 'right';
++  ctx.textBaseline = 'middle';
++
++  for (let i = 0; i <= gridSteps; i++) {
++    const val = minV + ((maxV - minV) / gridSteps) * i;
++    const y = getY(val);
++
++    ctx.beginPath();
++    ctx.moveTo(paddingLeft, y);
++    ctx.lineTo(w - paddingRight, y);
++    ctx.stroke();
++
++    ctx.fillText(`${val.toFixed(0)}${unit.value}`, paddingLeft - 8, y);
++  }
++
++  // Draw Warning Threshold Line
++  if (upperCaution.value && upperCaution.value >= minV && upperCaution.value <= maxV) {
++    const warnY = getY(upperCaution.value);
++    ctx.save();
++    ctx.setLineDash([4, 4]);
++    ctx.strokeStyle = '#f59e0b';
++    ctx.lineWidth = 1.5;
++    ctx.beginPath();
++    ctx.moveTo(paddingLeft, warnY);
++    ctx.lineTo(w - paddingRight, warnY);
++    ctx.stroke();
++
++    ctx.fillStyle = '#d97706';
++    ctx.textAlign = 'right';
++    ctx.fillText(`Warn: ${upperCaution.value}${unit.value}`, w - paddingRight, warnY - 8);
++    ctx.restore();
++  }
++
++  // Draw Critical Threshold Line
++  if (upperCritical.value && upperCritical.value >= minV && upperCritical.value <= maxV) {
++    const critY = getY(upperCritical.value);
++    ctx.save();
++    ctx.setLineDash([4, 4]);
++    ctx.strokeStyle = '#ef4444';
++    ctx.lineWidth = 1.5;
++    ctx.beginPath();
++    ctx.moveTo(paddingLeft, critY);
++    ctx.lineTo(w - paddingRight, critY);
++    ctx.stroke();
++
++    ctx.fillStyle = '#dc2626';
++    ctx.textAlign = 'right';
++    ctx.fillText(`Crit: ${upperCritical.value}${unit.value}`, w - paddingRight, critY - 8);
++    ctx.restore();
++  }
++
++  // Calculate Points Coordinates
++  const points = dataPoints.value.map((p, idx) => ({
++    x: getX(idx),
++    y: getY(p.value),
++    raw: p,
++  }));
++
++  // Create Smooth Catmull-Rom / Bezier Path
++  const linePath = new Path2D();
++  linePath.moveTo(points[0].x, points[0].y);
++
++  for (let i = 0; i < points.length - 1; i++) {
++    const p0 = points[i === 0 ? 0 : i - 1];
++    const p1 = points[i];
++    const p2 = points[i + 1];
++    const p3 = points[i + 2 >= points.length ? points.length - 1 : i + 2];
++
++    const cp1x = p1.x + (p2.x - p0.x) / 6;
++    const cp1y = p1.y + (p2.y - p0.y) / 6;
++    const cp2x = p2.x - (p3.x - p1.x) / 6;
++    const cp2y = p2.y - (p3.y - p1.y) / 6;
++
++    linePath.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
++  }
++
++  // Fill Area under curve with Gradient
++  const areaPath = new Path2D(linePath);
++  areaPath.lineTo(points[points.length - 1].x, paddingTop + plotH);
++  areaPath.lineTo(points[0].x, paddingTop + plotH);
++  areaPath.closePath();
++
++  const areaGradient = ctx.createLinearGradient(0, paddingTop, 0, paddingTop + plotH);
++  areaGradient.addColorStop(0, 'rgba(13, 110, 253, 0.35)');
++  areaGradient.addColorStop(1, 'rgba(13, 110, 253, 0.00)');
++
++  ctx.fillStyle = areaGradient;
++  ctx.fill(areaPath);
++
++  // Stroke the Line with Glow
++  ctx.save();
++  ctx.shadowColor = 'rgba(13, 110, 253, 0.4)';
++  ctx.shadowBlur = 6;
++  ctx.lineWidth = 2.5;
++  ctx.strokeStyle = '#0d6efd';
++  ctx.stroke(linePath);
++  ctx.restore();
++
++  // Draw Latest Point Pulsing Dot
++  const latest = points[points.length - 1];
++  ctx.save();
++  ctx.beginPath();
++  ctx.arc(latest.x, latest.y, 6, 0, Math.PI * 2);
++  ctx.fillStyle = '#0d6efd';
++  ctx.fill();
++
++  ctx.beginPath();
++  ctx.arc(latest.x, latest.y, 10, 0, Math.PI * 2);
++  ctx.strokeStyle = 'rgba(13, 110, 253, 0.5)';
++  ctx.lineWidth = 2;
++  ctx.stroke();
++  ctx.restore();
++
++  // Draw X-Axis Time Labels
++  ctx.fillStyle = '#6c757d';
++  ctx.textAlign = 'center';
++  ctx.textBaseline = 'top';
++  const xLabelCount = Math.min(5, points.length);
++  const step = Math.floor(points.length / xLabelCount) || 1;
++
++  for (let i = 0; i < points.length; i += step) {
++    ctx.fillText(points[i].raw.time, points[i].x, paddingTop + plotH + 8);
++  }
++}
++
++// Mouse Move Interaction (Tooltip)
++function onCanvasMouseMove(event) {
++  const canvas = canvasRef.value;
++  if (!canvas || dataPoints.value.length < 2) return;
++
++  const rect = canvas.getBoundingClientRect();
++  const mouseX = event.clientX - rect.left;
++  const paddingLeft = 45;
++  const paddingRight = 20;
++  const plotW = rect.width - paddingLeft - paddingRight;
++
++  if (mouseX < paddingLeft || mouseX > rect.width - paddingRight) {
++    hoverTooltip.value.visible = false;
++    return;
++  }
++
++  const fraction = (mouseX - paddingLeft) / plotW;
++  const idx = Math.round(fraction * (dataPoints.value.length - 1));
++  const clampedIdx = Math.max(0, Math.min(dataPoints.value.length - 1, idx));
++  const pt = dataPoints.value[clampedIdx];
++
++  const x = paddingLeft + (clampedIdx / (dataPoints.value.length - 1)) * plotW;
++  const y = 30;
++
++  hoverTooltip.value = {
++    visible: true,
++    x: Math.min(x, rect.width - 120),
++    y,
++    value: pt.value.toFixed(2),
++    time: pt.time,
++  };
++}
++
++function onCanvasMouseLeave() {
++  hoverTooltip.value.visible = false;
++}
++
++// Controls
++function togglePolling() {
++  isPolling.value = !isPolling.value;
++  if (isPolling.value) {
++    startTimer();
++  } else {
++    stopTimer();
++  }
++}
++
++function setPollingInterval(interval) {
++  pollingInterval.value = interval;
++  if (isPolling.value) {
++    stopTimer();
++    startTimer();
++  }
++}
++
++function clearHistory() {
++  dataPoints.value = [];
++  previousValue.value = null;
++  fetchSensorReading();
++}
++
++function onSensorChange() {
++  dataPoints.value = [];
++  previousValue.value = null;
++  const found = availableSensors.value.find((s) => s.uri === selectedSensorPath.value);
++  if (found) selectedSensorName.value = found.name;
++  fetchSensorReading();
++}
++
++function startTimer() {
++  stopTimer();
++  fetchSensorReading();
++  timerId = setInterval(fetchSensorReading, pollingInterval.value);
++}
++
++function stopTimer() {
++  if (timerId) {
++    clearInterval(timerId);
++    timerId = null;
++  }
++}
++
++// Lifecycle
++let resizeObserver = null;
++
++onMounted(() => {
++  startTimer();
++
++  nextTick(() => {
++    if (canvasRef.value) {
++      resizeObserver = new ResizeObserver(() => {
++        renderChart();
++      });
++      resizeObserver.observe(canvasRef.value);
++    }
++  });
++});
++
++onBeforeUnmount(() => {
++  stopTimer();
++  if (resizeObserver) {
++    resizeObserver.disconnect();
++  }
++});
++</script>
++
++<style scoped lang="scss">
++.sensor-live-chart-card {
++  background: #ffffff;
++  border: 1px solid #e2e8f0;
++  border-radius: 0.75rem;
++  padding: 1.25rem;
++  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
++}
++
++.live-dot {
++  width: 10px;
++  height: 10px;
++  border-radius: 50%;
++  background-color: #adb5bd;
++  display: inline-block;
++  transition: all 0.3s ease;
++}
++
++.live-dot-active {
++  background-color: #10b981;
++  box-shadow: 0 0 8px #10b981;
++  animation: pulse-dot 1.5s infinite;
++}
++
++@keyframes pulse-dot {
++  0% {
++    transform: scale(0.95);
++    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
++  }
++  70% {
++    transform: scale(1.1);
++    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
++  }
++  100% {
++    transform: scale(0.95);
++    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
++  }
++}
++
++.kpi-card {
++  transition: transform 0.2s ease, box-shadow 0.2s ease;
++  &:hover {
++    transform: translateY(-2px);
++    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
++  }
++}
++
++.chart-wrapper {
++  height: 260px;
++  background-color: #ffffff;
++}
++
++.live-chart-canvas {
++  width: 100%;
++  height: 100%;
++  cursor: crosshair;
++  display: block;
++}
++
++.chart-tooltip {
++  position: absolute;
++  pointer-events: none;
++  background: rgba(15, 23, 42, 0.9);
++  color: #ffffff;
++  padding: 6px 10px;
++  border-radius: 6px;
++  font-size: 12px;
++  white-space: nowrap;
++  transform: translate(-50%, -100%);
++  transition: left 0.05s ease-out, top 0.05s ease-out;
++  z-index: 10;
++}
++
++.empty-overlay {
++  position: absolute;
++  top: 0;
++  left: 0;
++  right: 0;
++  bottom: 0;
++  background: rgba(255, 255, 255, 0.85);
++}
++</style>
+diff --git a/src/views/HardwareStatus/Sensors/Sensors.vue b/src/views/HardwareStatus/Sensors/Sensors.vue
+index a5c23d4..78912de 100644
+--- a/src/views/HardwareStatus/Sensors/Sensors.vue
++++ b/src/views/HardwareStatus/Sensors/Sensors.vue
+@@ -1,6 +1,8 @@
+ <template>
+   <b-container fluid="xl">
+     <page-title />
++    <!-- Dynamic Real-Time Live Sensor Chart -->
++    <sensor-live-chart :sensors="allSensors" />
+     <b-row class="align-items-end">
+       <b-col sm="6" md="5" xl="4">
+         <search
+@@ -115,6 +117,7 @@
+ import TableToolbar from '@/components/Global/TableToolbar';
+ import TableToolbarExport from '@/components/Global/TableToolbarExport';
+ import TableCellCount from '@/components/Global/TableCellCount';
++import SensorLiveChart from './SensorLiveChart.vue';
+ 
+ import { useTableSelection } from '@/components/Composables/useTableSelection';
+ import { useLoadingBar } from '@/components/Composables/useLoadingBar';
+-- 
+2.34.1

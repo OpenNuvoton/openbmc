@@ -109,6 +109,19 @@
 	pinctrl-0 = <&pinctrl_qspi0>;
 };
 
+/* Host Serial-Over-LAN (SOL) UART, exposed via obmc-console SSH (port 2200) */
+&uart4 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart4>;
+};
+
+&can3 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_can3>;
+};
+
 /* GPIO line names for x86-power-control (libgpiod) */
 &gpioc {
 	gpio-line-names =
@@ -148,6 +161,14 @@
 		};
 	};
 
+	uart4 {
+		pinctrl_uart4: uart4grp{
+			nuvoton,pins =
+				<SYS_GPI_MFPH_PI10MFP_UART4_RXD	&pcfg_default>,
+				<SYS_GPI_MFPH_PI11MFP_UART4_TXD	&pcfg_default>;
+		};
+	};
+
 	qspi0 {
 		pinctrl_qspi0: qspi0grp{
 			nuvoton,pins =
@@ -164,6 +185,14 @@
 		pinctrl_usb: usbgrp{
 			nuvoton,pins =
 				<SYS_GPF_MFPH_PF15MFP_HSUSB0_VBUSVLD	&pcfg_default>;
+		};
+	};
+
+	can3 {
+		pinctrl_can3: can3grp{
+			nuvoton,pins =
+				<SYS_GPG_MFPH_PG8MFP_CAN3_RXD	&pcfg_default>,
+				<SYS_GPG_MFPH_PG9MFP_CAN3_TXD	&pcfg_default>;
 		};
 	};
 

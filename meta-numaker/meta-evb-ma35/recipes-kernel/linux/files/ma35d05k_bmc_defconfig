@@ -1,5 +1,5 @@
 # MA35D0K5 OpenBMC minimal kernel configuration
-# Stripped for BMC use - no WiFi, Audio, Display, Camera, USB host, CAN, NFS
+# Stripped for BMC use - no WiFi, Audio, Display, Camera, USB host, NFS
 
 # ---- General ----
 # CONFIG_LOCALVERSION_AUTO is not set
@@ -250,7 +250,14 @@ CONFIG_PANIC_TIMEOUT=5
 # CONFIG_SOUND is not set
 # CONFIG_DRM is not set
 # CONFIG_FB is not set
-# CONFIG_CAN is not set
+CONFIG_CAN=y
+CONFIG_CAN_RAW=y
+CONFIG_CAN_BCM=y
+CONFIG_CAN_GW=y
+CONFIG_CAN_DEV=y
+CONFIG_CAN_CALC_BITTIMING=y
+CONFIG_CAN_M_CAN=y
+CONFIG_CAN_M_CAN_PLATFORM=y
 # CONFIG_MEDIA_SUPPORT is not set
 # CONFIG_USB_SUPPORT is not set
 # CONFIG_MMC is not set

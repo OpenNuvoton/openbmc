@@ -1,0 +1,13 @@
+[Unit]
+Description=MA35 SoC Internal Temperature Sensor D-Bus Service
+After=dbus.service
+Wants=dbus.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ma35-soc-temp
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
