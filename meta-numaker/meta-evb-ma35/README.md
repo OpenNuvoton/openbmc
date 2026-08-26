@@ -10,7 +10,13 @@ OpenBMC Board Support Package for the Nuvoton MA35 Family evaluation boards.
 - [Build](#build)
 - [Flashing (NuWriter)](#flashing-nuwriter)
 - [SPI NAND Flash Layout](#spi-nand-flash-layout)
-- [Redfish API](#redfish-api)
+- [Feature Guides & Testing](#feature-guides--testing)
+  - [Redfish API & Testing](#redfish-api)
+  - [User Management & RBAC](#user-management--rbac)
+  - [SoC Temperature Monitoring & WebUI Live Chart](#soc-temperature-monitoring--webui-live-chart)
+  - [Serial-Over-LAN (SOL) Console](#serial-over-lan-sol-console)
+  - [CAN / CAN-FD Bus](#can--can-fd-bus)
+  - [Host Power Control](#host-power-control)
 - [Layer Structure](#layer-structure)
 
 ---
@@ -19,7 +25,6 @@ OpenBMC Board Support Package for the Nuvoton MA35 Family evaluation boards.
 
 | Machine | Board | SoC |
 |---------|-------|-----|
-| `numaker-iot-ma35d0` | NuMaker-IoT-MA35D03F80 | MA35D0 (dual Cortex-A35 @ 650 MHz) |
 | `numaker-iot-ma35d05ki1` | NuMaker-IoT-MA35D05KI1 | MA35D05K (dual Cortex-A35 @ 650 MHz) |
 
 ---
@@ -39,12 +44,16 @@ OpenBMC Board Support Package for the Nuvoton MA35 Family evaluation boards.
 
 ## Features
 
-- **Redfish**: bmcweb service providing DMTF Redfish API
-- **mDNS**: avahi-daemon for zero-config networking
-- **SSH**: OpenSSH server
-- **LED Management**: phosphor-led-manager + phosphor-led-sysfs
-- **Entity Manager**: hardware inventory via entity-manager
-- **Power Control**: x86-power-control (GPIO-based host power/reset)
+- **Redfish & REST API**: `bmcweb` providing standard DMTF Redfish API (`/redfish/v1/`), telemetry, chassis/system control, sensor readings, and WebUI hosting.
+- **User & Access Management**: `phosphor-user-manager` providing local user accounts, role-based access control (RBAC: `Administrator`, `Operator`, `ReadOnly`), account lockout, and password security policies via Redfish `AccountService` and WebUI.
+- **WebUI Vue & Live Dynamic Sensor Chart**: `webui-vue` with custom real-time dynamic spline chart, KPI statistics (Min / Max / Avg / Trend), and live polling.
+- **SoC Temperature Monitoring Daemon (`ma35-soc-temp`)**: Custom daemon reading on-die TSEN thermal sensor zone via Linux sysfs, exposing D-Bus sensor object (`/xyz/openbmc_project/sensors/temperature/cpu_thermal`) with Warning (`95°C`) and Critical (`105°C`) threshold interfaces.
+- **Serial-Over-LAN (SOL) Host Console (`obmc-console`)**: Host UART routing via UART4 (`/dev/ttyS4`, PI10/PI11), integrated with WebUI browser-based SOL terminal (WebSocket) and SSH `obmc-console-client`.
+- **CAN / CAN-FD Industrial Bus Support**: Hardware Bosch M_CAN controller (CAN3 / `can0` on PG8/PG9), supporting classic CAN 2.0 (up to 1 Mbps) and CAN-FD (up to 64-byte payload, 2 Mbps+ data phase), with `can-utils` suite included.
+- **Host Power Control**: `x86-power-control` daemon providing GPIO-based host power on, power off, power cycle, and reset state machine management.
+- **Entity Manager**: Dynamic hardware inventory and configuration via `entity-manager` JSON schemas.
+- **LED Management**: `phosphor-led-manager` + `phosphor-led-sysfs` with group and location indicator controls.
+- **Zero-Config Networking & Remote Access**: `avahi-daemon` (mDNS as `${MACHINE}.local`) and OpenSSH server.
 
 ---
 
@@ -53,10 +62,6 @@ OpenBMC Board Support Package for the Nuvoton MA35 Family evaluation boards.
 ```bash
 # numaker-iot-ma35d05ki1
 MACHINE=numaker-iot-ma35d05ki1 source setup numaker-iot-ma35d05ki1 build-ma35
-bitbake nuwriter-pack
-
-# numaker-iot-ma35d0
-MACHINE=numaker-iot-ma35d0 source setup numaker-iot-ma35d0 build-ma35
 bitbake nuwriter-pack
 ```
 
@@ -72,7 +77,7 @@ Prebuilt images are available from GitHub Actions:
 
 1. Open the workflow page and select the latest successful run.
 2. Scroll to the **Artifacts** section at the bottom.
-3. Download the artifact for your machine (e.g. `numaker-iot-ma35d0`, `numaker-iot-ma35d05ki1`).
+3. Download the artifact for your machine (`numaker-iot-ma35d05ki1`).
 4. Extract the zip and flash using the batch scripts or NuWriter GUI.
 
 ---
@@ -136,7 +141,7 @@ NOTICE:  BL31: v2.3 ...
 U-Boot 2020.07 ...
 [    0.000000] Linux version 6.6.93 ...
 ...
-numaker-iot-ma35d0 login:
+numaker-iot-ma35d05ki1 login:
 ```
 
 Default login: `root` (Password: 0penBmc).
@@ -157,15 +162,14 @@ Total: 512 MB (`0x0`–`0x10000000`)
 
 ---
 
-## Redfish API
+## Feature Guides & Testing
 
-BMC is accessible via mDNS hostname: `${MACHINE}.local`
+BMC is accessible via mDNS hostname: `${MACHINE}.local` (e.g. `numaker-iot-ma35d05ki1.local`).
 
-For power control (wiring, GPIO pin assignment, Redfish/D-Bus commands), see:
-- [doc/x86-power-control/numaker-iot-ma35d0.md](../../doc/x86-power-control/numaker-iot-ma35d0.md)
-- [doc/x86-power-control/numaker-iot-ma35d05ki1.md](../../doc/x86-power-control/numaker-iot-ma35d05ki1.md)
+### Redfish API
 
-### Quick Examples
+- **Automated Test Guide**: [doc/test-redfish/numaker-iot-ma35d05ki1.md](../../doc/test-redfish/numaker-iot-ma35d05ki1.md)
+- **Test Script**: `doc/test-redfish/numaker-iot-ma35d05ki1.sh`
 
 ```bash
 # Service Root
@@ -180,6 +184,58 @@ curl -k -s -u root:0penBmc -X PATCH \
 # SSH access
 ssh root@${MACHINE}.local
 ```
+
+### User Management & RBAC
+
+OpenBMC provides role-based user management via `phosphor-user-manager` and Redfish `AccountService`:
+
+- **WebUI User Management**: Access `https://${MACHINE}.local/#/access-control/local-users` to add/edit/remove accounts, change passwords, and configure roles.
+- **Redfish Account API**:
+  ```bash
+  # List all local accounts
+  curl -k -s -u root:0penBmc https://${MACHINE}.local/redfish/v1/AccountService/Accounts
+
+  # Create a new Operator user
+  curl -k -s -u root:0penBmc -X POST \
+    https://${MACHINE}.local/redfish/v1/AccountService/Accounts \
+    -H "Content-Type: application/json" \
+    -d '{"UserName": "operator1", "Password": "Password123!", "RoleId": "Operator", "Enabled": true}'
+
+  # Change user password
+  curl -k -s -u root:0penBmc -X PATCH \
+    https://${MACHINE}.local/redfish/v1/AccountService/Accounts/operator1 \
+    -H "Content-Type: application/json" \
+    -d '{"Password": "NewPassword456!"}'
+  ```
+
+### SoC Temperature Monitoring & WebUI Live Chart
+
+- **Daemon**: `ma35-soc-temp` polls `/sys/class/thermal/thermal_zone0/temp`.
+- **D-Bus Object**: `/xyz/openbmc_project/sensors/temperature/cpu_thermal`
+- **Redfish Endpoint**: `https://${MACHINE}.local/redfish/v1/Chassis/system/Thermal`
+- **WebUI Dynamic Chart**: Access WebUI at `https://${MACHINE}.local/#/hardware-status/sensors` to view the real-time live sensor spline chart with Min/Max/Avg/Trend KPIs.
+
+### Serial-Over-LAN (SOL) Console
+
+- **Detailed Guide & Wiring**: [doc/test-sol/numaker-iot-ma35d05ki1.md](../../doc/test-sol/numaker-iot-ma35d05ki1.md)
+- **Hardware Pins**: `PI10` (`UART4_RXD`) / `PI11` (`UART4_TXD`)
+- **WebUI SOL Access**: `https://${MACHINE}.local/#/operations/serial-over-lan`
+- **SSH SOL Access**: `ssh -t root@${MACHINE}.local obmc-console-client`
+
+### CAN / CAN-FD Bus
+
+- **Detailed Guide & Testing**: [doc/test-can/numaker-iot-ma35d05ki1.md](../../doc/test-can/numaker-iot-ma35d05ki1.md)
+- **Hardware Pins**: `PG8` (`CAN3_RXD`) / `PG9` (`CAN3_TXD`)
+- **Quick Bring-up (CAN-FD 500k/2M)**:
+  ```bash
+  ip link set can0 up type can bitrate 500000 dbitrate 2000000 fd on
+  candump can0 &
+  cansend can0 123##30102030405060708090A0B0C0D0E0F
+  ```
+
+### Host Power Control
+
+- **Wiring & Pin Assignment**: [doc/x86-power-control/numaker-iot-ma35d05ki1.md](../../doc/x86-power-control/numaker-iot-ma35d05ki1.md)
 
 ---
 
@@ -217,15 +273,30 @@ meta-evb-ma35/
 │   ├── linux-ma35_6.6.93.bb
 │   ├── linux-ma35/ (openbmc.cfg)
 │   └── files/ (defconfigs, DTS, patches)
-├── recipes-nuvoton/packagegroups/
-│   └── packagegroup-ma35-apps.bb
+├── recipes-nuvoton/
+│   ├── ma35-soc-temp/
+│   │   ├── CMakeLists.txt
+│   │   ├── ma35-soc-temp.cpp
+│   │   ├── ma35-soc-temp.service
+│   │   └── ma35-soc-temp_1.0.bb
+│   └── packagegroups/
+│       └── packagegroup-ma35-apps.bb
 ├── recipes-phosphor/
+│   ├── console/
+│   │   ├── files/server.ttyS4.conf
+│   │   └── obmc-console_%.bbappend
 │   ├── entity-manager/
 │   │   ├── entity-manager_%.bbappend
 │   │   └── entity-manager/ (per-machine JSON configs)
 │   ├── images/obmc-phosphor-image.bbappend
-│   ├── leds/ (led-group-config.json)
-│   └── packagegroups/packagegroup-obmc-apps.bbappend
+│   ├── interfaces/bmcweb_%.bbappend
+│   ├── leds/
+│   │   ├── phosphor-led-manager/led-group-config.json
+│   │   └── phosphor-led-manager_%.bbappend
+│   ├── packagegroups/packagegroup-obmc-apps.bbappend
+│   └── webui/
+│       ├── files/0002-add-realtime-dynamic-sensor-chart.patch
+│       └── webui-vue_%.bbappend
 └── recipes-x86/chassis/
     ├── x86-power-control_%.bbappend
     └── x86-power-control/power-config-host0.json

@@ -16,8 +16,8 @@ On this board, **`UART4`** (registered as `/dev/ttyS4` in Linux) is designated a
 | :--- | :--- | :--- | :--- | :--- |
 | **`UART4_RXD`** | Input | SOL Receiver (receives data from Host UART TX) | **`PI10`** | 3.3V TTL level |
 | **`UART4_TXD`** | Output | SOL Transmitter (sends keyboard input to Host UART RX) | **`PI11`** | 3.3V TTL level |
-| **`UART0_TXD`** | Output | BMC Linux Debug Console TX | **`PB13`** (or Header TX) | Default 115200 8N1 |
-| **`UART0_RXD`** | Input | BMC Linux Debug Console RX | **`PB12`** (or Header RX) | Default 115200 8N1 |
+| **`UART0_TXD`** | Output | BMC Linux Debug Console TX | **`PE14`** (or Header TX) | Default 115200 8N1 |
+| **`UART0_RXD`** | Input | BMC Linux Debug Console RX | **`PE15`** (or Header RX) | Default 115200 8N1 |
 | **`GND`** | - | Common Reference Ground | **`GND`** | Must be connected |
 
 ---
@@ -32,8 +32,8 @@ For standalone self-testing without an external host computer, you can connect t
  │                                                             │
  │   [ ttyS0: BMC Debug Console ]     [ ttyS4: SOL Console ]   │
  │                                                             │
- │   UART0_TXD (PB13) ───────────────► UART4_RXD (PI10)        │
- │   UART0_RXD (PB12) ◄─────────────── UART4_TXD (PI11)        │
+ │   UART0_TXD (PE14) ───────────────► UART4_RXD (PI10)        │
+ │   UART0_RXD (PE15) ◄─────────────── UART4_TXD (PI11)        │
  │                                                             │
  │   GND ───────────────────────────── GND                     │
  └─────────────────────────────────────────────────────────────┘
@@ -124,3 +124,4 @@ In `meta-evb-ma35/recipes-phosphor/console/obmc-console_%.bbappend`:
    ```bash
    systemctl status obmc-console@ttyS4.service
    ```
+
