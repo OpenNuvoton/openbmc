@@ -1,8 +1,8 @@
-# MA35D0 GPIO Power Control
+# MA35D03F80 GPIO Power Control
 
 ## Overview
 
-NuMaker-IoT-MA35D0 serves as a BMC (Dual Cortex-A35, 256MB DDR), controlling the Host power via GPIO.
+NuMaker-IoT-MA35D03F80 serves as a BMC (Dual Cortex-A35, 256MB DDR), controlling the Host power via GPIO.
 It uses OpenBMC's `x86-power-control` daemon with `libgpiod` to operate GPIO lines by name.
 
 ## Hardware Signal Definitions
@@ -16,8 +16,8 @@ It uses OpenBMC's `x86-power-control` daemon with `libgpiod` to operate GPIO lin
 ## Wiring Diagram
 
 ```
-MA35D0 (BMC)                   Host Motherboard
-────────────                   ────────────────
+MA35D03F80 (BMC)               Host Motherboard
+────────────────               ────────────────
 PN1 (POWER_OUT)  ─────────── PWR_BTN# (power button header)
 PN0 (RESET_OUT)  ─────────── RST_BTN# (reset button header)
 PK12 (PS_PWROK)  ◄────────── PWROK (ATX PSU / VRM output)

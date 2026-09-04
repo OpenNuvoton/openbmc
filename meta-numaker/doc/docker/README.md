@@ -85,8 +85,8 @@ cd openbmc
 MACHINE=numaker-iot-nuc980g2 source setup numaker-iot-nuc980g2 build-nuc980
 bitbake nuwriter-pack
 
-# Or build MA35 machine, EX: numaker-iot-ma35d05ki1
-MACHINE=numaker-iot-ma35d05ki1 source setup numaker-iot-ma35d05ki1 build-ma35
+# Or build MA35 machine, EX: numaker-iot-ma35d03f80 or numaker-iot-ma35d05ki1
+MACHINE=numaker-iot-ma35d03f80 source setup numaker-iot-ma35d03f80 build-ma35
 bitbake nuwriter-pack
 ```
 

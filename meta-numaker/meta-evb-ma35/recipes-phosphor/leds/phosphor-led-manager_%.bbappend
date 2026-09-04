@@ -13,7 +13,7 @@ do_install:append() {
     fi
 }
 
-# MA35 boards have no dedicated "bmc booted" heartbeat LED (numaker-iot-ma35d0
+# MA35 boards have no dedicated "bmc booted" heartbeat LED (numaker-iot-ma35d03f80
 # only wires "front_id"/"power", numaker-iot-ma35d05ki1 only wires "front_id"),
 # so led-group-config.json intentionally does not define a "bmc_booted" group.
 # The base recipe unconditionally enables obmc-led-group-start@bmc_booted.service

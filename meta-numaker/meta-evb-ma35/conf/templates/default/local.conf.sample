@@ -1,4 +1,4 @@
-MACHINE ??= "numaker-iot-ma35d0"
+MACHINE ??= "numaker-iot-ma35d03f80"
 DISTRO ?= "openbmc-phosphor"
 PACKAGE_CLASSES ?= "package_ipk"
 SANITY_TESTED_DISTROS:append ?= " *"

@@ -1,6 +1,10 @@
 /*
  * Device Tree Source for MA35D0 IoT Board (BMC)
  *
+ * Based on upstream ma35d0-iot-256m.dts with BMC-specific modifications:
+ * UBI/UBIFS root, LED naming, PDMA enablement, Host SOL (UART6), UART16,
+ * CAN-FD (CAN0, CAN1, CAN3), and GPIO power control.
+ *
  * Copyright (C) 2021 Nuvoton Technology Corp.
  *
  * The code contained herein is licensed under the GNU General Public
@@ -38,23 +42,6 @@
 		};
 	};
 
-	gpio_keys_test {
-		compatible = "gpio-keys";
-		status = "okay";
-		autorepeat;
-		botton0 {
-			label = "Key Down";
-			linux,code = <KEY_DOWN>;
-			gpios = <&gpion 2 GPIO_ACTIVE_LOW>;
-			wakeup-source;
-		};
-		button1{
-			label ="Key Up";
-			linux,code = <KEY_UP>;
-			gpios = <&gpion 3 GPIO_ACTIVE_LOW>;
-			wakeup-source;
-		};
-	};
 
 	volt0_sdhci1: regulator-volt0_sdhci1 {
 		compatible = "regulator-gpio";
@@ -75,7 +62,7 @@
 };
 
 &pdma0 {
-	status = "disabled";
+	status = "okay";
 };
 
 &pdma1 {
@@ -83,11 +70,11 @@
 };
 
 &pdma2 {
-	status = "disabled";
+	status = "okay";
 };
 
 &pdma3 {
-	status = "disabled";
+	status = "okay";
 };
 
 &emac0 {
@@ -113,12 +100,6 @@
 	pinctrl-0 = <&pinctrl_usb>;
 };
 
-&nand {
-	status = "disabled";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_nand>;
-};
-
 &sdhci1 {
 	status = "okay";
 	disable-wp;
@@ -126,61 +107,6 @@
 	pinctrl-0 = <&pinctrl_sdhci1_3_3V>;
 	pinctrl-1 = <&pinctrl_sdhci1_1_8V>;
 	vqmmc-supply = <&volt0_sdhci1>;
-	power-gpios = <&gpion 14 GPIO_ACTIVE_LOW>; /* PN14 */
-};
-
-&epwm0 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_epwm0>;
-};
-
-&adc0 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_adc0>;
-};
-
-&i2c4 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_i2c4>;
-};
-
-&i2c5 {
-	status = "disabled";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_i2c5>;
-};
-
-&uart10 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart10>;
-};
-
-&uart12 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart12>;
-};
-
-&uart14 {
-	status = "okay";
-	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_uart14>;
-};
-
-&i2s0 {
-	status = "disabled";
-};
-
-&i2s_pcm {
-	status = "disabled";
-};
-
-&sound {
-	status = "disabled";
 };
 
 &qspi0 {
@@ -189,16 +115,51 @@
 	pinctrl-0 = <&pinctrl_qspi0>;
 };
 
-&spi0 {
+&cpu_thermal {
+	trips {
+		cpu_alert: cpu-alert {
+			temperature = <95000>;
+			hysteresis = <2000>;
+			type = "passive";
+		};
+
+		cpu_crit: cpu-crit {
+			temperature = <105000>;
+			hysteresis = <2000>;
+			type = "critical";
+		};
+	};
+};
+
+/* Host Serial-Over-LAN (SOL) UART */
+&uart6 {
 	status = "okay";
 	pinctrl-names = "default";
-	pinctrl-0 = <&pinctrl_spi0>;
+	pinctrl-0 = <&pinctrl_uart6>;
+};
+
+&uart16 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart16>;
+};
+
+&can0 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_can0>;
 };
 
 &can1 {
 	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_can1>;
+};
+
+&can3 {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_can3>;
 };
 
 /* GPIO line names for x86-power-control (libgpiod) */
@@ -255,64 +216,23 @@
 		};
 	};
 
-	adc0 {
-		pinctrl_adc0: adc0grp {
+	uart6 {
+		pinctrl_uart6: uart6grp{
 			nuvoton,pins =
-				<SYS_GPB_MFPH_PB10MFP_ADC0_CH2	&pcfg_default>,
-				<SYS_GPB_MFPH_PB11MFP_ADC0_CH3	&pcfg_default>,
-				<SYS_GPB_MFPH_PB12MFP_ADC0_CH4	&pcfg_default>,
-				<SYS_GPB_MFPH_PB13MFP_ADC0_CH5	&pcfg_default>,
-				<SYS_GPB_MFPH_PB14MFP_ADC0_CH6	&pcfg_default>,
-				<SYS_GPB_MFPH_PB15MFP_ADC0_CH7	&pcfg_default>;
+				<SYS_GPN_MFPH_PN12MFP_UART6_nCTS	&pcfg_default>,
+				<SYS_GPN_MFPH_PN13MFP_UART6_nRTS	&pcfg_default>,
+				<SYS_GPN_MFPH_PN14MFP_UART6_RXD	&pcfg_default>,
+				<SYS_GPN_MFPH_PN15MFP_UART6_TXD	&pcfg_default>;
 		};
 	};
 
-	epwm0 {
-		pinctrl_epwm0: epwm0grp{
+	uart16 {
+		pinctrl_uart16: uart16grp{
 			nuvoton,pins =
-				<SYS_GPD_MFPL_PD7MFP_EPWM0_CH1	&pcfg_default>;
-		};
-	};
-
-	i2c4 {
-		pinctrl_i2c4: i2c4grp{
-			nuvoton,pins =
-				<SYS_GPC_MFPL_PC0MFP_I2C4_SDA	&pcfg_default>,
-				<SYS_GPC_MFPL_PC1MFP_I2C4_SCL	&pcfg_default>;
-		};
-	};
-
-	i2c5 {
-		pinctrl_i2c5: i2c5grp{
-			nuvoton,pins =
-				<SYS_GPC_MFPL_PC4MFP_I2C5_SDA	&pcfg_default>,
-				<SYS_GPC_MFPL_PC5MFP_I2C5_SCL	&pcfg_default>;
-		};
-	};
-
-	uart10 {
-		pinctrl_uart10: uart10grp{
-			nuvoton,pins =
-				<SYS_GPH_MFPL_PH6MFP_UART10_RXD	&pcfg_default>,
-				<SYS_GPH_MFPL_PH7MFP_UART10_TXD	&pcfg_default>;
-		};
-	};
-
-	uart12 {
-		pinctrl_uart12: uart12grp{
-			nuvoton,pins =
-				<SYS_GPG_MFPH_PG8MFP_UART12_RXD	&pcfg_default>,
-				<SYS_GPG_MFPH_PG9MFP_UART12_TXD	&pcfg_default>,
-				<SYS_GPG_MFPH_PG10MFP_UART12_nRTS	&pcfg_default>,
-				<SYS_GPK_MFPL_PK4MFP_UART12_nCTS	&pcfg_default>;
-		};
-	};
-
-	uart14 {
-		pinctrl_uart14: uart14grp{
-			nuvoton,pins =
-				<SYS_GPH_MFPH_PH14MFP_UART14_RXD	&pcfg_default>,
-				<SYS_GPH_MFPH_PH15MFP_UART14_TXD	&pcfg_default>;
+				<SYS_GPD_MFPH_PD8MFP_UART16_nCTS	&pcfg_default>,
+				<SYS_GPD_MFPH_PD9MFP_UART16_nRTS	&pcfg_default>,
+				<SYS_GPD_MFPH_PD10MFP_UART16_RXD	&pcfg_default>,
+				<SYS_GPD_MFPH_PD11MFP_UART16_TXD	&pcfg_default>;
 		};
 	};
 
@@ -328,14 +248,18 @@
 		};
 	};
 
-	spi0 {
-		pinctrl_spi0: spi0grp{
+	usb {
+		pinctrl_usb: usbgrp{
 			nuvoton,pins =
-				<SYS_GPG_MFPL_PG0MFP_SPI0_SS0    &pcfg_default>,
-				<SYS_GPB_MFPH_PB8MFP_SPI0_SS1    &pcfg_default>,
-				<SYS_GPB_MFPH_PB9MFP_SPI0_CLK    &pcfg_default>,
-				<SYS_GPL_MFPH_PL14MFP_SPI0_MOSI    &pcfg_default>,
-				<SYS_GPL_MFPH_PL15MFP_SPI0_MISO    &pcfg_default>;
+				<SYS_GPF_MFPH_PF15MFP_HSUSB0_VBUSVLD	&pcfg_default>;
+		};
+	};
+
+	can0 {
+		pinctrl_can0: can0grp{
+			nuvoton,pins =
+				<SYS_GPN_MFPL_PN2MFP_CAN0_RXD	&pcfg_default>,
+				<SYS_GPN_MFPL_PN3MFP_CAN0_TXD	&pcfg_default>;
 		};
 	};
 
@@ -347,31 +271,11 @@
 		};
 	};
 
-	usb {
-		pinctrl_usb: usbgrp{
+	can3 {
+		pinctrl_can3: can3grp{
 			nuvoton,pins =
-				<SYS_GPF_MFPH_PF15MFP_HSUSB0_VBUSVLD	&pcfg_default>;
-		};
-	};
-
-	nand {
-		pinctrl_nand: nandgrp{
-			nuvoton,pins =
-				<SYS_GPA_MFPL_PA0MFP_NAND_DATA0	&pcfg_default>,
-				<SYS_GPA_MFPL_PA1MFP_NAND_DATA1	&pcfg_default>,
-				<SYS_GPA_MFPL_PA2MFP_NAND_DATA2	&pcfg_default>,
-				<SYS_GPA_MFPL_PA3MFP_NAND_DATA3	&pcfg_default>,
-				<SYS_GPA_MFPL_PA4MFP_NAND_DATA4	&pcfg_default>,
-				<SYS_GPA_MFPL_PA5MFP_NAND_DATA5	&pcfg_default>,
-				<SYS_GPA_MFPL_PA6MFP_NAND_DATA6	&pcfg_default>,
-				<SYS_GPA_MFPL_PA7MFP_NAND_DATA7	&pcfg_default>,
-				<SYS_GPA_MFPH_PA8MFP_NAND_RDY	&pcfg_default>,
-				<SYS_GPA_MFPH_PA9MFP_NAND_nRE	&pcfg_default>,
-				<SYS_GPA_MFPH_PA10MFP_NAND_nWE	&pcfg_default>,
-				<SYS_GPA_MFPH_PA11MFP_NAND_CLE	&pcfg_default>,
-				<SYS_GPA_MFPH_PA12MFP_NAND_ALE	&pcfg_default>,
-				<SYS_GPA_MFPH_PA13MFP_NAND_nCS	&pcfg_default>,
-				<SYS_GPA_MFPH_PA14MFP_NAND_nWP	&pcfg_default>;
+				<SYS_GPM_MFPL_PM2MFP_CAN3_RXD	&pcfg_default>,
+				<SYS_GPM_MFPL_PM3MFP_CAN3_TXD	&pcfg_default>;
 		};
 	};
 

@@ -11,7 +11,7 @@ on:
         type: choice
         options:
           - numaker-iot-nuc980g2
-          - numaker-iot-ma35d0
+          - numaker-iot-ma35d03f80
           - numaker-iot-ma35d05ki1
           - all
 
@@ -21,7 +21,7 @@ on:
 
 # Single source of truth: maintain all target machines here (space-separated)
 env:
-  ALL_MACHINES: "numaker-iot-nuc980g2 numaker-iot-ma35d05ki1 numaker-iot-ma35d0"
+  ALL_MACHINES: "numaker-iot-nuc980g2 numaker-iot-ma35d05ki1 numaker-iot-ma35d03f80"
 
 jobs:
   # Dynamically build the matrix target list

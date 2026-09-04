@@ -25,6 +25,7 @@ OpenBMC Board Support Package for the Nuvoton MA35 Family evaluation boards.
 
 | Machine | Board | SoC |
 |---------|-------|-----|
+| `numaker-iot-ma35d03f80` | NuMaker-IoT-MA35D03F80 | MA35D03F864C (dual Cortex-A35 @ 650 MHz) |
 | `numaker-iot-ma35d05ki1` | NuMaker-IoT-MA35D05KI1 | MA35D05K (dual Cortex-A35 @ 650 MHz) |
 
 ---
@@ -48,8 +49,9 @@ OpenBMC Board Support Package for the Nuvoton MA35 Family evaluation boards.
 - **User & Access Management**: `phosphor-user-manager` providing local user accounts, role-based access control (RBAC: `Administrator`, `Operator`, `ReadOnly`), account lockout, and password security policies via Redfish `AccountService` and WebUI.
 - **WebUI Vue & Live Dynamic Sensor Chart**: `webui-vue` with custom real-time dynamic spline chart, KPI statistics (Min / Max / Avg / Trend), and live polling.
 - **SoC Temperature Monitoring Daemon (`ma35-soc-temp`)**: Custom daemon reading on-die TSEN thermal sensor zone via Linux sysfs, exposing D-Bus sensor object (`/xyz/openbmc_project/sensors/temperature/cpu_thermal`) with Warning (`95°C`) and Critical (`105°C`) threshold interfaces.
-- **Serial-Over-LAN (SOL) Host Console (`obmc-console`)**: Host UART routing via UART4 (`/dev/ttyS4`, PI10/PI11), integrated with WebUI browser-based SOL terminal (WebSocket) and SSH `obmc-console-client`.
-- **CAN / CAN-FD Industrial Bus Support**: Hardware Bosch M_CAN controller (CAN3 / `can0` on PG8/PG9), supporting classic CAN 2.0 (up to 1 Mbps) and CAN-FD (up to 64-byte payload, 2 Mbps+ data phase), with `can-utils` suite included.
+- **Serial-Over-LAN (SOL) Host Console (`obmc-console`)**: Host UART routing (UART6 `/dev/ttyS6`, PN14/PN15 on `numaker-iot-ma35d03f80`, **requires J63 Pin 1-2 shorted for RS-232 mode**; UART4 `/dev/ttyS4`, PI10/PI11 on `numaker-iot-ma35d05ki1`), integrated with WebUI browser-based SOL terminal (WebSocket) and SSH `obmc-console-client`.
+- **Additional Serial Interfaces**: Hardware UART16 enabled on `numaker-iot-ma35d03f80` (`/dev/ttyS16`, PD8/PD9/PD10/PD11 for CTS/RTS/RXD/TXD 5-wire support).
+- **CAN / CAN-FD Industrial Bus Support**: Hardware Bosch M_CAN controllers (CAN0 on PN2/PN3, CAN1 on PN6/PN7, CAN3 on PM2/PM3), supporting classic CAN 2.0 (up to 1 Mbps) and CAN-FD (up to 64-byte payload, 2 Mbps+ data phase), with `can-utils` suite included.
 - **Host Power Control**: `x86-power-control` daemon providing GPIO-based host power on, power off, power cycle, and reset state machine management.
 - **Entity Manager**: Dynamic hardware inventory and configuration via `entity-manager` JSON schemas.
 - **LED Management**: `phosphor-led-manager` + `phosphor-led-sysfs` with group and location indicator controls.
@@ -62,6 +64,10 @@ OpenBMC Board Support Package for the Nuvoton MA35 Family evaluation boards.
 ```bash
 # numaker-iot-ma35d05ki1
 MACHINE=numaker-iot-ma35d05ki1 source setup numaker-iot-ma35d05ki1 build-ma35
+bitbake nuwriter-pack
+
+# numaker-iot-ma35d03f80
+MACHINE=numaker-iot-ma35d03f80 source setup numaker-iot-ma35d03f80 build-ma35
 bitbake nuwriter-pack
 ```
 
@@ -77,7 +83,7 @@ Prebuilt images are available from GitHub Actions:
 
 1. Open the workflow page and select the latest successful run.
 2. Scroll to the **Artifacts** section at the bottom.
-3. Download the artifact for your machine (`numaker-iot-ma35d05ki1`).
+3. Download the artifact for your machine (`numaker-iot-ma35d03f80` or `numaker-iot-ma35d05ki1`).
 4. Extract the zip and flash using the batch scripts or NuWriter GUI.
 
 ---
@@ -141,7 +147,7 @@ NOTICE:  BL31: v2.3 ...
 U-Boot 2020.07 ...
 [    0.000000] Linux version 6.6.93 ...
 ...
-numaker-iot-ma35d05ki1 login:
+numaker-iot login:
 ```
 
 Default login: `root` (Password: 0penBmc).
@@ -164,12 +170,13 @@ Total: 512 MB (`0x0`–`0x10000000`)
 
 ## Feature Guides & Testing
 
-BMC is accessible via mDNS hostname: `${MACHINE}.local` (e.g. `numaker-iot-ma35d05ki1.local`).
+BMC is accessible via mDNS hostname: `${MACHINE}.local` (e.g. `numaker-iot-ma35d03f80.local`, `numaker-iot-ma35d05ki1.local`).
 
 ### Redfish API
 
-- **Automated Test Guide**: [doc/test-redfish/numaker-iot-ma35d05ki1.md](../../doc/test-redfish/numaker-iot-ma35d05ki1.md)
-- **Test Script**: `doc/test-redfish/numaker-iot-ma35d05ki1.sh`
+- **Automated Test Guides**:
+  - `numaker-iot-ma35d03f80`: [doc/test-redfish/numaker-iot-ma35d03f80.md](../../doc/test-redfish/numaker-iot-ma35d03f80.md) (Script: `doc/test-redfish/numaker-iot-ma35d03f80.sh`)
+  - `numaker-iot-ma35d05ki1`: [doc/test-redfish/numaker-iot-ma35d05ki1.md](../../doc/test-redfish/numaker-iot-ma35d05ki1.md) (Script: `doc/test-redfish/numaker-iot-ma35d05ki1.sh`)
 
 ```bash
 # Service Root
@@ -217,14 +224,18 @@ OpenBMC provides role-based user management via `phosphor-user-manager` and Redf
 
 ### Serial-Over-LAN (SOL) Console
 
-- **Detailed Guide & Wiring**: [doc/test-sol/numaker-iot-ma35d05ki1.md](../../doc/test-sol/numaker-iot-ma35d05ki1.md)
+- **Detailed Guides & Wiring**:
+  - `numaker-iot-ma35d03f80`: [doc/test-sol/numaker-iot-ma35d03f80.md](../../doc/test-sol/numaker-iot-ma35d03f80.md)
+  - `numaker-iot-ma35d05ki1`: [doc/test-sol/numaker-iot-ma35d05ki1.md](../../doc/test-sol/numaker-iot-ma35d05ki1.md)
 - **Hardware Pins**: `PI10` (`UART4_RXD`) / `PI11` (`UART4_TXD`)
 - **WebUI SOL Access**: `https://${MACHINE}.local/#/operations/serial-over-lan`
 - **SSH SOL Access**: `ssh -t root@${MACHINE}.local obmc-console-client`
 
 ### CAN / CAN-FD Bus
 
-- **Detailed Guide & Testing**: [doc/test-can/numaker-iot-ma35d05ki1.md](../../doc/test-can/numaker-iot-ma35d05ki1.md)
+- **Detailed Guides & Testing**:
+  - `numaker-iot-ma35d03f80`: [doc/test-can/numaker-iot-ma35d03f80.md](../../doc/test-can/numaker-iot-ma35d03f80.md)
+  - `numaker-iot-ma35d05ki1`: [doc/test-can/numaker-iot-ma35d05ki1.md](../../doc/test-can/numaker-iot-ma35d05ki1.md)
 - **Hardware Pins**: `PG8` (`CAN3_RXD`) / `PG9` (`CAN3_TXD`)
 - **Quick Bring-up (CAN-FD 500k/2M)**:
   ```bash
@@ -235,7 +246,9 @@ OpenBMC provides role-based user management via `phosphor-user-manager` and Redf
 
 ### Host Power Control
 
-- **Wiring & Pin Assignment**: [doc/x86-power-control/numaker-iot-ma35d05ki1.md](../../doc/x86-power-control/numaker-iot-ma35d05ki1.md)
+- **Wiring & Pin Assignment**:
+  - `numaker-iot-ma35d03f80`: [doc/x86-power-control/numaker-iot-ma35d03f80.md](../../doc/x86-power-control/numaker-iot-ma35d03f80.md) (`PN1` POWER_OUT / `PN0` RESET_OUT / `PK12` PS_PWROK)
+  - `numaker-iot-ma35d05ki1`: [doc/x86-power-control/numaker-iot-ma35d05ki1.md](../../doc/x86-power-control/numaker-iot-ma35d05ki1.md) (`PC2` POWER_OUT / `PC3` RESET_OUT / `PC7` PS_PWROK)
 
 ---
 
@@ -247,7 +260,7 @@ meta-evb-ma35/
 │   ├── layer.conf
 │   ├── machine/
 │   │   ├── include/ma35-common.inc
-│   │   ├── numaker-iot-ma35d0.conf
+│   │   ├── numaker-iot-ma35d03f80.conf
 │   │   └── numaker-iot-ma35d05ki1.conf
 │   └── templates/default/
 │       ├── bblayers.conf.sample
@@ -284,6 +297,7 @@ meta-evb-ma35/
 ├── recipes-phosphor/
 │   ├── console/
 │   │   ├── files/server.ttyS4.conf
+│   │   ├── files/server.ttyS6.conf
 │   │   └── obmc-console_%.bbappend
 │   ├── entity-manager/
 │   │   ├── entity-manager_%.bbappend
