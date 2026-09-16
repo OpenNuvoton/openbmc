@@ -8,4 +8,4 @@ require linux-ma35.inc
 
 LOCALVERSION = "${MA35_LOCALVERSION}"
 
-COMPATIBLE_MACHINE = "(ma35d0|ma35d05k)"
+COMPATIBLE_MACHINE = "(ma35d0|ma35d05k|ma35d1)"

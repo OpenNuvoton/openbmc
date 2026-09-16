@@ -9,17 +9,22 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 # "ssh" PACKAGECONFIG for these machines.
 PACKAGECONFIG:remove:numaker-iot-ma35d03f80 = "ssh"
 PACKAGECONFIG:remove:numaker-iot-ma35d05ki1 = "ssh"
+PACKAGECONFIG:remove:numaker-iot-ma35d16fj87c = "ssh"
 
 SRC_URI:append:numaker-iot-ma35d03f80 = " file://server.ttyS6.conf "
 SRC_URI:append:numaker-iot-ma35d05ki1 = " file://server.ttyS4.conf "
+SRC_URI:append:numaker-iot-ma35d16fj87c = " file://server.ttyS10.conf "
 
 # Host SOL link:
 # - numaker-iot-ma35d03f80: uart6 (ttyS6, PN14/PN15)
 # - numaker-iot-ma35d05ki1: uart4 (ttyS4, PI10/PI11)
+# - numaker-iot-ma35d16fj87c: uart10 (ttyS10, PH6/PH7)
 OBMC_CONSOLE_HOST_TTY:numaker-iot-ma35d03f80 = "ttyS6"
 OBMC_CONSOLE_HOST_TTY:numaker-iot-ma35d05ki1 = "ttyS4"
+OBMC_CONSOLE_HOST_TTY:numaker-iot-ma35d16fj87c = "ttyS10"
 OBMC_CONSOLE_TTYS:numaker-iot-ma35d03f80 = "ttyS6"
 OBMC_CONSOLE_TTYS:numaker-iot-ma35d05ki1 = "ttyS4"
+OBMC_CONSOLE_TTYS:numaker-iot-ma35d16fj87c = "ttyS10"
 
 do_install:append:numaker-iot-ma35d03f80() {
     install -d ${D}${systemd_system_unitdir}/multi-user.target.wants
@@ -29,4 +34,9 @@ do_install:append:numaker-iot-ma35d03f80() {
 do_install:append:numaker-iot-ma35d05ki1() {
     install -d ${D}${systemd_system_unitdir}/multi-user.target.wants
     ln -sf ../obmc-console@.service ${D}${systemd_system_unitdir}/multi-user.target.wants/obmc-console@ttyS4.service
+}
+
+do_install:append:numaker-iot-ma35d16fj87c() {
+    install -d ${D}${systemd_system_unitdir}/multi-user.target.wants
+    ln -sf ../obmc-console@.service ${D}${systemd_system_unitdir}/multi-user.target.wants/obmc-console@ttyS10.service
 }

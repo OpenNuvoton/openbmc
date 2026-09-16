@@ -1,0 +1,7 @@
+{
+    "Exposes": [],
+    "Name": "system",
+    "Probe": "TRUE",
+    "Type": "Chassis",
+    "xyz.openbmc_project.Inventory.Item.Chassis": {}
+}

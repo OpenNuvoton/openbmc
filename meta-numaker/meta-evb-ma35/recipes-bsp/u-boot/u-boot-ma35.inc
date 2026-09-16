@@ -21,13 +21,30 @@ PV = "2020.07+git${SRCPV}"
 B = "${WORKDIR}/build"
 LOCALVERSION ?= "-${SRCBRANCH}"
 
-# Fix SPI-NAND boot: correct UBI partition number and memory size
+# Fix SPI-NAND boot: correct UBI partition number, memory size, and remove UBIFS distro boot probe
 do_configure:prepend() {
-    sed -i 's/spinand_ubiblock=9/spinand_ubiblock=4/' ${S}/include/configs/ma35d0.h
-    sed -i 's/nand_ubiblock=9/nand_ubiblock=4/' ${S}/include/configs/ma35d0.h
-    sed -i 's|rdinit=/sbin/init|init=/sbin/init|' ${S}/include/configs/ma35d0.h
-    sed -i 's/CONFIG_SYS_BOOTM_LEN.*SZ_64M/CONFIG_SYS_BOOTM_LEN\t\t\tSZ_16M/' ${S}/include/configs/ma35d0.h
-    sed -i '/mem=256M/s/mem=256M/mem=256M swiotlb=1/' ${S}/include/configs/ma35d0.h
+    for h in ${S}/include/configs/ma35d0.h ${S}/include/configs/ma35d1.h; do
+        if [ -f "$h" ]; then
+            sed -i 's/spinand_ubiblock=9/spinand_ubiblock=4/' "$h"
+            sed -i 's/nand_ubiblock=9/nand_ubiblock=4/' "$h"
+            sed -i 's|rdinit=/sbin/init|init=/sbin/init|' "$h"
+            sed -i 's/CONFIG_SYS_BOOTM_LEN.*SZ_64M/CONFIG_SYS_BOOTM_LEN\t\t\tSZ_16M/' "$h"
+            sed -i 's/#define BOOT_TARGET_UBIFS(func).*/#define BOOT_TARGET_UBIFS(func)/' "$h"
+            sed -i '/BOOT_TARGET_UBIFS(func)[[:space:]]*\\/d' "$h"
+        fi
+    done
+    if [ -f "${S}/include/configs/ma35d0.h" ]; then
+        sed -i 's/kernelmem=256M\\0/kernelmem=256M swiotlb=1\\0/' ${S}/include/configs/ma35d0.h
+    fi
+    if [ -f "${S}/include/configs/ma35d1.h" ]; then
+        sed -i 's/kernelmem=256M\\0/kernelmem=512M swiotlb=1\\0/' ${S}/include/configs/ma35d1.h
+    fi
+    if [ -f "${S}/arch/arm/dts/ma35d1.dts" ]; then
+        sed -i 's/0x07000000/0x20000000/' ${S}/arch/arm/dts/ma35d1.dts
+    fi
+    if [ -f "${S}/arch/arm/dts/ma35d0.dts" ]; then
+        sed -i 's/0x07000000/0x10000000/' ${S}/arch/arm/dts/ma35d0.dts
+    fi
 }
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"

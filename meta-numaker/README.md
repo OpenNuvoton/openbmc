@@ -7,3 +7,4 @@
 | NuMaker-IoT-NUC980G2 | `numaker-iot-nuc980g2` | [README](meta-evb-nuc980/README.md) |
 | NuMaker-IoT-MA35D03F80 | `numaker-iot-ma35d03f80` | [README](meta-evb-ma35/README.md) |
 | NuMaker-IoT-MA35D05KI1 | `numaker-iot-ma35d05ki1` | [README](meta-evb-ma35/README.md) |
+| NuMaker-IoT-MA35D16FJ87C | `numaker-iot-ma35d16fj87c` | [README](meta-evb-ma35/README.md) |

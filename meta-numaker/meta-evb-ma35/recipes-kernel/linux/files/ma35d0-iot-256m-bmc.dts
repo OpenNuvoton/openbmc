@@ -22,6 +22,12 @@
 / {
 	model = "Nuvoton MA35D0-IoT BMC";
 
+	aliases {
+		serial0 = &uart0;
+		serial6 = &uart6;
+		serial16 = &uart16;
+	};
+
 	chosen {
 		bootargs = "noinitrd ubi.mtd=spinand-rootfs root=ubi0:rootfs rootfstype=ubifs rw rootwait=1 console=ttyS0,115200n8 init=/sbin/init mem=256M swiotlb=1";
 	};

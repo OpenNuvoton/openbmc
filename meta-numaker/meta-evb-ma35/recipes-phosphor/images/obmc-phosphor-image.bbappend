@@ -5,6 +5,7 @@
 # SquashFS with XZ compression for rootfs
 EXTRA_IMAGECMD:squashfs-xz:append:ma35d0 = " -b 262144 -Xbcj arm"
 EXTRA_IMAGECMD:squashfs-xz:append:ma35d05k = " -b 262144 -Xbcj arm"
+EXTRA_IMAGECMD:squashfs-xz:append:ma35d1 = " -b 262144 -Xbcj arm"
 
 IMAGE_FEATURES:remove:ma35d0 = " \
     obmc-ikvm \
@@ -18,7 +19,15 @@ IMAGE_FEATURES:remove:ma35d05k = " \
     obmc-telemetry \
 "
 
+IMAGE_FEATURES:remove:ma35d1 = " \
+    obmc-ikvm \
+    obmc-user-mgmt-ldap \
+    obmc-telemetry \
+"
+
 IMAGE_INSTALL:remove:ma35d0 = "rest-dbus"
+IMAGE_INSTALL:remove:ma35d05k = "rest-dbus"
+IMAGE_INSTALL:remove:ma35d1 = "rest-dbus"
 
 # phosphor-user-manager unconditionally adds new Redfish/D-Bus accounts to the
 # "ipmi" supplementary group for privilege mapping. That group is normally
@@ -30,4 +39,4 @@ IMAGE_INSTALL:remove:ma35d0 = "rest-dbus"
 # full IPMI host stack.
 EXTRA_USERS_PARAMS:append:ma35d0 = " groupadd ipmi;"
 EXTRA_USERS_PARAMS:append:ma35d05k = " groupadd ipmi;"
-IMAGE_INSTALL:remove:ma35d05k = "rest-dbus"
+EXTRA_USERS_PARAMS:append:ma35d1 = " groupadd ipmi;"

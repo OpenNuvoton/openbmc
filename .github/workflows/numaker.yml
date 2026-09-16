@@ -13,6 +13,7 @@ on:
           - numaker-iot-nuc980g2
           - numaker-iot-ma35d03f80
           - numaker-iot-ma35d05ki1
+          - numaker-iot-ma35d16fj87c
           - all
 
   # Scheduled trigger (Every Sunday at 00:00 UTC)
@@ -21,7 +22,7 @@ on:
 
 # Single source of truth: maintain all target machines here (space-separated)
 env:
-  ALL_MACHINES: "numaker-iot-nuc980g2 numaker-iot-ma35d05ki1 numaker-iot-ma35d03f80"
+  ALL_MACHINES: "numaker-iot-nuc980g2 numaker-iot-ma35d05ki1 numaker-iot-ma35d03f80 numaker-iot-ma35d16fj87c"
 
 jobs:
   # Dynamically build the matrix target list
