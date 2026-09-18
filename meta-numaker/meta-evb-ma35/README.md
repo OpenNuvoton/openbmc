@@ -185,9 +185,9 @@ BMC is accessible via mDNS hostname: `${MACHINE}.local` (e.g. `numaker-iot-ma35d
 ### Redfish API
 
 - **Automated Test Guides**:
-  - `numaker-iot-ma35d03f80`: [doc/test-redfish/numaker-iot-ma35d03f80.md](../../doc/test-redfish/numaker-iot-ma35d03f80.md) (Script: `doc/test-redfish/numaker-iot-ma35d03f80.sh`)
-  - `numaker-iot-ma35d05ki1`: [doc/test-redfish/numaker-iot-ma35d05ki1.md](../../doc/test-redfish/numaker-iot-ma35d05ki1.md) (Script: `doc/test-redfish/numaker-iot-ma35d05ki1.sh`)
-  - `numaker-iot-ma35d16fj87c`: [doc/test-redfish/numaker-iot-ma35d16fj87c.md](../../doc/test-redfish/numaker-iot-ma35d16fj87c.md) (Script: `doc/test-redfish/numaker-iot-ma35d16fj87c.sh`)
+  - `numaker-iot-ma35d03f80`: [doc/test-redfish/numaker-iot-ma35d03f80.md](../doc/test-redfish/numaker-iot-ma35d03f80.md) (Script: `doc/test-redfish/numaker-iot-ma35d03f80.sh`)
+  - `numaker-iot-ma35d05ki1`: [doc/test-redfish/numaker-iot-ma35d05ki1.md](../doc/test-redfish/numaker-iot-ma35d05ki1.md) (Script: `doc/test-redfish/numaker-iot-ma35d05ki1.sh`)
+  - `numaker-iot-ma35d16fj87c`: [doc/test-redfish/numaker-iot-ma35d16fj87c.md](../doc/test-redfish/numaker-iot-ma35d16fj87c.md) (Script: `doc/test-redfish/numaker-iot-ma35d16fj87c.sh`)
 
 ```bash
 # Service Root
@@ -236,9 +236,9 @@ OpenBMC provides role-based user management via `phosphor-user-manager` and Redf
 ### Serial-Over-LAN (SOL) Console
 
 - **Detailed Guides & Testing**:
-  - `numaker-iot-ma35d03f80`: [doc/test-sol/numaker-iot-ma35d03f80.md](../../doc/test-sol/numaker-iot-ma35d03f80.md) (`PN14` / `PN15`)
-  - `numaker-iot-ma35d05ki1`: [doc/test-sol/numaker-iot-ma35d05ki1.md](../../doc/test-sol/numaker-iot-ma35d05ki1.md) (`PI10` / `PI11`)
-  - `numaker-iot-ma35d16fj87c`: [doc/test-sol/numaker-iot-ma35d16fj87c.md](../../doc/test-sol/numaker-iot-ma35d16fj87c.md) (`PH6` / `PH7`)
+  - `numaker-iot-ma35d03f80`: [doc/test-sol/numaker-iot-ma35d03f80.md](../doc/test-sol/numaker-iot-ma35d03f80.md) (`PN14` / `PN15`)
+  - `numaker-iot-ma35d05ki1`: [doc/test-sol/numaker-iot-ma35d05ki1.md](../doc/test-sol/numaker-iot-ma35d05ki1.md) (`PI10` / `PI11`)
+  - `numaker-iot-ma35d16fj87c`: [doc/test-sol/numaker-iot-ma35d16fj87c.md](../doc/test-sol/numaker-iot-ma35d16fj87c.md) (`PH6` / `PH7`)
 - **Hardware Pins**:
   - MA35D0: `PI10` (`UART4_RXD`) / `PI11` (`UART4_TXD`)
   - MA35D1: `PH6` (`UART10_RXD`) / `PH7` (`UART10_TXD`) on J5 header
@@ -248,7 +248,7 @@ OpenBMC provides role-based user management via `phosphor-user-manager` and Redf
 ### RS-485 Serial Interface (Hardware Auto-Direction AUD)
 
 - **Detailed Guide & Testing**:
-  - `numaker-iot-ma35d16fj87c`: [doc/test-rs485/numaker-iot-ma35d16fj87c.md](../../doc/test-rs485/numaker-iot-ma35d16fj87c.md)
+  - `numaker-iot-ma35d16fj87c`: [doc/test-rs485/numaker-iot-ma35d16fj87c.md](../doc/test-rs485/numaker-iot-ma35d16fj87c.md)
 - **Hardware Pins**:
   - `PC13` (`UART12_nRTS` / Auto-Direction line)
   - `PC14` (`UART12_RXD`)
@@ -258,9 +258,9 @@ OpenBMC provides role-based user management via `phosphor-user-manager` and Redf
 ### CAN / CAN-FD Bus
 
 - **Detailed Guides & Testing**:
-  - `numaker-iot-ma35d03f80`: [doc/test-can/numaker-iot-ma35d03f80.md](../../doc/test-can/numaker-iot-ma35d03f80.md)
-  - `numaker-iot-ma35d05ki1`: [doc/test-can/numaker-iot-ma35d05ki1.md](../../doc/test-can/numaker-iot-ma35d05ki1.md)
-  - `numaker-iot-ma35d16fj87c`: [doc/test-can/numaker-iot-ma35d16fj87c.md](../../doc/test-can/numaker-iot-ma35d16fj87c.md)
+  - `numaker-iot-ma35d03f80`: [doc/test-can/numaker-iot-ma35d03f80.md](../doc/test-can/numaker-iot-ma35d03f80.md)
+  - `numaker-iot-ma35d05ki1`: [doc/test-can/numaker-iot-ma35d05ki1.md](../doc/test-can/numaker-iot-ma35d05ki1.md)
+  - `numaker-iot-ma35d16fj87c`: [doc/test-can/numaker-iot-ma35d16fj87c.md](../doc/test-can/numaker-iot-ma35d16fj87c.md)
 - **Hardware Pins**:
   - MA35D0: `PG8` (`CAN3_RXD`) / `PG9` (`CAN3_TXD`)
   - MA35D1: Supports 4 CAN-FD controllers (`CAN0`: PB10/PB11, `CAN1`: PC6/PC7, `CAN2`: PB12/PB13, `CAN3`: PG8/PG9)
@@ -274,9 +274,9 @@ OpenBMC provides role-based user management via `phosphor-user-manager` and Redf
 ### Host Power Control
 
 - **Wiring & Pin Assignment**:
-  - `numaker-iot-ma35d03f80`: [doc/x86-power-control/numaker-iot-ma35d03f80.md](../../doc/x86-power-control/numaker-iot-ma35d03f80.md) (`PN1` POWER_OUT / `PN0` RESET_OUT / `PK12` PS_PWROK)
-  - `numaker-iot-ma35d05ki1`: [doc/x86-power-control/numaker-iot-ma35d05ki1.md](../../doc/x86-power-control/numaker-iot-ma35d05ki1.md) (`PC2` POWER_OUT / `PC3` RESET_OUT / `PC7` PS_PWROK)
-  - `numaker-iot-ma35d16fj87c`: [doc/x86-power-control/numaker-iot-ma35d16fj87c.md](../../doc/x86-power-control/numaker-iot-ma35d16fj87c.md) (`PI12` POWER_OUT / `PI10` RESET_OUT / `PH2` PS_PWROK)
+  - `numaker-iot-ma35d03f80`: [doc/x86-power-control/numaker-iot-ma35d03f80.md](../doc/x86-power-control/numaker-iot-ma35d03f80.md) (`PN1` POWER_OUT / `PN0` RESET_OUT / `PK12` PS_PWROK)
+  - `numaker-iot-ma35d05ki1`: [doc/x86-power-control/numaker-iot-ma35d05ki1.md](../doc/x86-power-control/numaker-iot-ma35d05ki1.md) (`PC2` POWER_OUT / `PC3` RESET_OUT / `PC7` PS_PWROK)
+  - `numaker-iot-ma35d16fj87c`: [doc/x86-power-control/numaker-iot-ma35d16fj87c.md](../doc/x86-power-control/numaker-iot-ma35d16fj87c.md) (`PI12` POWER_OUT / `PI10` RESET_OUT / `PH2` PS_PWROK)
 
 ---
 

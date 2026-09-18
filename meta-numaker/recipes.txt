@@ -1,0 +1,49 @@
+# meta-numaker recipes summary
+# Generated: 2026-07-06
+#
+# This layer provides OpenBMC support for Nuvoton NuMaker evaluation boards:
+#   - MA35D0   (Dual Cortex-A35, 256MB DDR, 512MB SPI-NAND)
+#   - MA35D05K (Dual Cortex-A35, 256MB DDR, 512MB SPI-NAND)
+#   - MA35D1   (Dual Cortex-A35, 512MB DDR, 512MB SPI-NAND)
+#   - NUC980   (ARM926EJ-S, 64MB RAM, 128MB SPI-NAND)
+#
+# Architecture:
+#   meta-numaker/                 ← parent layer (priority 6), no recipes
+#   meta-numaker/meta-evb-ma35/   ← MA35D0 + MA35D05K + MA35D1 unified (priority 7)
+#   meta-numaker/meta-evb-nuc980/ ← NUC980 (priority 7)
+
+## MA35 series unified (meta-evb-ma35)
+## Machines: numaker-iot-ma35d03f80, numaker-iot-ma35d05ki1, numaker-iot-ma35d16fj87c
+recipes-bsp/tf-a/tf-a-ma35.inc                       [shared]
+recipes-bsp/tf-a/tf-a-ma35_2.3.bb                    [both machines]
+recipes-bsp/u-boot/u-boot-ma35.inc                   [shared]
+recipes-bsp/u-boot/u-boot-ma35_2020.07.bb            [both machines]
+recipes-core/systemd/systemd-serialgetty.bbappend
+recipes-devtools/python/nuwriter-pack.inc             [shared]
+recipes-devtools/python/nuwriter-pack_1.0.bb          [both machines]
+recipes-devtools/python/python3-nuwriter-native_0.90.bb
+recipes-kernel/linux/linux-ma35.inc                   [shared]
+recipes-kernel/linux/linux-ma35_6.6.93.bb             [both machines]
+recipes-nuvoton/packagegroups/packagegroup-ma35-apps.bb
+recipes-phosphor/entity-manager/entity-manager_%.bbappend
+recipes-phosphor/images/obmc-phosphor-image.bbappend
+recipes-phosphor/leds/phosphor-led-manager_%.bbappend
+recipes-phosphor/packagegroups/packagegroup-obmc-apps.bbappend
+
+## NUC980 machine-specific (meta-evb-nuc980)
+recipes-bsp/u-boot/u-boot-nuc980_git.bb
+recipes-core/systemd/phosphor-systemd-policy.bbappend
+recipes-core/systemd/systemd_%.bbappend
+recipes-core/systemd/systemd-serialgetty.bbappend
+recipes-core/volatile-binds/volatile-binds.bbappend
+recipes-devtools/python/nuwriter-pack_1.0.bb
+recipes-kernel/linux/linux-nuc980_6.6.93.bb
+recipes-nuvoton/packagegroups/packagegroup-nuc980-apps.bb
+recipes-phosphor/entity-manager/entity-manager_%.bbappend
+recipes-phosphor/images/obmc-phosphor-image.bbappend
+recipes-phosphor/interfaces/bmcweb_%.bbappend
+recipes-phosphor/leds/phosphor-led-manager_%.bbappend
+recipes-phosphor/leds/phosphor-led-sysfs_%.bbappend
+recipes-phosphor/packagegroups/packagegroup-obmc-apps.bbappend
+recipes-phosphor/state/phosphor-state-manager_%.bbappend
+recipes-x86/chassis/x86-power-control_%.bbappend

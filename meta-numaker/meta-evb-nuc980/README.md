@@ -138,7 +138,7 @@ Total: 128 MB (`0x0`–`0x8000000`)
 
 BMC is accessible via mDNS hostname: `numaker-iot-nuc980g2.local`
 
-For power control (wiring, GPIO pin assignment, Redfish/D-Bus commands), see [doc/x86-power-control/numaker-iot-nuc980g2.md](../../doc/x86-power-control/numaker-iot-nuc980g2.md).
+For power control (wiring, GPIO pin assignment, Redfish/D-Bus commands), see [doc/x86-power-control/numaker-iot-nuc980g2.md](../doc/x86-power-control/numaker-iot-nuc980g2.md).
 
 ### Quick Examples
 
