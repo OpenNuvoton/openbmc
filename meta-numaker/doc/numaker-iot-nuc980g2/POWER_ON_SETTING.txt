@@ -1,0 +1,25 @@
+================================================================================
+ NuMaker-IoT-NUC980G2 Hardware Configuration & Power-on Settings
+================================================================================
+
+1. Physical Connectors & Cables:
+   - Debug Console (UART0): Connect Micro-USB to VCOM port (115200 8N1).
+   - NuWriter Flashing (USB Device): Connect Micro-USB to USB Device port.
+     * Note: Do NOT connect NuWriter to VCOM.
+   - Ethernet (LAN): Connect RJ45 cable to local router/switch (DHCP).
+
+2. Boot Mode DIP Switch Settings:
+   Power-on Setting:
+   - USB Boot (Download Mode): Set DIP switch to USB Download Mode when flashing with NuWriter.
+   - SPI NAND Boot (Normal Run Mode): Set DIP switch to SPI NAND Boot to run OpenBMC.
+
+3. Flashing Quick Start (Windows):
+   Step 1: Set DIP switch to USB Boot (Download Mode) -> Power ON.
+   Step 2: Connect PC to USB Device port.
+   Step 3: Open NuWriter.exe, select Target: SPI NAND.
+   Step 4: Erase Tab -> check Erase All -> click Erase.
+   Step 5: Burn Tab -> Type: Pack -> Browse nuwriter-pack.bin -> click Burn.
+   Step 6: Power OFF -> Set DIP switch to SPI NAND Boot -> Power ON.
+
+For full operational guides, please refer to README.md.
+================================================================================

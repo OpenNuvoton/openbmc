@@ -38,12 +38,17 @@ RUN apt-get update && apt-get install -y \
         rsync \
         python3 \
         python3-pip \
+        python3-pexpect \
+        python3-git \
+        python3-jinja2 \
         iputils-ping \
         jq \
         xz-utils \
         debianutils \
         iproute2 \
         libelf-dev \
+        openssh-client \
+        can-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python packages for NuWriter
@@ -67,7 +72,10 @@ ENV LC_ALL=en_US.UTF-8 \
     LANGUAGE=en_US.UTF-8
 
 # Create non-root build user (Yocto refuses to run as root)
-RUN useradd --uid 30000 --create-home build \
+# Ubuntu 24.04 base image includes a default 'ubuntu' user with UID 1000; remove it to avoid UID collision
+RUN touch /etc/subuid /etc/subgid \
+    && (id -u ubuntu >/dev/null 2>&1 && userdel -r ubuntu || true) \
+    && useradd --uid 30000 --create-home build \
     && echo "build ALL=(ALL) NOPASSWD: ALL" | tee -a /etc/sudoers
 
 USER build

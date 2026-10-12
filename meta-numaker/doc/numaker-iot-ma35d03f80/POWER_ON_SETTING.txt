@@ -1,0 +1,85 @@
+================================================================================
+ NuMaker-IoT-MA35D03F80 Hardware Configuration & Power-on Settings
+================================================================================
+
+1. Physical Connectors & Cables:
+   - Debug Console (UART0): Connect Micro-USB to VCOM port (115200 8N1).
+   - NuWriter Flashing (USB0 Device): Connect Micro-USB to USB0 (Device) port.
+     * Note: Do NOT connect NuWriter to VCOM.
+   - Ethernet (LAN): Connect RJ45 cable to local router/switch (DHCP).
+   - Power: Connect 5V power cable (USB Type-C Connector).
+   - Jumper J63: Ensure Pin 1-2 is SHORTED (required for RS-232 SOL mode).
+
+2. Boot Mode DIP Switch Settings (SW7 - 8-Position SMD DIP Switch):
+
+   DIP Switch SW7 Pin Definition (PG0~PG7 internal pull-down, 10K pull-up to VDD3V3):
+   - Switch 1: PG0 -> Secure Boot (ON: Disable, OFF: Enable)
+   - Switch 2: PG1 -> Boot Source QSPI0, SD/eMMC I/O Voltage (OFF: 3.3V, ON: 1.8V)
+   - Switch 3: PG2 -> Boot Source Select [bit 0]
+   - Switch 4: PG3 -> Boot Source Select [bit 1]
+                      (PG3=L, PG2=L -> QSPI0 Flash)
+                      (PG3=L, PG2=H -> SD/eMMC)
+                      (PG3=H, PG2=L -> NAND Flash)
+                      (PG3=H, PG2=H -> USB)
+   - Switch 5: PG4 -> USB Boot: OFF=USBD (Device), ON=USBH (Host)
+                      NAND Boot: Page size select [bit 0]
+   - Switch 6: PG5 -> USBH Boot: OFF=Port 0, ON=Port 1
+                      NAND Boot: Page size select [bit 1]
+   - Switch 7: PG6 -> QSPI0 Boot: OFF=SPI-NAND 1-bit, ON=Reserved
+                      SD/eMMC Boot: OFF=SD0/eMMC0, ON=SD1/eMMC1
+                      NAND Boot: BCH ECC select [bit 0]
+   - Switch 8: PG7 -> QSPI0 Boot: OFF=SPI-NAND 1-bit, ON=SPI-NOR 1-bit
+                      SD/eMMC Boot: OFF=4-bit, ON=Not Supported
+                      NAND Boot: BCH ECC select [bit 1]
+
+   Power-on Setting Logic:
+   - ON  (H): Switch set to ON (Pulled UP to 3.3V)
+   - OFF (L): Switch set to OFF (Internal pull-down to Low)
+
+   +--------------------------+-----------------------------------+-----------------------------------+
+   | Memory Storage           | Burn to (USB Download Mode)       | Boot from (Run Mode)              |
+   +--------------------------+-----------------------------------+-----------------------------------+
+   | Serial NAND (SPI NAND)   | Switch 1 (PG0) to ON              | Switch 1 (PG0) to ON              |
+   | (QSPI0 Flash, 1-bit)     | Switch 3 (PG2) to ON              | Switch Others (2, 3, 4, 5, 6, 7,  |
+   |                          | Switch 4 (PG3) to ON              |   8) to OFF                       |
+   |                          | Switch Others (2, 5, 6, 7, 8)     |                                   |
+   |                          |   to OFF                          | (PG3=L, PG2=L -> QSPI0 Flash)     |
+   |                          |                                   | (PG7=L, PG6=L -> SPI-NAND 1-bit)  |
+   |                          | (Summary: Switch 1, 3, 4 ON;      | (Summary: Switch 1 ON;            |
+   |                          |  Switch 2, 5, 6, 7, 8 OFF)        |  Switch 2, 3, 4, 5, 6, 7, 8 OFF)  |
+   +--------------------------+-----------------------------------+-----------------------------------+
+   | SD Card                  | Switch 1 (PG0) to ON              | Switch 1 (PG0) to ON              |
+   | (SD1 Slot, 4-bit mode)   | Switch 3 (PG2) to ON              | Switch 3 (PG2) to ON              |
+   |                          | Switch 4 (PG3) to ON              | Switch 7 (PG6) to ON (SD1)        |
+   |                          | Switch Others (2, 5, 6, 7, 8)     | Switch 8 (PG7) to OFF (4-bit)     |
+   |                          |   to OFF                          | Switch Others (2, 4, 5, 6, 8)     |
+   |                          |                                   |   to OFF                          |
+   |                          | (Summary: Switch 1, 3, 4 ON;      | (Summary: Switch 1, 3, 7 ON;      |
+   |                          |  Switch 2, 5, 6, 7, 8 OFF)        |  Switch 2, 4, 5, 6, 8 OFF)        |
+   +--------------------------+-----------------------------------+-----------------------------------+
+   | Raw NAND (NFI)           | Switch 1 (PG0) to ON              | Switch 1 (PG0) to ON              |
+   | (Auto Page & BCH)        | Switch 3 (PG2) to ON              | Switch 4 (PG3) to ON              |
+   |                          | Switch 4 (PG3) to ON              | Switch Others (2, 3, 5, 6, 7,     |
+   |                          | Switch Others (2, 5, 6, 7, 8)     |   8) to OFF                       |
+   |                          |   to OFF                          |                                   |
+   |                          |                                   | (PG3=H, PG2=L -> NAND Flash)      |
+   |                          | (Summary: Switch 1, 3, 4 ON;      | (Summary: Switch 1, 4 ON;         |
+   |                          |  Switch 2, 5, 6, 7, 8 OFF)        |  Switch 2, 3, 5, 6, 7, 8 OFF)     |
+   +--------------------------+-----------------------------------+-----------------------------------+
+
+3. Flashing Quick Start (Windows):
+   Step 1: Set SW7 DIP Switch to "Burn to" (USB Download Mode):
+           - Switch 1, 3, 4 set to ON
+           - Switch 2, 5, 6, 7, 8 set to OFF
+           Then power ON the board.
+   Step 2: Connect PC to USB0 (Device) port via Micro-USB cable.
+   Step 3: (First time) Run install_nuwriter.bat to install NuWriter environment.
+   Step 4: Run nuwriter_program_spinand.bat (or _nand.bat / _sd.bat).
+   Step 5: Power OFF -> Set SW7 DIP Switch to "Boot from":
+           - For SPI NAND Boot: Switch 1 to ON; Switch 2, 3, 4, 5, 6, 7, 8 to OFF.
+           - For SD Card Boot: Switch 1, 3, 7 to ON; Switch 2, 4, 5, 6, 8 to OFF.
+           - For Raw NAND Boot: Switch 1, 4 to ON; Switch 2, 3, 5, 6, 7, 8 to OFF.
+           Then power ON.
+
+For full operational guides, please refer to README.md.
+================================================================================

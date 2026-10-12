@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v7
 
       # Yocto/Bitbake host dependencies
       - name: Install Required Packages
@@ -75,7 +75,7 @@ jobs:
 
       - name: Cache Bitbake Downloads
         if: ${{ runner.environment == 'github-hosted' }}
-        uses: actions/cache@v4.2.0
+        uses: actions/cache@v6
         with:
           path: build-numaker/downloads
           key: yocto-downloads-${{ matrix.target_machine }}-${{ github.ref_name }}
@@ -111,11 +111,23 @@ jobs:
           MACHINE=${{ matrix.target_machine }} source setup ${{ matrix.target_machine }} build-numaker
           bitbake nuwriter-pack
 
+      - name: Copy Documentation to Deploy Directory
+        run: |
+          DEPLOY_DIR="build-numaker/tmp/deploy/images/${{ matrix.target_machine }}"
+          DOC_DIR="meta-numaker/doc/${{ matrix.target_machine }}"
+          mkdir -p "$DEPLOY_DIR"
+          if [ -d "$DOC_DIR" ]; then
+            [ -f "$DOC_DIR/README.md" ] && cp -f "$DOC_DIR/README.md" "$DEPLOY_DIR/README.md"
+            [ -f "$DOC_DIR/POWER_ON_SETTING.txt" ] && cp -f "$DOC_DIR/POWER_ON_SETTING.txt" "$DEPLOY_DIR/POWER_ON_SETTING.txt"
+          fi
+
       - name: Upload OpenBMC Images
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v7
         with:
           name: openbmc-${{ matrix.target_machine }}
           path: |
             build-numaker/tmp/deploy/images/**/nuwriter-pack*.bin
             build-numaker/tmp/deploy/images/**/*.bat
+            build-numaker/tmp/deploy/images/**/README.md
+            build-numaker/tmp/deploy/images/**/POWER_ON_SETTING.txt
           if-no-files-found: warn

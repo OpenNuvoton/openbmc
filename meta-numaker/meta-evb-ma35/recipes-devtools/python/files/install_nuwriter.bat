@@ -23,6 +23,6 @@ IF %ERRORLEVEL% NEQ 0 (
 echo.
 echo ============================================
 echo  NuWriter installation completed!
-echo  Run nuwriter_program_spinand.bat to flash.
+echo  Run nuwriter_program_spinand.bat, nuwriter_program_nand.bat, or nuwriter_program_sd.bat to flash.
 echo ============================================
 pause

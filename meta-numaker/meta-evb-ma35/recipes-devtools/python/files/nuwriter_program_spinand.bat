@@ -27,7 +27,13 @@ IF %ERRORLEVEL% NEQ 0 (
 )
 
 echo [3/3] Programming SPI-NAND flash...
-py -3 nuwriter.py -w spinand ../nuwriter-pack-@MACHINE@.bin
+if not exist ..\nuwriter-pack-spinand-@MACHINE@.bin (
+    echo ERROR: ..\nuwriter-pack-spinand-@MACHINE@.bin not found
+    cd ..
+    pause
+    exit /b 1
+)
+py -3 nuwriter.py -w spinand ../nuwriter-pack-spinand-@MACHINE@.bin
 IF %ERRORLEVEL% NEQ 0 (
     echo ERROR: SPI-NAND programming failed
     cd ..

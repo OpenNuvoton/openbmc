@@ -27,7 +27,11 @@ sed -i "s|\"build ALL|\"$(id -nu) ALL|g" Dockerfile_build
 # Build image (skip if already exists)
 if ! sudo docker images | grep -q "${PROJECT_NAME}-$(id -nu)"; then
     echo "Building Docker image: ${PROJECT_NAME}-$(id -nu):v1 ..."
-    sudo docker build -f Dockerfile_build -t "${PROJECT_NAME}-$(id -nu):v1" .
+    if ! sudo docker build -f Dockerfile_build -t "${PROJECT_NAME}-$(id -nu):v1" .; then
+        echo "ERROR: Failed to build Docker image."
+        rm -f Dockerfile_build
+        exit 1
+    fi
 else
     echo "Image ${PROJECT_NAME}-$(id -nu) already exists."
 fi
@@ -35,10 +39,14 @@ fi
 # Create container (skip if already exists)
 if ! sudo docker ps -a | grep -q "${PROJECT_NAME}_$(id -nu)"; then
     echo "Creating container: ${PROJECT_NAME}_$(id -nu) ..."
-    sudo docker create -it \
+    if ! sudo docker create -it \
         -v "$SHARED_DIR:/home/$(id -nu)/shared" \
         --name "${PROJECT_NAME}_$(id -nu)" \
-        "${PROJECT_NAME}-$(id -nu):v1" bash
+        "${PROJECT_NAME}-$(id -nu):v1" bash; then
+        echo "ERROR: Failed to create container."
+        rm -f Dockerfile_build
+        exit 1
+    fi
 else
     echo "Container ${PROJECT_NAME}_$(id -nu) already exists."
 fi

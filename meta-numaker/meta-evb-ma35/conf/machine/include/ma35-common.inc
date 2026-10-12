@@ -12,6 +12,9 @@ PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot-ma35"
 PREFERRED_PROVIDER_u-boot ?= "u-boot-ma35"
 PREFERRED_PROVIDER_virtual/trusted-firmware-a ?= "tf-a-ma35"
 
+# Default BMC device tree name follows ${MACHINE}-bmc.dts naming convention
+MA35_DTS ?= "${MACHINE}-bmc.dts"
+
 EXTRA_IMAGEDEPENDS += "virtual/bootloader virtual/trusted-firmware-a"
 
 # OpenBMC flash layout for 512MB SPI NAND (UBI managed)
@@ -27,12 +30,12 @@ EXTRA_IMAGEDEPENDS += "virtual/bootloader virtual/trusted-firmware-a"
 
 FLASH_SIZE = "524288"
 
-IMAGE_FSTYPES += "ubi ubifs"
+IMAGE_FSTYPES += "ubi ubifs ext4"
 
 # UBI image settings for 512MB SPI-NAND
 # SPI-NAND: 2048+64 page, 128KB erase block
-# mtd4 = 228MB = 1824 PEBs, ~1750 usable LEBs after UBI overhead
-MKUBIFS_ARGS ?= "-m 2048 -e 126976 -c 1750 -x lzo"
+# mtd4 = 484MB = 3872 PEBs, ~3800 usable LEBs after UBI overhead
+MKUBIFS_ARGS ?= "-m 2048 -e 126976 -c 3800 -x lzo -F"
 UBINIZE_ARGS ?= "-m 2048 -p 131072 -s 2048"
 UBI_VOLNAME = "rootfs"
 

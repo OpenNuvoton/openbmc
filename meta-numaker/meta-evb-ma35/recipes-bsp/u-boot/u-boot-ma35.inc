@@ -25,8 +25,8 @@ LOCALVERSION ?= "-${SRCBRANCH}"
 do_configure:prepend() {
     for h in ${S}/include/configs/ma35d0.h ${S}/include/configs/ma35d1.h; do
         if [ -f "$h" ]; then
-            sed -i 's/spinand_ubiblock=9/spinand_ubiblock=4/' "$h"
-            sed -i 's/nand_ubiblock=9/nand_ubiblock=4/' "$h"
+            sed -i 's/\<spinand_ubiblock=[^[:space:]\\]*/spinand_ubiblock=spinand-rootfs/' "$h"
+            sed -i 's/\<nand_ubiblock=[^[:space:]\\]*/nand_ubiblock=nand-rootfs/' "$h"
             sed -i 's|rdinit=/sbin/init|init=/sbin/init|' "$h"
             sed -i 's/CONFIG_SYS_BOOTM_LEN.*SZ_64M/CONFIG_SYS_BOOTM_LEN\t\t\tSZ_16M/' "$h"
             sed -i 's/#define BOOT_TARGET_UBIFS(func).*/#define BOOT_TARGET_UBIFS(func)/' "$h"
@@ -39,12 +39,16 @@ do_configure:prepend() {
     if [ -f "${S}/include/configs/ma35d1.h" ]; then
         sed -i 's/kernelmem=256M\\0/kernelmem=512M swiotlb=1\\0/' ${S}/include/configs/ma35d1.h
     fi
-    if [ -f "${S}/arch/arm/dts/ma35d1.dts" ]; then
-        sed -i 's/0x07000000/0x20000000/' ${S}/arch/arm/dts/ma35d1.dts
-    fi
-    if [ -f "${S}/arch/arm/dts/ma35d0.dts" ]; then
-        sed -i 's/0x07000000/0x10000000/' ${S}/arch/arm/dts/ma35d0.dts
-    fi
+    for dts in ${S}/arch/arm/dts/ma35d0*.dts; do
+        if [ -f "$dts" ]; then
+            sed -i 's/0x07000000/0x10000000/' "$dts"
+        fi
+    done
+    for dts in ${S}/arch/arm/dts/ma35d1*.dts; do
+        if [ -f "$dts" ]; then
+            sed -i 's/0x07000000/0x20000000/' "$dts"
+        fi
+    done
 }
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"

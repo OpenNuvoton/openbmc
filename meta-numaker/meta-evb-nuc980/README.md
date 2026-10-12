@@ -1,122 +1,71 @@
 # meta-evb-nuc980: OpenBMC BSP Layer for NuMaker-IoT-NUC980G2
 
-OpenBMC Board Support Package for the **Nuvoton NuMaker-IoT-NUC980G2** board.
+OpenBMC Board Support Package (BSP) layer for the **Nuvoton NuMaker-IoT-NUC980G2** evaluation board.
 
 ## Table of Contents
 
+- [Supported Machine](#supported-machine)
 - [Hardware Specifications](#hardware-specifications)
-- [Features](#features)
-- [Build](#build)
-- [Flashing (NuWriter)](#flashing-nuwriter)
+- [Layer Features](#layer-features)
+- [Quick Build](#quick-build)
 - [SPI NAND Flash Layout](#spi-nand-flash-layout)
-- [Redfish API](#redfish-api)
+- [Board Documentation & Feature Guides](#board-documentation--feature-guides)
 - [Layer Structure](#layer-structure)
+
+---
+
+## Supported Machine
+
+| Machine | Board | SoC | Board Documentation |
+| :--- | :--- | :--- | :--- |
+| `numaker-iot-nuc980g2` | NuMaker-IoT-NUC980G2 | NUC980DK71YC (ARM926EJ-S @ 300 MHz) | [User & Operation Guide](../doc/numaker-iot-nuc980g2/README.md) |
 
 ---
 
 ## Hardware Specifications
 
 | Item | Detail |
-|------|--------|
-| SoC | NUC980DK71YC (ARM926EJ-S @ 300 MHz) |
-| RAM | 128 MB DDR2 |
-| Flash | 128 MB SPI NAND (Winbond W25N01GV) |
-| Kernel | Linux 6.6.93 |
-| RootFS | UBI/UBIFS on SPI NAND |
-| Serial Console | ttyS0, 115200 8N1 |
+| :--- | :--- |
+| **SoC** | NUC980DK71YC (ARM926EJ-S @ 300 MHz) |
+| **RAM** | 128 MB DDR2 (stacked in MCP) |
+| **Flash** | 128 MB SPI NAND (Winbond W25N01GV) |
+| **Kernel** | Linux 6.6.93 (armv5te) |
+| **RootFS** | UBI/UBIFS on SPI NAND |
+| **Debug Console** | ttyS0, 115200 8N1 |
 
 ---
 
-## Features
+## Layer Features
 
-- **Redfish**: bmcweb service providing DMTF Redfish API
-- **mDNS**: avahi-daemon for zero-config networking (`numaker-iot-nuc980g2.local`)
-- **SSH**: dropbear (ed25519 + ecdsa only, no RSA for fast boot)
-- **LED Management**: phosphor-led-manager + phosphor-led-sysfs
-- **Entity Manager**: hardware inventory via entity-manager
-- **Power Control**: x86-power-control (GPIO-based host power/reset)
+- **Redfish & REST API**: `bmcweb` providing standard DMTF Redfish API (`/redfish/v1/`), telemetry, chassis/system control, sensor readings, and WebUI hosting.
+- **Zero-Config Networking**: `avahi-daemon` (mDNS as `numaker-iot-nuc980g2.local`).
+- **Remote Access**: Dropbear SSH server (ed25519 + ecdsa only for optimized boot time).
+- **LED Management**: `phosphor-led-manager` + `phosphor-led-sysfs` with group and location indicator controls.
+- **Entity Manager & Sensor Config**: Dynamic hardware inventory and configuration via `entity-manager` JSON schemas.
+- **Host Power Control**: `x86-power-control` daemon providing GPIO-based host power on, power off, power cycle, and reset state machine management.
 
 ---
 
-## Build
+## Quick Build
 
 ```bash
 # Clone
 git clone -b numaker https://github.com/OpenNuvoton/openbmc.git
 cd openbmc
 
-# First-time setup
+# Initialize build environment
 MACHINE=numaker-iot-nuc980g2 source setup numaker-iot-nuc980g2 build-nuc980
 
-# Build (generates nuwriter_pack.bin automatically)
+# Build OpenBMC NuWriter Pack
 bitbake nuwriter-pack
 ```
 
-Output: `tmp/deploy/images/numaker-iot-nuc980g2/nuwriter-pack.bin`
+Output: `build-nuc980/tmp/deploy/images/numaker-iot-nuc980g2/nuwriter-pack.bin`
 
-> On subsequent builds, just `source oe-init-build-env build-nuc980` to re-enter.
-
-### Prebuilt Images
-
-Prebuilt images are available from GitHub Actions:
-
-[OpenBMC building → Artifacts](https://github.com/OpenNuvoton/openbmc/actions/workflows/numaker.yml)
-
-1. Open the workflow page and select the latest successful run.
-2. Scroll to the **Artifacts** section at the bottom.
-3. Download the artifact for `numaker-iot-nuc980g2`.
-4. Extract the zip and flash using NuWriter.
-
----
-
-## Flashing (NuWriter)
-
-Tool download: [NuWriter (Windows)](https://github.com/OpenNuvoton/NUC980_NuWriter)
-
-### Hardware Setup
-
-1. Set the board DIP switch to **USB Boot** mode.
-2. Connect the board's USB0 (Device) port to the PC with a USB cable.
-3. Power on and wait for NuWriter to detect the device.
-
-### One-Key Pack (Recommended)
-
-Writes all components at once (SPL + env + U-Boot + DTB + kernel + rootfs):
-
-1. Open `NuWriter.exe` → Storage Type: **SPI NAND**.
-2. Click **Erase** → check **Erase All** → execute.
-3. Set Image Type to **Pack** → browse `nuwriter-pack.bin`.
-4. Click **Burn** and wait (~2-3 minutes).
-5. Power off → set DIP switch back to **SPI NAND Boot** → power on.
-
-### Individual Component
-
-| Component | File | Image Type | Start Address |
-|-----------|------|------------|---------------|
-| SPL | `u-boot-spl.bin` | Loader | `0x0` |
-| U-Boot Env | `uboot-env.txt` | Environment | `0x80000` |
-| U-Boot | `u-boot.bin` | Data | `0x100000` |
-| DTB | `nuc980-iot-128m-bmc.dtb` | Data | `0x180000` |
-| Kernel | `uImage` | Data | `0x200000` |
-| RootFS | `obmc-phosphor-image-*.ubi` | Data | `0x800000` |
-
-> **Note:** Before flashing rootfs individually, erase the region (`0x800000`–`0x8000000`) first to avoid UBI attach failures.
-
-### Verifying Boot
-
-Connect serial console (115200 8N1):
-
-```
-U-Boot SPL 2016.11 ...
-U-Boot 2016.11 ...
-Loading kernel from NAND 0x200000...
-[    0.000000] Linux version 6.6.93 ...
-[    1.xxx] UBIFS (ubi0:0): mounted on MTD3
-...
-numaker-iot-nuc980g2 login:
-```
-
-Default login: `root` (Password: 0penBmc).
+> [!TIP]
+> For complete step-by-step build instructions (including the recommended pre-configured Docker container), DIP switch settings, NuWriter flashing, and boot verification, please refer to the dedicated board guide:
+> - [NuMaker-IoT-NUC980G2 User & Operation Guide](../doc/numaker-iot-nuc980g2/README.md)
+> - [Docker Build Environment Guide](../doc/docker/README.md)
 
 ---
 
@@ -125,42 +74,28 @@ Default login: `root` (Password: 0penBmc).
 Total: 128 MB (`0x0`–`0x8000000`)
 
 | MTD | Label | Address Range | Size | Contents |
-|-----|-------|---------------|------|----------|
-| mtd0 | `u-boot` | `0x000000`–`0x100000` | 1 MB | SPL + U-Boot env |
-| mtd1 | `u-boot-env` | `0x100000`–`0x180000` | 512 KB | U-Boot |
-| mtd2 | `kernel` | `0x180000`–`0x800000` | 6.5 MB | DTB + uImage |
-| mtd3 | `rofs` | `0x800000`–`0x3800000` | 48 MB | UBI volume (UBIFS rootfs) |
-| mtd4 | `rwfs` | `0x3800000`–`0x8000000` | 72 MB | UBI volume (UBIFS rwfs) |
+| :--- | :--- | :--- | :--- | :--- |
+| `mtd0` | `u-boot` | `0x000000`–`0x100000` | 1 MB | SPL + U-Boot env |
+| `mtd1` | `u-boot-env` | `0x100000`–`0x180000` | 512 KB | U-Boot |
+| `mtd2` | `kernel` | `0x180000`–`0x800000` | 6.5 MB | DTB + uImage |
+| `mtd3` | `rofs` | `0x800000`–`0x3800000` | 48 MB | UBI volume (UBIFS rootfs) |
+| `mtd4` | `rwfs` | `0x3800000`–`0x8000000` | 72 MB | UBI volume (UBIFS rwfs) |
 
 ---
 
-## Redfish API
+## Board Documentation & Feature Guides
 
-BMC is accessible via mDNS hostname: `numaker-iot-nuc980g2.local`
+The following documents provide complete instructions and test suites for `numaker-iot-nuc980g2`:
 
-For power control (wiring, GPIO pin assignment, Redfish/D-Bus commands), see [doc/x86-power-control/numaker-iot-nuc980g2.md](../doc/x86-power-control/numaker-iot-nuc980g2.md).
-
-### Quick Examples
-
-```bash
-# Service Root
-curl -k -s https://numaker-iot-nuc980g2.local/redfish/v1/
-
-# Toggle Chassis Identify LED
-curl -k -s -u root:0penBmc -X PATCH \
-  https://numaker-iot-nuc980g2.local/redfish/v1/Chassis/system \
-  -H "Content-Type: application/json" \
-  -d '{"LocationIndicatorActive": true}'
-
-# SSH access
-ssh root@numaker-iot-nuc980g2.local
-```
+- **Main Board Guide**: [NuMaker-IoT-NUC980G2 User & Operation Guide](../doc/numaker-iot-nuc980g2/README.md)
+- **Redfish Test Suite**: [test-redfish.md](../doc/numaker-iot-nuc980g2/test-redfish.md) (Automated script: `test-redfish.sh`)
+- **Host Power Control**: [test-power-control.md](../doc/numaker-iot-nuc980g2/test-power-control.md)
 
 ---
 
 ## Layer Structure
 
-```
+```text
 meta-evb-nuc980/
 ├── conf/
 │   ├── layer.conf

@@ -1,131 +1,154 @@
 # OpenBMC Docker Build Environment
 
-You need these things to develop projects in the OpenBMC environment. A host system with a minimum of 50 GB of free disk space running a supported Linux distribution (i.e. recent releases of Fedora, CentOS, Debian, or Ubuntu), and appropriate packages installed on the system you are using for builds. Nuvoton provides two ways to set up the build environment: Docker and native Linux. Docker is based on the host Linux OS, so settings inside Docker won't affect the host OS and Docker can create an isolated environment only for building images. Since Linux distributions update frequently and may cause build errors, Docker is the recommended approach.
+Building OpenBMC with Yocto requires an isolated Linux environment with specific cross-compilation dependencies and toolchains. Because host Linux distributions update frequently and may introduce package version mismatches, Nuvoton provides a pre-configured Docker container environment based on **Ubuntu 24.04**.
 
-## Prerequisites
+Docker isolates the build environment from the host operating system while transparently mapping the host user's UID and home shared directory, completely avoiding file permission and ownership conflicts.
 
-- Linux host (Ubuntu 20.04+ or other distros)
-- Docker installed (`docker-ce`)
-- Current user can run `sudo docker`
+> [!NOTE]
+> **Docker vs. Native Linux Build**:
+> - **Docker (Recommended)**: Clean, reproducible, and pre-packaged with all required Bitbake and NuWriter Python dependencies. Settings inside Docker do not alter the host OS.
+> - **Native Linux**: Requires installing build packages directly on the host using `apt-get`.
 
-### Install Docker
+---
 
-Docker is an open-source project based on Linux containers. They are similar to virtual machines, but containers are more portable, more resource-friendly, and more dependent on the host operating system. Docker provides a quick and easy way to get up and running.
+## 1. Prerequisites
 
-Install Docker on Ubuntu:
+- **Host Operating System**: 64-bit Ubuntu (Ubuntu 24.04).
+- **Disk Space**: At least **50~100 GB** free space on the host disk (Yocto downloads upstream sources, builds cross-compilers, and stores `sstate-cache`).
+- **RAM**: Minimum 16 GB (32 GB or more recommended for parallel Bitbake compilations).
+- **Docker**: Docker Engine installed (`docker-ce` or `docker.io`).
+- **User Permissions**: Current user must have `sudo` privileges to run Docker commands.
+
+### Installing Docker on Ubuntu (24.04)
+
+Use Docker's official modern installation method (using the new `keyrings` directory without deprecated `apt-key`):
 
 ```bash
-# Update package list
+# 1. Update package lists and install basic tools
 sudo apt-get update
+sudo apt-get install -y ca-certificates curl gnupg lsb-release
 
-# Install prerequisite packages for HTTPS
-sudo apt install apt-transport-https ca-certificates curl software-properties-common
+# 2. Add Docker's official GPG key to the keyrings directory
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
-# Add Docker's official GPG key
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+# 3. Set up the Docker stable repository
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-# Add Docker repository
-sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-
-# Update package database with Docker packages
+# 4. Install Docker Engine, CLI, and Containerd
 sudo apt-get update
-
-# Install Docker
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-```
 
-Verify Docker is running:
-
-```bash
-sudo docker run hello-world
+# 5. Verify Docker installation
+sudo docker run --rm hello-world
 ```
 
 ---
 
-## Usage
+## 2. Setting Up & Using the Container
 
-### 1. Build Docker Image and Create Container
+### 2.1 Build Docker Image and Create Container
+
+Navigate to the `docker` directory and run `build.sh`:
 
 ```bash
-cd meta-numaker/doc/
+cd meta-numaker/doc/docker/
 ./build.sh
 ```
 
-This script will:
-- Generate a Dockerfile using your current UID/username
-- Build Docker image: `openbmc-numaker-<username>:v1`
-- Create container: `openbmc-numaker_<username>`
-- Mount `~/shared` as a shared directory inside the container
+> [!WARNING]
+> **Do NOT run `./build.sh` as `root` (or with `sudo ./build.sh`)**:
+> `build.sh` automatically reads your regular user UID (`$(id -u)`) and username (`$(id -nu)`) to map container permissions. Running as `root` will abort with an error.
 
-> If the image/container already exists, it will be skipped.
+**What `build.sh` does automatically:**
+1. Checks that the current user is not `root`.
+2. Creates the shared workspace directory at `$HOME/shared` on the host (if not already existing).
+3. Copies `Dockerfile` to `Dockerfile_build` and modifies it to match your current host UID and username.
+4. Builds the Docker image: `openbmc-numaker-<username>:v1`.
+5. Creates the persistent container: `openbmc-numaker_<username>`, mounting host `$HOME/shared` into `/home/<username>/shared`.
 
-### 2. Enter the Container
+### 2.2 Enter the Container
+
+Whenever you want to enter the build container:
 
 ```bash
 ./join.sh
 ```
 
-You will see a prompt like:
-
-```
+You will see the container prompt:
+```text
 username@container_id:~$
 ```
 
-### 3. Build OpenBMC Inside the Container
+---
+
+## 3. Working Inside the Container
+
+All source code and build artifacts **must** reside in the shared folder so they persist on the host system:
 
 ```bash
-# Enter shared directory
+# Enter the shared workspace directory
 cd ~/shared
-
-# Clone OpenBMC
-git clone -b numaker https://github.com/OpenNuvoton/openbmc.git
-cd openbmc
-
-# Build NUC980
-MACHINE=numaker-iot-nuc980g2 source setup numaker-iot-nuc980g2 build-nuc980
-bitbake nuwriter-pack
-
-# Or build MA35 machine, EX: numaker-iot-ma35d03f80, numaker-iot-ma35d05ki1, or numaker-iot-ma35d16fj87c
-MACHINE=numaker-iot-ma35d03f80 source setup numaker-iot-ma35d03f80 build-ma35
-bitbake nuwriter-pack
 ```
 
+From here, you can clone your repositories and execute builds inside the container. All files generated within `~/shared` are immediately accessible on your host system under `$HOME/shared`.
+
+> [!TIP]
+> **Board-Specific Build Guides**:
+> For step-by-step Bitbake commands and configuration instructions for each evaluation board, refer to the respective board documentation:
+> - [NuMaker-IoT-NUC980G2 Guide](../numaker-iot-nuc980g2/README.md)
+> - [NuMaker-IoT-MA35D03F80 Guide](../numaker-iot-ma35d03f80/README.md)
+> - [NuMaker-IoT-MA35D05KI1 Guide](../numaker-iot-ma35d05ki1/README.md)
+> - [NuMaker-IoT-MA35D16FJ87C Guide](../numaker-iot-ma35d16fj87c/README.md)
+
 ---
 
-## File Description
+## 4. File Description
 
 | File | Purpose |
-|------|---------|
-| `Dockerfile` | Docker image definition (Ubuntu 24.04 + Yocto dependencies) |
-| `build.sh` | Build image and create container (auto-maps UID) |
-| `join.sh` | Enter the existing container |
+| :--- | :--- |
+| [`Dockerfile`](Dockerfile) | Base container definition: Ubuntu 24.04 with complete Yocto build packages, locale configuration, and NuWriter Python dependencies. |
+| [`build.sh`](build.sh) | Automated build script: maps host UID/username, builds the Docker image, and creates the container with the shared folder mount. |
+| [`join.sh`](join.sh) | Enters the running development container via `docker exec`. |
+| [`destroy.sh`](destroy.sh) | Teardown script (orthogonal to `build.sh`): cleanly stops and removes the development container and image. |
+| [`README.md`](README.md) | Documentation and operational guide for the Docker build environment. |
 
 ---
 
-## Common Operations
+## 5. Container Management & Lifecycle
 
 ```bash
 # Check container status
 sudo docker ps -a | grep openbmc-numaker
 
-# Stop container
+# Stop the container
 sudo docker stop openbmc-numaker_$(id -nu)
 
-# Remove container (for rebuild)
-sudo docker rm openbmc-numaker_$(id -nu)
+# Restart / Start the container
+sudo docker start openbmc-numaker_$(id -nu)
 
-# Remove image (for rebuild)
-sudo docker rmi openbmc-numaker-$(id -nu):v1
+# One-click teardown (removes container and image):
+./destroy.sh
 
-# Rebuild (after removal)
+# Remove container only (preserves image for rapid recreate):
+./destroy.sh -c
+
+# Full rebuild from scratch:
 ./build.sh
 ```
 
 ---
 
-## Notes
+## 6. Important Notes & Gotchas
 
-- `~/shared` is shared between host and container; build output should go here
-- Container user UID matches host UID to avoid file permission issues
-- First `bitbake` build takes a long time (~2-6 hours depending on network and host performance)
-- Recommended minimum disk space: 50 GB
+1. **Host-Container Shared Storage**:
+   - The shared directory is located on the host at `~/shared` (`$HOME/shared`) and mounted inside the container at `/home/<username>/shared` (accessible as `~/shared`).
+   - Always keep your repository, bitbake caches, and image outputs inside `~/shared`. Anything written outside `~/shared` (e.g. directly in `/tmp` or root) will be lost if the container is recreated.
+2. **Permission Integrity**:
+   - Because `build.sh` automatically configures the container user to match your host UID (`$(id -u)`), all files created by Bitbake will be owned by your host user without requiring `sudo` on the host.
+3. **Build Duration & Network Fetching**:
+   - Initial compilation takes between **1 to 3 hours** depending on CPU core count and network speed. Subsequent builds benefit from `sstate-cache` and complete in minutes.
+   - If an upstream network timeout occurs during downloading, simply re-run `bitbake nuwriter-pack` to continue.

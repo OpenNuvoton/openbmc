@@ -1,0 +1,64 @@
+================================================================================
+ NuMaker-IoT-MA35D05KI1 Hardware Configuration & Power-on Settings
+================================================================================
+
+1. Physical Connectors & Cables:
+   - Debug Console (UART0): Connect Micro-USB to VCOM port (115200 8N1).
+   - NuWriter Flashing (USB0 Device): Connect Micro-USB to USB0 (Device) port.
+     * Note: Do NOT connect NuWriter to VCOM.
+   - Ethernet (LAN): Connect RJ45 cable to local router/switch (DHCP).
+   - Power: Connect 5V power over USB.
+
+2. Boot Mode DIP Switch Settings (SW2 - 6-Position SMD DIP Switch):
+
+   DIP Switch SW2 Pin Definition (PG0~PG7 internal pull-down):
+   - Switch 1: PG0        -> Secure Boot (ON: Disable, OFF: Enable)
+   - Switch 2: PG2        -> Boot Source Select [bit 0]
+   - Switch 3: PG3        -> Boot Source Select [bit 1]
+   - Switch 4: PG4        -> USB Boot Mode (OFF: USBD Device, ON: USBH Host)
+   - Switch 5: PG6        -> SD/eMMC Boot Port (OFF: SD0, ON: SD1)
+   - Switch 6: HSUSB0_ID  -> USB0 Role (ON: Device, OFF: Host)
+
+   Power-on Setting Logic:
+   - ON  (H): Switch set to ON (Pulled UP to 3.3V)
+   - OFF (L): Switch set to OFF (Internal pull-down to Low)
+
+   +--------------------------+-----------------------------------+-----------------------------------+
+   | Memory Storage           | Burn to (USB Download Mode)       | Boot from (Run Mode)              |
+   +--------------------------+-----------------------------------+-----------------------------------+
+   | Serial NAND (SPI NAND)   | Switch 1 (PG0) to ON              | Switch 1 (PG0) to ON              |
+   | (QSPI0 Flash)            | Switch 2 (PG2) to ON              | Switch Others (2, 3, 4, 5, 6)     |
+   |                          | Switch 3 (PG3) to ON              |   to OFF                          |
+   |                          | Switch 4 (PG4) to OFF (USBD)      |                                   |
+   |                          | Switch 5 (PG6) to OFF             | (PG3=L, PG2=L -> QSPI0 Flash)     |
+   |                          | Switch 6 (HSUSB0_ID) to ON        |                                   |
+   |                          |                                   |                                   |
+   |                          | (Summary: Switch 1, 2, 3, 6 ON;   | (Summary: Switch 1 ON;            |
+   |                          |  Switch 4, 5 OFF)                 |  Switch 2, 3, 4, 5, 6 OFF)        |
+   +--------------------------+-----------------------------------+-----------------------------------+
+   | MicroSD Card             | Switch 1 (PG0) to ON              | Switch 1 (PG0) to ON              |
+   | (SD1 Slot)               | Switch 2 (PG2) to ON              | Switch 2 (PG2) to ON              |
+   |                          | Switch 3 (PG3) to ON              | Switch 3 (PG3) to OFF             |
+   |                          | Switch 4 (PG4) to OFF (USBD)      | Switch 4 (PG4) to OFF             |
+   |                          | Switch 5 (PG6) to OFF             | Switch 5 (PG6) to ON (SD1)        |
+   |                          | Switch 6 (HSUSB0_ID) to ON        | Switch 6 (HSUSB0_ID) to OFF       |
+   |                          |                                   |                                   |
+   |                          | (Summary: Switch 1, 2, 3, 6 ON;   | (Summary: Switch 1, 2, 5 ON;      |
+   |                          |  Switch 4, 5 OFF)                 |  Switch 3, 4, 6 OFF)              |
+   +--------------------------+-----------------------------------+-----------------------------------+
+
+3. Flashing Quick Start (Windows):
+   Step 1: Set SW2 DIP Switch to "Burn to" (USB Download Mode):
+           - Switch 1, 2, 3, 6 set to ON
+           - Switch 4, 5 set to OFF
+           Then power ON the board.
+   Step 2: Connect PC to USB0 (Device) port via Micro-USB cable.
+   Step 3: (First time) Run install_nuwriter.bat to install NuWriter environment.
+   Step 4: Run nuwriter_program_spinand.bat (or nuwriter_program_sd.bat).
+   Step 5: Power OFF -> Set SW2 DIP Switch to "Boot from":
+           - For SPI NAND Boot: Switch 1 to ON; Switch 2, 3, 4, 5, 6 to OFF.
+           - For SD Card Boot: Switch 1, 2, 5 to ON; Switch 3, 4, 6 to OFF.
+           Then power ON.
+
+For full operational guides, please refer to README.md.
+================================================================================

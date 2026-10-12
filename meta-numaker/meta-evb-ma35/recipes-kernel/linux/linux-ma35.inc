@@ -8,8 +8,8 @@ inherit kernel
 LICENSE = "GPL-2.0-only"
 LIC_FILES_CHKSUM = "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
 
-MA35D0_KERNEL_LOADADDR = "0x80080000"
-KERNEL_EXTRA_ARGS += "LOADADDR=${MA35D0_KERNEL_LOADADDR}"
+MA35_KERNEL_LOADADDR ?= "0x80080000"
+KERNEL_EXTRA_ARGS += "LOADADDR=${MA35_KERNEL_LOADADDR}"
 
 KERNEL_SRC ?= "git://github.com/OpenNuvoton/MA35D1_linux-6.6.y.git;branch=master;protocol=https"
 SRC_URI = "${KERNEL_SRC}"
@@ -17,11 +17,11 @@ SRC_URI += "file://${MA35_DEFCONFIG}"
 SRC_URI += "file://${MA35_DTS}"
 SRCREV = "${KERNEL_SRCREV}"
 
-FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
+SRCBRANCH = "6.6.93"
+LINUX_MAJOR_VERSION = "${@'.'.join((d.getVar('SRCBRANCH') or '6.6').split('.')[:2])}"
+FILESEXTRAPATHS:prepend := "${THISDIR}/linux-ma35-${LINUX_MAJOR_VERSION}:${THISDIR}/files:"
 
 KERNEL_SRCREV ?= "${AUTOREV}"
-
-SRCBRANCH = "6.6.93"
 
 PV = "${SRCBRANCH}+git${SRCPV}"
 S = "${UNPACKDIR}/${BP}"
@@ -40,9 +40,9 @@ do_configure:prepend() {
     cp ${UNPACKDIR}/${MA35_DTS} \
         ${S}/arch/arm64/boot/dts/nuvoton/${MA35_DTS_TARGET}
 
-    # Expand SPI-NAND rootfs partition for 512MB flash
-    # Original: 0x6400000 (100MB), New: 0x1E400000 (484MB)
-    sed -i '/spinand-rootfs/{n;s|reg = <0x1c00000 0x6400000>|reg = <0x1c00000 0x1E400000>|}' \
+    # Expand SPI-NAND and raw NAND rootfs partitions for 512MB flash
+    # Original: 0x6400000 (100MB) or 0x0, New: 0x1E400000 (484MB)
+    sed -i -E '/(spinand|nand)-rootfs/{n;s|reg = <0x1[cC]00000 0x[0-9a-fA-F]+>|reg = <0x1c00000 0x1E400000>|}' \
         ${S}/arch/arm64/boot/dts/nuvoton/${MA35_DTSI}
 }
 
