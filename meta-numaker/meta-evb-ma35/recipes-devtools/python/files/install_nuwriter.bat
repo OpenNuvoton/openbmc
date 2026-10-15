@@ -13,7 +13,7 @@ IF %ERRORLEVEL% NEQ 0 (
 )
 
 echo [2/2] Installing Python dependencies...
-pip3 install pyusb usb crypto ecdsa crcmod tqdm pycryptodome
+pip3 install pyusb usb crypto ecdsa crcmod tqdm pycryptodome python-pkcs11
 IF %ERRORLEVEL% NEQ 0 (
     echo ERROR: Failed to install Python packages
     pause
