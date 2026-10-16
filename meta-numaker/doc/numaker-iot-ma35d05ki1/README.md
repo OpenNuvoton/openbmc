@@ -53,7 +53,7 @@ The NuMaker-IoT-MA35D05KI1 board provides a 6-position SMD DIP switch (**SW2**) 
 | Memory Storage | **Burn to** settings (USB Download Mode) | **Boot from** settings (Run Mode) |
 | :--- | :--- | :--- |
 | **Serial NAND (SPI NAND)**<br>(QSPI0 Flash) | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 2 (PG2) to ON</li><li>Switch 3 (PG3) to ON</li><li>Switch 4 (PG4) to OFF (USBD)</li><li>Switch 5 (PG6) to OFF</li><li>Switch 6 (HSUSB0_ID) to ON</li></ul><br>*(Summary: Switch 1, 2, 3, 6 to ON; 4, 5 to OFF)* | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 2 (PG2) to OFF</li><li>Switch 3 (PG3) to OFF</li><li>Switch 4 (PG4) to OFF</li><li>Switch 5 (PG6) to OFF</li><li>Switch 6 (HSUSB0_ID) to OFF</li></ul><br>*(Summary: Switch 1 to ON; Others to OFF)* |
-| **MicroSD Card**<br>(SD1 Slot) | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 2 (PG2) to ON</li><li>Switch 3 (PG3) to ON</li><li>Switch 4 (PG4) to OFF (USBD)</li><li>Switch 5 (PG6) to OFF</li><li>Switch 6 (HSUSB0_ID) to ON</li></ul><br>*(Summary: Switch 1, 2, 3, 6 to ON; 4, 5 to OFF)* | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 2 (PG2) to ON</li><li>Switch 3 (PG3) to OFF</li><li>Switch 4 (PG4) to OFF</li><li>Switch 5 (PG6) to ON (SD1)</li><li>Switch 6 (HSUSB0_ID) to OFF</li></ul><br>*(Summary: Switch 1, 2, 5 to ON; 3, 4, 6 to OFF)* |
+| **MicroSD Card**<br>(SD1 Slot) | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 2 (PG2) to ON</li><li>Switch 3 (PG3) to ON</li><li>Switch 4 (PG4) to OFF (USBD)</li><li>Switch 5 (PG6) to ON (SD1)</li><li>Switch 6 (HSUSB0_ID) to ON</li></ul><br>*(Summary: Switch 1, 2, 3, 5, 6 to ON; 4 to OFF)* | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 2 (PG2) to ON</li><li>Switch 3 (PG3) to OFF</li><li>Switch 4 (PG4) to OFF</li><li>Switch 5 (PG6) to ON (SD1)</li><li>Switch 6 (HSUSB0_ID) to OFF</li></ul><br>*(Summary: Switch 1, 2, 5 to ON; 3, 4, 6 to OFF)* |
 
 ---
 
@@ -160,7 +160,7 @@ Flashing on Windows uses Nuvoton's Python-based **NuWriter** tool via command-li
 
 ### 3.3 Flashing to MicroSD Card
 
-1. Insert MicroSD card into the slot. Set board DIP switch (SW2) to **USB Download Mode** and power on.
+1. Insert MicroSD card into the slot. Set board DIP switch (SW2) to **USB Download Mode for SD1** (Switch 1, 2, 3, 5, 6 to ON; Switch 4 to OFF) and power on.
 2. Run:
    ```cmd
    nuwriter_program_sd.bat

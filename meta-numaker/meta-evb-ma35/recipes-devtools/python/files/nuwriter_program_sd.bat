@@ -24,7 +24,7 @@ if not exist ..\nuwriter-pack-sd-@MACHINE@.bin (
     pause
     exit /b 1
 )
-py -3 nuwriter.py -w sd ../nuwriter-pack-sd-@MACHINE@.bin
+py -3 nuwriter.py -w emmc ../nuwriter-pack-sd-@MACHINE@.bin
 IF %ERRORLEVEL% NEQ 0 (
     echo ERROR: SD card programming failed
     cd ..

@@ -59,7 +59,7 @@ Configure the 8-position power-on setting DIP switch (**SW7**) on the NuMaker bo
 | Memory Storage | **Burn to** settings (USB Download Mode) | **Boot from** settings (Run Mode) |
 | :--- | :--- | :--- |
 | **Serial NAND (SPI NAND)**<br>(QSPI0 Flash, SPI-NAND 1-bit) | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 3 (PG2) to ON</li><li>Switch 4 (PG3) to ON</li><li>Switch Others (2, 5, 6, 7, 8) to OFF</li></ul>*(Summary: Switch 1, 3, 4 ON; Others OFF)* | <ul><li>Switch 1 (PG0) to ON</li><li>Switch Others (2, 3, 4, 5, 6, 7, 8) to OFF</li></ul>*(Summary: Switch 1 ON; Others OFF)* |
-| **MicroSD Card**<br>(Select SD1 slot and 8-bit mode) | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 3 (PG2) to ON</li><li>Switch 4 (PG3) to ON</li><li>Switch Others (2, 5, 6, 7, 8) to OFF</li></ul>*(Summary: Switch 1, 3, 4 ON; Others OFF)* | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 3 (PG2) to ON</li><li>Switch 7 (PG6) to ON (SD1)</li><li>Switch 8 (PG7) to ON (8-bit)</li><li>Switch Others (2, 4, 5, 6) to OFF</li></ul>*(Summary: Switch 1, 3, 7, 8 ON; Others OFF)* |
+| **SD Card**<br>(Select SD1 slot, 4-bit mode) | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 3 (PG2) to ON</li><li>Switch 4 (PG3) to ON</li><li>Switch 7 (PG6) to ON (SD1)</li><li>Switch Others (2, 5, 6, 8) to OFF</li></ul>*(Summary: Switch 1, 3, 4, 7 ON; Switch 2, 5, 6, 8 OFF)* | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 3 (PG2) to ON</li><li>Switch 7 (PG6) to ON (SD1)</li><li>Switch 8 (PG7) to OFF (4-bit)</li><li>Switch Others (2, 4, 5, 6, 8) to OFF</li></ul>*(Summary: Switch 1, 3, 7 ON; Switch 2, 4, 5, 6, 8 OFF)* |
 | **Raw NAND**<br>(Select Ignore BCH and Page setting) | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 3 (PG2) to ON</li><li>Switch 4 (PG3) to ON</li><li>Switch Others (2, 5, 6, 7, 8) to OFF</li></ul>*(Summary: Switch 1, 3, 4 ON; Others OFF)* | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 4 (PG3) to ON</li><li>Switch Others (2, 3, 5, 6, 7, 8) to OFF</li></ul>*(Summary: Switch 1, 4 ON; Others OFF)* |
 
 ---
@@ -176,12 +176,12 @@ Flashing on Windows uses Nuvoton's Python-based **NuWriter** tool via command-li
 
 ### 3.4 Flashing to MicroSD Card
 
-1. Insert MicroSD card into the slot. Set board DIP switch (SW7) to **USB Download Mode** (Switch 1, 3, 4 to ON; Others to OFF) and power on.
+1. Insert MicroSD card into the slot. Set board DIP switch (SW7) to **USB Download Mode for SD1** (Switch 1, 3, 4, 7 to ON; Switch 2, 5, 6, 8 to OFF) and power on.
 2. Run:
    ```cmd
    nuwriter_program_sd.bat
    ```
-3. Power off $\rightarrow$ Set DIP switch (SW7) to **SD Boot** (Switch 1, 3, 7, 8 to ON; Others to OFF) $\rightarrow$ Power on.
+3. Power off $\rightarrow$ Set DIP switch (SW7) to **SD Boot** (Switch 1, 3, 7 to ON; Switch 2, 4, 5, 6, 8 to OFF) $\rightarrow$ Power on.
 
 ---
 

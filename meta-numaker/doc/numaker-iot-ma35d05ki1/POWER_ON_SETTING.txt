@@ -32,7 +32,6 @@
    |                          | Switch 4 (PG4) to OFF (USBD)      |                                   |
    |                          | Switch 5 (PG6) to OFF             | (PG3=L, PG2=L -> QSPI0 Flash)     |
    |                          | Switch 6 (HSUSB0_ID) to ON        |                                   |
-   |                          |                                   |                                   |
    |                          | (Summary: Switch 1, 2, 3, 6 ON;   | (Summary: Switch 1 ON;            |
    |                          |  Switch 4, 5 OFF)                 |  Switch 2, 3, 4, 5, 6 OFF)        |
    +--------------------------+-----------------------------------+-----------------------------------+
@@ -40,17 +39,16 @@
    | (SD1 Slot)               | Switch 2 (PG2) to ON              | Switch 2 (PG2) to ON              |
    |                          | Switch 3 (PG3) to ON              | Switch 3 (PG3) to OFF             |
    |                          | Switch 4 (PG4) to OFF (USBD)      | Switch 4 (PG4) to OFF             |
-   |                          | Switch 5 (PG6) to OFF             | Switch 5 (PG6) to ON (SD1)        |
+   |                          | Switch 5 (PG6) to ON (SD1)        | Switch 5 (PG6) to ON (SD1)        |
    |                          | Switch 6 (HSUSB0_ID) to ON        | Switch 6 (HSUSB0_ID) to OFF       |
-   |                          |                                   |                                   |
-   |                          | (Summary: Switch 1, 2, 3, 6 ON;   | (Summary: Switch 1, 2, 5 ON;      |
-   |                          |  Switch 4, 5 OFF)                 |  Switch 3, 4, 6 OFF)              |
+   |                          | (Summary: Switch 1, 2, 3, 5, 6 ON;| (Summary: Switch 1, 2, 5 ON;      |
+   |                          |  Switch 4 OFF)                    |  Switch 3, 4, 6 OFF)              |
    +--------------------------+-----------------------------------+-----------------------------------+
 
 3. Flashing Quick Start (Windows):
    Step 1: Set SW2 DIP Switch to "Burn to" (USB Download Mode):
-           - Switch 1, 2, 3, 6 set to ON
-           - Switch 4, 5 set to OFF
+           - For SPI NAND: Switch 1, 2, 3, 6 set to ON; Switch 4, 5 set to OFF.
+           - For SD Card (SD1): Switch 1, 2, 3, 5, 6 set to ON; Switch 4 set to OFF.
            Then power ON the board.
    Step 2: Connect PC to USB0 (Device) port via Micro-USB cable.
    Step 3: (First time) Run install_nuwriter.bat to install NuWriter environment.

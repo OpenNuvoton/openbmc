@@ -46,14 +46,14 @@
    |                          | (Summary: Switch 1, 3, 4 ON;      | (Summary: Switch 1 ON;            |
    |                          |  Switch 2, 5, 6, 7, 8 OFF)        |  Switch 2, 3, 4, 5, 6, 7, 8 OFF)  |
    +--------------------------+-----------------------------------+-----------------------------------+
-   | MicroSD Card             | Switch 1 (PG0) to ON              | Switch 1 (PG0) to ON              |
-   | (SD1 Slot, 8-bit mode)   | Switch 3 (PG2) to ON              | Switch 3 (PG2) to ON              |
+   | SD Card                  | Switch 1 (PG0) to ON              | Switch 1 (PG0) to ON              |
+   | (SD1 Slot, 4-bit mode)   | Switch 3 (PG2) to ON              | Switch 3 (PG2) to ON              |
    |                          | Switch 4 (PG3) to ON              | Switch 7 (PG6) to ON (SD1)        |
-   |                          | Switch Others (2, 5, 6, 7, 8)     | Switch 8 (PG7) to ON (8-bit)      |
-   |                          |   to OFF                          | Switch Others (2, 4, 5, 6) to OFF |
-   |                          |                                   |                                   |
-   |                          | (Summary: Switch 1, 3, 4 ON;      | (Summary: Switch 1, 3, 7, 8 ON;   |
-   |                          |  Switch 2, 5, 6, 7, 8 OFF)        |  Switch 2, 4, 5, 6 OFF)           |
+   |                          | Switch 7 (PG6) to ON (SD1)        | Switch Others (2, 4, 5, 6, 8)     |
+   |                          | Switch Others (2, 5, 6, 8)        |   to OFF                          |
+   |                          |   to OFF                          |                                   |
+   |                          | (Summary: Switch 1, 3, 4, 7 ON;   | (Summary: Switch 1, 3, 7 ON;      |
+   |                          |  Switch 2, 5, 6, 8 OFF)           |  Switch 2, 4, 5, 6, 8 OFF)        |
    +--------------------------+-----------------------------------+-----------------------------------+
    | Raw NAND (NFI)           | Switch 1 (PG0) to ON              | Switch 1 (PG0) to ON              |
    | (Auto Page & BCH)        | Switch 3 (PG2) to ON              | Switch 4 (PG3) to ON              |
@@ -67,15 +67,15 @@
 
 3. Flashing Quick Start (Windows):
    Step 1: Set SW7 DIP Switch to "Burn to" (USB Download Mode):
-           - Switch 1, 3, 4 set to ON
-           - Switch 2, 5, 6, 7, 8 set to OFF
+           - For SPI NAND & Raw NAND: Switch 1, 3, 4 to ON; Switch 2, 5, 6, 7, 8 to OFF.
+           - For SD Card (SD1): Switch 1, 3, 4, 7 to ON; Switch 2, 5, 6, 8 to OFF.
            Then power ON the board.
    Step 2: Connect PC to USB0 (Device) port via Micro-USB cable.
    Step 3: (First time) Run install_nuwriter.bat to install NuWriter environment.
    Step 4: Run nuwriter_program_spinand.bat (or _nand.bat / _sd.bat).
    Step 5: Power OFF -> Set SW7 DIP Switch to "Boot from":
            - For SPI NAND Boot: Switch 1 to ON; Switch 2, 3, 4, 5, 6, 7, 8 to OFF.
-           - For SD Card Boot: Switch 1, 3, 7, 8 to ON; Switch 2, 4, 5, 6 to OFF.
+           - For SD Card Boot: Switch 1, 3, 7 to ON; Switch 2, 4, 5, 6, 8 to OFF.
            - For Raw NAND Boot: Switch 1, 4 to ON; Switch 2, 3, 5, 6, 7, 8 to OFF.
            Then power ON.
 
