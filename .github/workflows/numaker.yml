@@ -127,6 +127,9 @@ jobs:
           name: openbmc-${{ matrix.target_machine }}
           path: |
             build-numaker/tmp/deploy/images/**/nuwriter-pack*.bin
+            build-numaker/tmp/deploy/images/**/obmc-phosphor-image-${{ matrix.target_machine }}-*.wic
+            build-numaker/tmp/deploy/images/**/obmc-phosphor-image-${{ matrix.target_machine }}.mtd-ubi-tar
+            build-numaker/tmp/deploy/images/**/obmc-phosphor-image-${{ matrix.target_machine }}.mmc-ext4-tar
             build-numaker/tmp/deploy/images/**/*.bat
             build-numaker/tmp/deploy/images/**/README.md
             build-numaker/tmp/deploy/images/**/POWER_ON_SETTING.txt

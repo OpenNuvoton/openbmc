@@ -1,0 +1,13 @@
+[Unit]
+Description=Bind Flash /images to /tmp/images for OTA Staging
+DefaultDependencies=no
+After=local-fs.target
+Before=bmcweb.service xyz.openbmc_project.Software.Manager.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/bind-images.sh
+
+[Install]
+WantedBy=multi-user.target bmcweb.service

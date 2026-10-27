@@ -1,0 +1,131 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wayne <wayne@nuvoton.com>
+Date: Fri, 16 Oct 2026 19:02:00 +0800
+Subject: [PATCH] ubi: sanitize systemd unit instance names and catch exceptions
+
+Extract filename/id from flashId to avoid slashes in systemd unit instance names,
+both when invoking units and when matching unit completion in onStateChanges().
+Catch sdbusplus exceptions to prevent crashing on unit start failures.
+
+Upstream-Status: Pending
+Signed-off-by: Wayne <wayne@nuvoton.com>
+---
+diff --git a/bmc/ubi/flash.cpp b/bmc/ubi/flash.cpp
+index c1f3c9d6..c9a46266 100644
+--- a/bmc/ubi/flash.cpp
++++ b/bmc/ubi/flash.cpp
+@@ -3,6 +3,8 @@
+ #include "activation.hpp"
+ #include "item_updater.hpp"
+ 
++#include <filesystem>
++
+ namespace phosphor
+ {
+ namespace software
+@@ -40,7 +42,10 @@ void Activation::onStateChanges(sdbusplus::message_t& msg)
+ 
+     auto rwServiceFile = "obmc-flash-bmc-ubirw.service";
+     auto roServiceFile = "obmc-flash-bmc-ubiro@" + versionId + ".service";
+-    auto flashId = parent.versions.find(versionId)->second->path();
++    auto flashId = std::filesystem::path(
++                       parent.versions.find(versionId)->second->path())
++                       .filename()
++                       .string();
+     auto ubootVarsServiceFile =
+         "obmc-flash-bmc-updateubootvars@" + flashId + ".service";
+ 
+diff --git a/bmc/ubi/item_updater_helper.cpp b/bmc/ubi/item_updater_helper.cpp
+index ae00ea52..46cf28b6 100644
+--- a/bmc/ubi/item_updater_helper.cpp
++++ b/bmc/ubi/item_updater_helper.cpp
+@@ -7,6 +7,8 @@
+ #include <phosphor-logging/lg2.hpp>
+ #include <sdbusplus/exception.hpp>
+ 
++#include <filesystem>
++
+ namespace phosphor
+ {
+ namespace software
+@@ -15,25 +17,42 @@ namespace updater
+ {
+ 
+ PHOSPHOR_LOG2_USING;
++namespace fs = std::filesystem;
+ 
+ void Helper::setEntry(const std::string& entryId, uint8_t value)
+ {
+-    std::string serviceFile = "obmc-flash-bmc-setenv@" + entryId + "\\x3d" +
++    auto id = fs::path(entryId).filename().string();
++    std::string serviceFile = "obmc-flash-bmc-setenv@" + id + "\\x3d" +
+                               std::to_string(value) + ".service";
+     auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
+                                       SYSTEMD_INTERFACE, "StartUnit");
+     method.append(serviceFile, "replace");
+-    bus.call_noreply(method);
++    try
++    {
++        bus.call_noreply(method);
++    }
++    catch (const sdbusplus::exception_t& e)
++    {
++        error("Failed to start setenv service: {ERROR}", "ERROR", e);
++    }
+ }
+ 
+ void Helper::clearEntry(const std::string& entryId)
+ {
++    auto id = fs::path(entryId).filename().string();
+     // Remove the priority environment variable.
+-    auto serviceFile = "obmc-flash-bmc-setenv@" + entryId + ".service";
++    auto serviceFile = "obmc-flash-bmc-setenv@" + id + ".service";
+     auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
+                                       SYSTEMD_INTERFACE, "StartUnit");
+     method.append(serviceFile, "replace");
+-    bus.call_noreply(method);
++    try
++    {
++        bus.call_noreply(method);
++    }
++    catch (const sdbusplus::exception_t& e)
++    {
++        error("Failed to start clear setenv service: {ERROR}", "ERROR", e);
++    }
+ }
+ 
+ void Helper::cleanup()
+@@ -53,21 +72,30 @@ void Helper::factoryReset()
+ 
+ void Helper::removeVersion(const std::string& flashId)
+ {
+-    auto serviceFile = "obmc-flash-bmc-ubiro-remove@" + flashId + ".service";
++    auto id = fs::path(flashId).filename().string();
++    auto serviceFile = "obmc-flash-bmc-ubiro-remove@" + id + ".service";
+ 
+     // Remove the read-only partitions.
+     auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
+                                       SYSTEMD_INTERFACE, "StartUnit");
+     method.append(serviceFile, "replace");
+-    bus.call_noreply(method);
++    try
++    {
++        bus.call_noreply(method);
++    }
++    catch (const sdbusplus::exception_t& e)
++    {
++        error("Failed to start ubiro-remove service: {ERROR}", "ERROR", e);
++    }
+ }
+ 
+ void Helper::updateUbootVersionId(const std::string& flashId)
+ {
++    auto id = fs::path(flashId).filename().string();
+     auto method = bus.new_method_call(SYSTEMD_BUSNAME, SYSTEMD_PATH,
+                                       SYSTEMD_INTERFACE, "StartUnit");
+     auto updateEnvVarsFile =
+-        "obmc-flash-bmc-updateubootvars@" + flashId + ".service";
++        "obmc-flash-bmc-updateubootvars@" + id + ".service";
+     method.append(updateEnvVarsFile, "replace");
+ 
+     try

@@ -16,3 +16,9 @@ UBOOT_MACHINE = "nuc980_iot_defconfig"
 SPL_BINARY = "spl/u-boot-spl.bin"
 PROVIDES += "u-boot"
 UBOOT_INITIAL_ENV = ""
+
+do_configure:prepend() {
+    # Set QSPI0 SPI-NAND clock to 75MHz for SPL and U-Boot proper (PCLK0 is 150MHz, divider 1 = 75MHz)
+    sed -i 's/writel([0-9]*, SPI_CLKDIV);/writel(1, SPI_CLKDIV);/' ${S}/board/nuvoton/nuc980/wb_spinand.c
+    sed -i 's/spi_flash_probe(0, 0, [0-9]*, 3)/spi_flash_probe(0, 0, 75000000, 3)/' ${S}/drivers/mtd/spi/spi_nand.c
+}

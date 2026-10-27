@@ -15,6 +15,11 @@ DEPENDS += " \
     python3-pyusb-native \
 "
 
+do_compile[depends] += " \
+    virtual/bootloader:do_deploy \
+    virtual/kernel:do_deploy \
+"
+
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
 SRC_URI = " \
@@ -74,6 +79,11 @@ do_compile() {
     # Create symlink for rootfs UBI image
     if [ ! -e obmc-phosphor-image.ubi ]; then
         ln -sf obmc-phosphor-image-${MACHINE}.ubi obmc-phosphor-image.ubi
+    fi
+    if [ -f obmc-phosphor-image-${MACHINE}-nand.ubi ]; then
+        ln -sf obmc-phosphor-image-${MACHINE}-nand.ubi obmc-phosphor-image-nand.ubi
+    elif [ ! -e obmc-phosphor-image-nand.ubi ]; then
+        ln -sf obmc-phosphor-image.ubi obmc-phosphor-image-nand.ubi
     fi
 
     # Create symlink for rootfs ext4 image if available
@@ -335,6 +345,174 @@ do_deploy() {
         install -m 0755 ${S}/nuwriter_program_sd.bat ${DEPLOYDIR}/
         sed -i "s/@MACHINE@/${MACHINE}/g" ${DEPLOYDIR}/nuwriter_program_sd.bat
         sed -i "s/@NUWRITER_DDR_IMG@/${NUWRITER_DDR_IMG}/g" ${DEPLOYDIR}/nuwriter_program_sd.bat
+    fi
+
+    # Generate OpenBMC Redfish OTA Tarball for SPI-NAND / raw NAND (mtd-ubi-tar)
+    if [ "$HAVE_SPINAND" = "1" ] || [ "$HAVE_NAND" = "1" ]; then
+        OTA_DIR_SPINAND="${WORKDIR}/ota-spinand"
+        rm -rf ${OTA_DIR_SPINAND}
+        mkdir -p ${OTA_DIR_SPINAND}
+
+        cat <<EOF > ${OTA_DIR_SPINAND}/MANIFEST
+purpose=xyz.openbmc_project.Software.Version.VersionPurpose.BMC
+version=${DISTRO_VERSION}-${MACHINE}
+MachineName=${MACHINE}
+CompatibleName=${MACHINE}
+SecurityVersion=1
+ExtendedVersion=OpenBMC MA35 Series Secure OTA
+EOF
+
+        if [ -f ${DEPLOY_DIR_IMAGE_MA35}/Image ]; then
+            cp ${DEPLOY_DIR_IMAGE_MA35}/Image ${OTA_DIR_SPINAND}/image-kernel
+        elif [ -f ${DEPLOY_DIR_IMAGE_MA35}/fitImage ]; then
+            cp ${DEPLOY_DIR_IMAGE_MA35}/fitImage ${OTA_DIR_SPINAND}/image-kernel
+        fi
+
+        if [ -f ${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}.ubifs ]; then
+            cp ${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}.ubifs ${OTA_DIR_SPINAND}/image-rofs
+        elif [ -f ${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}.ubi ]; then
+            cp ${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}.ubi ${OTA_DIR_SPINAND}/image-rofs
+        fi
+
+        # Assemble SPI-NAND composite bootloader (image-u-boot)
+        if [ -f ${DEPLOY_DIR_IMAGE_MA35}/conv-spinand/header.bin ] && [ -f ${DEPLOY_DIR_IMAGE_MA35}/fip-spinand.bin ]; then
+            rm -f ${OTA_DIR_SPINAND}/image-u-boot
+            dd if=/dev/zero bs=1k count=4096 status=none | tr '\000' '\377' > ${OTA_DIR_SPINAND}/image-u-boot
+            dd if=${DEPLOY_DIR_IMAGE_MA35}/conv-spinand/header.bin of=${OTA_DIR_SPINAND}/image-u-boot bs=1 conv=notrunc status=none
+            if [ -f ${DEPLOY_DIR_IMAGE_MA35}/bl2-${TFA_PLATFORM}.dtb ]; then
+                dd if=${DEPLOY_DIR_IMAGE_MA35}/bl2-${TFA_PLATFORM}.dtb of=${OTA_DIR_SPINAND}/image-u-boot bs=1k seek=768 conv=notrunc status=none
+            elif [ -f ${DEPLOY_DIR_IMAGE_MA35}/bl2-ma35.dtb ]; then
+                dd if=${DEPLOY_DIR_IMAGE_MA35}/bl2-ma35.dtb of=${OTA_DIR_SPINAND}/image-u-boot bs=1k seek=768 conv=notrunc status=none
+            fi
+            if [ -f ${DEPLOY_DIR_IMAGE_MA35}/bl2-${TFA_PLATFORM}.bin ]; then
+                dd if=${DEPLOY_DIR_IMAGE_MA35}/bl2-${TFA_PLATFORM}.bin of=${OTA_DIR_SPINAND}/image-u-boot bs=1k seek=896 conv=notrunc status=none
+            elif [ -f ${DEPLOY_DIR_IMAGE_MA35}/bl2-ma35.bin ]; then
+                dd if=${DEPLOY_DIR_IMAGE_MA35}/bl2-ma35.bin of=${OTA_DIR_SPINAND}/image-u-boot bs=1k seek=896 conv=notrunc status=none
+            fi
+            dd if=${DEPLOY_DIR_IMAGE_MA35}/fip-spinand.bin of=${OTA_DIR_SPINAND}/image-u-boot bs=1k seek=1024 conv=notrunc status=none
+        elif [ -f ${DEPLOY_DIR_IMAGE_MA35}/conv-nand/header.bin ] && [ -f ${DEPLOY_DIR_IMAGE_MA35}/fip-nand.bin ]; then
+            rm -f ${OTA_DIR_SPINAND}/image-u-boot
+            dd if=/dev/zero bs=1k count=4096 status=none | tr '\000' '\377' > ${OTA_DIR_SPINAND}/image-u-boot
+            dd if=${DEPLOY_DIR_IMAGE_MA35}/conv-nand/header.bin of=${OTA_DIR_SPINAND}/image-u-boot bs=1 conv=notrunc status=none
+            if [ -f ${DEPLOY_DIR_IMAGE_MA35}/bl2-${TFA_PLATFORM}.dtb ]; then
+                dd if=${DEPLOY_DIR_IMAGE_MA35}/bl2-${TFA_PLATFORM}.dtb of=${OTA_DIR_SPINAND}/image-u-boot bs=1k seek=768 conv=notrunc status=none
+            elif [ -f ${DEPLOY_DIR_IMAGE_MA35}/bl2-ma35.dtb ]; then
+                dd if=${DEPLOY_DIR_IMAGE_MA35}/bl2-ma35.dtb of=${OTA_DIR_SPINAND}/image-u-boot bs=1k seek=768 conv=notrunc status=none
+            fi
+            if [ -f ${DEPLOY_DIR_IMAGE_MA35}/bl2-${TFA_PLATFORM}.bin ]; then
+                dd if=${DEPLOY_DIR_IMAGE_MA35}/bl2-${TFA_PLATFORM}.bin of=${OTA_DIR_SPINAND}/image-u-boot bs=1k seek=896 conv=notrunc status=none
+            elif [ -f ${DEPLOY_DIR_IMAGE_MA35}/bl2-ma35.bin ]; then
+                dd if=${DEPLOY_DIR_IMAGE_MA35}/bl2-ma35.bin of=${OTA_DIR_SPINAND}/image-u-boot bs=1k seek=896 conv=notrunc status=none
+            fi
+            dd if=${DEPLOY_DIR_IMAGE_MA35}/fip-nand.bin of=${OTA_DIR_SPINAND}/image-u-boot bs=1k seek=1024 conv=notrunc status=none
+        fi
+
+        # Also assemble Raw NAND composite bootloader (image-u-boot-nand) if NAND artifacts exist alongside SPI-NAND
+        if [ -f ${DEPLOY_DIR_IMAGE_MA35}/conv-spinand/header.bin ] && [ -f ${DEPLOY_DIR_IMAGE_MA35}/conv-nand/header.bin ] && [ -f ${DEPLOY_DIR_IMAGE_MA35}/fip-nand.bin ]; then
+            rm -f ${OTA_DIR_SPINAND}/image-u-boot-nand
+            dd if=/dev/zero bs=1k count=4096 status=none | tr '\000' '\377' > ${OTA_DIR_SPINAND}/image-u-boot-nand
+            dd if=${DEPLOY_DIR_IMAGE_MA35}/conv-nand/header.bin of=${OTA_DIR_SPINAND}/image-u-boot-nand bs=1 conv=notrunc status=none
+            if [ -f ${DEPLOY_DIR_IMAGE_MA35}/bl2-${TFA_PLATFORM}.dtb ]; then
+                dd if=${DEPLOY_DIR_IMAGE_MA35}/bl2-${TFA_PLATFORM}.dtb of=${OTA_DIR_SPINAND}/image-u-boot-nand bs=1k seek=768 conv=notrunc status=none
+            elif [ -f ${DEPLOY_DIR_IMAGE_MA35}/bl2-ma35.dtb ]; then
+                dd if=${DEPLOY_DIR_IMAGE_MA35}/bl2-ma35.dtb of=${OTA_DIR_SPINAND}/image-u-boot-nand bs=1k seek=768 conv=notrunc status=none
+            fi
+            if [ -f ${DEPLOY_DIR_IMAGE_MA35}/bl2-${TFA_PLATFORM}.bin ]; then
+                dd if=${DEPLOY_DIR_IMAGE_MA35}/bl2-${TFA_PLATFORM}.bin of=${OTA_DIR_SPINAND}/image-u-boot-nand bs=1k seek=896 conv=notrunc status=none
+            elif [ -f ${DEPLOY_DIR_IMAGE_MA35}/bl2-ma35.bin ]; then
+                dd if=${DEPLOY_DIR_IMAGE_MA35}/bl2-ma35.bin of=${OTA_DIR_SPINAND}/image-u-boot-nand bs=1k seek=896 conv=notrunc status=none
+            fi
+            dd if=${DEPLOY_DIR_IMAGE_MA35}/fip-nand.bin of=${OTA_DIR_SPINAND}/image-u-boot-nand bs=1k seek=1024 conv=notrunc status=none
+        fi
+
+        # Provide image-rwfs required by OpenBMC item_updater validation
+        touch ${OTA_DIR_SPINAND}/image-rwfs
+
+        if [ -f ${DEPLOY_DIR_IMAGE_MA35}/Image.dtb ]; then
+            cp ${DEPLOY_DIR_IMAGE_MA35}/Image.dtb ${OTA_DIR_SPINAND}/image-dtb
+        fi
+
+        TAR_FILES="MANIFEST image-kernel image-rofs image-rwfs"
+        [ -f ${OTA_DIR_SPINAND}/image-u-boot ] && TAR_FILES="${TAR_FILES} image-u-boot"
+        [ -f ${OTA_DIR_SPINAND}/image-u-boot-nand ] && TAR_FILES="${TAR_FILES} image-u-boot-nand"
+        [ -f ${OTA_DIR_SPINAND}/image-dtb ] && TAR_FILES="${TAR_FILES} image-dtb"
+
+        tar -C ${OTA_DIR_SPINAND} -cf ${DEPLOYDIR}/obmc-phosphor-image-${MACHINE}.mtd-ubi-tar ${TAR_FILES}
+    fi
+
+    # Generate OpenBMC Redfish OTA Tarball for SD/eMMC (mmc-ext4-tar)
+    if [ "$HAVE_SD" = "1" ]; then
+        OTA_DIR_SD="${WORKDIR}/ota-sd"
+        rm -rf ${OTA_DIR_SD}
+        mkdir -p ${OTA_DIR_SD}
+
+        cat <<EOF > ${OTA_DIR_SD}/MANIFEST
+purpose=xyz.openbmc_project.Software.Version.VersionPurpose.BMC
+version=${DISTRO_VERSION}-${MACHINE}
+MachineName=${MACHINE}
+CompatibleName=${MACHINE}
+SecurityVersion=1
+ExtendedVersion=OpenBMC MA35 Series Secure OTA
+EOF
+
+        if [ -f ${DEPLOY_DIR_IMAGE_MA35}/Image ]; then
+            cp ${DEPLOY_DIR_IMAGE_MA35}/Image ${OTA_DIR_SD}/image-kernel
+        elif [ -f ${DEPLOY_DIR_IMAGE_MA35}/fitImage ]; then
+            cp ${DEPLOY_DIR_IMAGE_MA35}/fitImage ${OTA_DIR_SD}/image-kernel
+        fi
+
+        if [ -f ${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}.rootfs.ext4 ]; then
+            cp ${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}.rootfs.ext4 ${OTA_DIR_SD}/image-rofs
+        elif [ -f ${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}.ext4 ]; then
+            cp ${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}.ext4 ${OTA_DIR_SD}/image-rofs
+        fi
+
+        if [ -f ${DEPLOY_DIR_IMAGE_MA35}/conv-sd/header.bin ]; then
+            # Assemble composite bootloader matching SD/eMMC boot partition (0x0 to 0x200000)
+            # 0x000400:         conv-sd/header.bin
+            # 0x020000 (128k):  bl2.dtb
+            # 0x030000 (192k):  bl2.bin
+            # 0x0C0000 (768k):  fip-sd.bin
+            rm -f ${OTA_DIR_SD}/image-u-boot
+            dd if=/dev/zero bs=1k count=4096 status=none | tr '\000' '\377' > ${OTA_DIR_SD}/image-u-boot
+            dd if=${DEPLOY_DIR_IMAGE_MA35}/conv-sd/header.bin of=${OTA_DIR_SD}/image-u-boot bs=1 seek=1024 conv=notrunc status=none
+            if [ -f ${DEPLOY_DIR_IMAGE_MA35}/bl2-${TFA_PLATFORM}.dtb ]; then
+                dd if=${DEPLOY_DIR_IMAGE_MA35}/bl2-${TFA_PLATFORM}.dtb of=${OTA_DIR_SD}/image-u-boot bs=1k seek=128 conv=notrunc status=none
+            elif [ -f ${DEPLOY_DIR_IMAGE_MA35}/bl2-ma35.dtb ]; then
+                dd if=${DEPLOY_DIR_IMAGE_MA35}/bl2-ma35.dtb of=${OTA_DIR_SD}/image-u-boot bs=1k seek=128 conv=notrunc status=none
+            fi
+            if [ -f ${DEPLOY_DIR_IMAGE_MA35}/bl2-${TFA_PLATFORM}.bin ]; then
+                dd if=${DEPLOY_DIR_IMAGE_MA35}/bl2-${TFA_PLATFORM}.bin of=${OTA_DIR_SD}/image-u-boot bs=1k seek=192 conv=notrunc status=none
+            elif [ -f ${DEPLOY_DIR_IMAGE_MA35}/bl2-ma35.bin ]; then
+                dd if=${DEPLOY_DIR_IMAGE_MA35}/bl2-ma35.bin of=${OTA_DIR_SD}/image-u-boot bs=1k seek=192 conv=notrunc status=none
+            fi
+            if [ -f ${DEPLOY_DIR_IMAGE_MA35}/fip-sd.bin ]; then
+                dd if=${DEPLOY_DIR_IMAGE_MA35}/fip-sd.bin of=${OTA_DIR_SD}/image-u-boot bs=1k seek=768 conv=notrunc status=none
+            fi
+            # Deploy composite SD bootloader for WIC disk imaging and direct dd flashing
+            cp -f ${OTA_DIR_SD}/image-u-boot ${DEPLOY_DIR_IMAGE_MA35}/image-u-boot-sd.bin
+            cp -f ${OTA_DIR_SD}/image-u-boot ${DEPLOYDIR}/image-u-boot-sd-${MACHINE}.bin
+
+            # Inject SD composite bootloader into generated WIC image (preserving MBR/GPT header at 0~1KB)
+            for wic_target in ${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}*.wic ${DEPLOYDIR}/obmc-phosphor-image-${MACHINE}*.wic; do
+                if [ -f "${wic_target}" ] && [ ! -L "${wic_target}" ]; then
+                    bbnote "Injecting SD composite bootloader into ${wic_target}..."
+                    dd if=${OTA_DIR_SD}/image-u-boot of=${wic_target} bs=1 seek=1024 skip=1024 count=4193280 conv=notrunc status=none
+                    if [ -f "${wic_target}.gz" ]; then
+                        gzip -c -f "${wic_target}" > "${wic_target}.gz"
+                    fi
+                fi
+            done
+        fi
+
+        # Provide image-rwfs required by OpenBMC item_updater validation
+        touch ${OTA_DIR_SD}/image-rwfs
+
+        if [ -f ${OTA_DIR_SD}/image-u-boot ]; then
+            tar -C ${OTA_DIR_SD} -cf ${DEPLOYDIR}/obmc-phosphor-image-${MACHINE}.mmc-ext4-tar MANIFEST image-kernel image-rofs image-rwfs image-u-boot
+        else
+            tar -C ${OTA_DIR_SD} -cf ${DEPLOYDIR}/obmc-phosphor-image-${MACHINE}.mmc-ext4-tar MANIFEST image-kernel image-rofs image-rwfs
+        fi
     fi
 
     # Always deploy installer

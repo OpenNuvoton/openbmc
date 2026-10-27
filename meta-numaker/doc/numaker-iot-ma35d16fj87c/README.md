@@ -1,10 +1,6 @@
-# NuMaker-IoT-MA35D16FJ87C OpenBMC User & Operation Guide
+# NuMaker-IoT-MA35D16FJ87C OpenBMC Quickstart & Reference
 
-This document provides a comprehensive operational guide for developers and engineers to build, flash, verify, and validate all OpenBMC features on the **Nuvoton NuMaker-IoT-MA35D16FJ87C** evaluation board.
-
-> [!NOTE]
-> **What is OpenBMC & System Role**:
-> OpenBMC is an open-source Linux distribution for Baseboard Management Controllers (BMCs). In server and edge systems, this evaluation board acts as a **BMC (Management Controller)** to remotely monitor, manage, and recover an external target computer (**Host**). Management tasks are performed out-of-band over the network using DMTF Redfish REST APIs, WebUI, Serial-Over-LAN (SOL) host console routing, and GPIO host power control (`POWER_OUT`, `RESET_OUT`, `PS_PWROK`).
+Operational guide for building, flashing, and verifying OpenBMC on the **Nuvoton NuMaker-IoT-MA35D16FJ87C** evaluation board. The board acts as an out-of-band BMC controlling an external host via Redfish, WebUI, Serial-Over-LAN (SOL), and GPIO power signals (`POWER_OUT`, `RESET_OUT`, `PS_PWROK`).
 
 ---
 
@@ -23,94 +19,80 @@ This document provides a comprehensive operational guide for developers and engi
 | **RS-485 Interface** | UART12 (`/dev/ttyS12`), Pins `PC13` (AUD / nRTS), `PC14` (RXD), `PC15` (TXD) |
 | **CAN Bus** | 3× Bosch M_CAN: CAN0 (`PN2`/`PN3`), CAN1 (`PN6`/`PN7`), CAN3 (`PM2`/`PM3`) |
 | **Power Control** | GPIO: `POWER_OUT` (`PN1`), `RESET_OUT` (`PN0`), `PS_PWROK` (`PK12`) |
-| **Network** | 10/100M Ethernet (RMII0 / RMII1) |
+| **Network** | 10/100M / 10/100/1000M Ethernet (RMII / RGMII) |
 | **Default IP / mDNS** | DHCP or `numaker-iot-ma35d16fj87c.local` |
-| **Default Credentials** | Username: `root` / Password: `0penBmc` |
+| **Default Credentials** | `root` / `0penBmc` |
 
-### 1.2 Hardware Connectors & Interface Setup
+### 1.2 Connectors
 
-Before getting started, identify the physical connectors on the board:
-- **Debug Serial Console (UART0)**: Connect a Micro-USB cable to the board's **VCOM (Virtual COM)** port. Open a serial terminal (PuTTY, Tera Term, or minicom) set to **115200 baud, 8 data bits, no parity, 1 stop bit, no flow control**.
-- **NuWriter Programming Port (USB0 Device)**: Connect a Micro-USB cable to the **USB0 (Device)** port when burning firmware. *(Do not connect NuWriter to the VCOM or Host USB ports).*
-- **Ethernet Port (LAN)**: Connect an RJ45 Ethernet cable to your local router or switch (DHCP required).
+- **Debug Serial Console (UART0)**: Micro-USB to board **VCOM** port (115200 8N1).
+- **NuWriter Programming Port (USB0 Device)**: Micro-USB to board **USB0 (Device)** port. *(Do not connect NuWriter to VCOM or Host USB ports).*
+- **Ethernet (LAN)**: RJ45 cable to local network (DHCP).
+- **Power**: 5V via USB.
 
 ### 1.3 Boot Mode DIP Switch Settings (SW7)
 
-Configure the 8-position power-on setting DIP switch (**SW7**) on the NuMaker board for programming (**Burn to**) or booting (**Boot from**):
+SW7 defines boot source and bus configuration at power-on.
+- **ON (H)**: Switch ON (3.3V)
+- **OFF (L)**: Switch OFF (Pulled down to Low)
 
-**DIP Switch SW7 Pin Definition (PG0~PG7 internal pull-down, 10K pull-up to VDD3V3):**
-- **Switch 1 (PG0)**: Secure Boot (`ON`: Disable, `OFF`: Enable)
-- **Switch 2 (PG1)**: Boot Source QSPI0, SD/eMMC I/O Voltage (`OFF`: 3.3V, `ON`: 1.8V)
-- **Switch 3 (PG2)**: Boot Source Select [bit 0]
-- **Switch 4 (PG3)**: Boot Source Select [bit 1]
-  - `PG3=L, PG2=L`: QSPI0 Flash
-  - `PG3=L, PG2=H`: SD/eMMC
-  - `PG3=H, PG2=L`: NAND Flash
-  - `PG3=H, PG2=H`: USB
-- **Switch 5 (PG4)**: USB Boot: `OFF`=USBD (Device), `ON`=USBH (Host) / NAND Page Size [bit 0]
-- **Switch 6 (PG5)**: USBH Port: `OFF`=Port 0, `ON`=Port 1 / NAND Page Size [bit 1]
-- **Switch 7 (PG6)**: QSPI0: `OFF`=SPI-NAND 1-bit / SD/eMMC: `OFF`=SD0, `ON`=SD1 / NAND BCH [bit 0]
-- **Switch 8 (PG7)**: QSPI0: `OFF`=SPI-NAND 1-bit, `ON`=SPI-NOR 1-bit / SD/eMMC: `OFF`=4-bit, `ON`=8-bit / NAND BCH [bit 1]
+**Switch Pin Assignments:**
+- `SW1 (PG0)`: Secure Boot (`ON`: Disable, `OFF`: Enable)
+- `SW2 (PG1)`: QSPI0 / SD I/O Voltage (`OFF`: 3.3V, `ON`: 1.8V)
+- `SW3 (PG2)` / `SW4 (PG3)`: Boot Source (`LL`: QSPI0 Flash, `LH`: SD/eMMC, `HL`: NAND Flash, `HH`: USB)
+- `SW5 (PG4)`: USB Boot (`OFF`: USBD Device, `ON`: USBH Host) / NAND Page Size bit 0
+- `SW6 (PG5)`: USBH Port (`OFF`: Port 0, `ON`: Port 1) / NAND Page Size bit 1
+- `SW7 (PG6)`: QSPI0: SPI-NAND 1-bit / SD: `OFF`=SD0, `ON`=SD1 / NAND BCH bit 0
+- `SW8 (PG7)`: QSPI0: `OFF`=SPI-NAND, `ON`=SPI-NOR / SD: `OFF`=4-bit / NAND BCH bit 1
 
-**Power-on Setting Logic:**
-- **ON (H)**: Switch set to ON (Pulled UP to 3.3V)
-- **OFF (L)**: Switch set to OFF (Internal pull-down to Low)
-
-| Memory Storage | **Burn to** settings (USB Download Mode) | **Boot from** settings (Run Mode) |
+| Target Storage | USB Download (NuWriter) | Normal Boot (Run Mode) |
 | :--- | :--- | :--- |
-| **Serial NAND (SPI NAND)**<br>(QSPI0 Flash, SPI-NAND 1-bit) | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 3 (PG2) to ON</li><li>Switch 4 (PG3) to ON</li><li>Switch Others (2, 5, 6, 7, 8) to OFF</li></ul>*(Summary: Switch 1, 3, 4 ON; Others OFF)* | <ul><li>Switch 1 (PG0) to ON</li><li>Switch Others (2, 3, 4, 5, 6, 7, 8) to OFF</li></ul>*(Summary: Switch 1 ON; Others OFF)* |
-| **SD Card**<br>(Select SD1 slot, 4-bit mode) | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 3 (PG2) to ON</li><li>Switch 4 (PG3) to ON</li><li>Switch 7 (PG6) to ON (SD1)</li><li>Switch Others (2, 5, 6, 8) to OFF</li></ul>*(Summary: Switch 1, 3, 4, 7 ON; Switch 2, 5, 6, 8 OFF)* | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 3 (PG2) to ON</li><li>Switch 7 (PG6) to ON (SD1)</li><li>Switch 8 (PG7) to OFF (4-bit)</li><li>Switch Others (2, 4, 5, 6, 8) to OFF</li></ul>*(Summary: Switch 1, 3, 7 ON; Switch 2, 4, 5, 6, 8 OFF)* |
-| **Raw NAND**<br>(Select Ignore BCH and Page setting) | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 3 (PG2) to ON</li><li>Switch 4 (PG3) to ON</li><li>Switch Others (2, 5, 6, 7, 8) to OFF</li></ul>*(Summary: Switch 1, 3, 4 ON; Others OFF)* | <ul><li>Switch 1 (PG0) to ON</li><li>Switch 4 (PG3) to ON</li><li>Switch Others (2, 3, 5, 6, 7, 8) to OFF</li></ul>*(Summary: Switch 1, 4 ON; Others OFF)* |
+| **SPI NAND** | **1, 3, 4 ON**; others OFF | **1 ON**; others OFF |
+| **SD Card (SD1)** | **1, 3, 4, 7 ON**; others OFF | **1, 3, 7 ON**; others OFF |
+| **Raw NAND** | **1, 3, 4 ON**; others OFF | **1, 4 ON**; others OFF |
 
 ---
 
-## 2. OpenBMC Build Environment & Compilation
+## 2. Build Environment & Compilation
 
-To ensure reproducible builds and avoid package version conflicts on host distributions, building OpenBMC is performed using the pre-configured Docker container environment (Ubuntu 24.04 with all necessary Yocto dependencies).
+> [!NOTE]
+> All build commands below are executed **inside the Docker container**.
+> If you have not set up the Docker build environment yet, please refer to [Docker Build Environment Guide](../docker/README.md) to build and enter the container first.
 
-> [!IMPORTANT]
-> **First-Time Build Resources & Expectations**:
-> - **Disk Space**: Yocto/Bitbake downloads upstream source archives and builds cross-compilation toolchains from source. Ensure your host has at least **50~100 GB** of free disk space.
-> - **Build Duration**: The initial build typically takes **1 to 3 hours** depending on CPU core count and network bandwidth. Subsequent builds utilize `sstate-cache` and complete in minutes.
-> - **Network Fetch Retries**: If any transient network fetch error occurs while downloading upstream packages, simply re-run `bitbake nuwriter-pack` to resume downloading from where it stopped.
+Ensure at least **60 GB** of free disk space for toolchain builds and sstate cache.
 
----
+### 2.1 Build Steps
 
-### 2.1 Building OpenBMC via Docker (Recommended)
-
-> [!TIP]
-> **Complete Docker Documentation**: Please refer to [`../docker/README.md`](../docker/README.md) for full Docker installation, container creation, and management instructions.
-
-**Quick Start via Docker:**
-
+1. Inside the Docker container, switch to the OpenBMC repository:
 ```bash
-# 1. Enter the docker directory and build the container (run once)
-cd meta-numaker/doc/docker/
-./build.sh
+cd ~/openbmc
+```
 
-# 2. Attach to the build container
-./join.sh
-
-# 3. Inside the container, enter the shared directory and start the build:
-cd ~/shared
-git clone -b numaker https://github.com/OpenNuvoton/openbmc.git
-cd openbmc
+2. Initialize the build directory:
+```bash
 MACHINE=numaker-iot-ma35d16fj87c source setup numaker-iot-ma35d16fj87c build-ma35
+```
+
+3. Start compilation:
+```bash
 bitbake nuwriter-pack
 ```
 
-> **Note**: For subsequent builds in a new terminal session, execute:
+> [!NOTE]
+> For subsequent sessions in a new shell:
 > ```bash
-> cd ~/shared/openbmc
+> cd ~/openbmc
+> ```
+> ```bash
 > source oe-init-build-env build-ma35
+> ```
+> ```bash
 > bitbake nuwriter-pack
 > ```
 
----
+### 2.2 Build Outputs
 
-### 2.2 Build Output Directory
-
-**Build Output Directory:** `build-ma35/tmp/deploy/images/numaker-iot-ma35d16fj87c/`
+Deploy directory: `build-ma35/tmp/deploy/images/numaker-iot-ma35d16fj87c/`
 
 ```text
 ├── nuwriter-pack-spinand-numaker-iot-ma35d16fj87c.bin   (SPI NAND image)
@@ -122,66 +104,50 @@ bitbake nuwriter-pack
 └── nuwriter_program_sd.bat                              (SD card one-click flasher)
 ```
 
----
+### 2.3 Prebuilt Artifacts from GitHub Actions
 
-### 2.3 Downloading Prebuilt Artifacts from GitHub Actions
-
-You can download pre-built artifacts directly from GitHub Actions without compiling locally:
-1. Navigate to: [OpenBMC building GitHub Actions Workflow](https://github.com/OpenNuvoton/openbmc/actions/workflows/numaker.yml)
+Precompiled zip packages are available from the CI pipeline:
+1. Go to: [OpenBMC GitHub Actions Workflow](https://github.com/OpenNuvoton/openbmc/actions/workflows/numaker.yml).
 2. Select the latest successful build.
-3. In the **Artifacts** section, download `openbmc-numaker-iot-ma35d16fj87c.zip`.
-4. Extract the zip file to your Windows PC.
+3. Download `openbmc-numaker-iot-ma35d16fj87c.zip` from **Artifacts** and extract it on Windows.
 
 ---
 
-## 3. Firmware Flashing Procedure (NuWriter)
+## 3. Firmware Flashing (NuWriter)
 
-Flashing on Windows uses Nuvoton's Python-based **NuWriter** tool via command-line batch scripts.
+Flashing uses Nuvoton's Python-based **NuWriter** tool via Windows batch scripts.
 
 > [!TIP]
-> **Flashing Troubleshooting**:
-> - **Device Not Detected**: Ensure the board DIP switch (SW7) is set to **USB Download Mode** (Switch 1, 3, 4 to ON; Switch 2, 5, 6, 7, 8 to OFF) and your USB cable is plugged into the **USB0 (Device)** port (not VCOM).
-> - **Windows USB Driver**: If NuWriter reports `No USB device found`, open Windows Device Manager and check whether a Nuvoton USB device or WinUSB device is recognized.
+> If NuWriter fails to detect the board:
+> - Confirm SW7 is set to **USB Download Mode** (`1, 3, 4 ON`, or `1, 3, 4, 7 ON` for SD1).
+> - Verify the cable is connected to **USB0 (Device)**, not VCOM.
+> - Check Windows Device Manager for Nuvoton USB / WinUSB driver.
 
-### 3.1 Setup (First Time Only)
+### 3.1 Initial Setup (First Time Only)
 
-1. Connect the board's **USB0 (Device)** port to your Windows PC with a USB cable.
-2. In the extracted folder, double-click:
-   ```cmd
-   install_nuwriter.bat
-   ```
+1. Connect **USB0 (Device)** to Windows PC.
+2. Run `install_nuwriter.bat` in the extracted artifact directory to fetch `MA35D1_NuWriter` and DDR configs.
 
-### 3.2 Flashing to SPI NAND Flash
+### 3.2 Flashing SPI NAND
 
-1. Set the board DIP switch (SW7) to **USB Download Mode** (Switch 1, 3, 4 to ON; Others to OFF) and power on the board.
-2. Run:
-   ```cmd
-   nuwriter_program_spinand.bat
-   ```
-3. Wait for the confirmation:
-   ```text
-   Programming completed successfully!
-   Reset the board to boot from SPI-NAND.
-   ```
-4. Power off $\rightarrow$ Set DIP switch (SW7) to **SPI NAND Boot** (Switch 1 to ON; Others to OFF) $\rightarrow$ Power on.
+1. Set SW7 to **USB Download Mode** (`1, 3, 4 ON`; others OFF) $\rightarrow$ power on.
+2. Run `nuwriter_program_spinand.bat`.
+3. Wait for `Programming completed successfully!`.
+4. Power off $\rightarrow$ set SW7 to **SPI NAND Boot** (`1 ON`; others OFF) $\rightarrow$ power on.
 
-### 3.3 Flashing to Raw NAND Flash
+### 3.3 Flashing Raw NAND
 
-1. Set the board DIP switch (SW7) to **USB Download Mode** (Switch 1, 3, 4 to ON; Others to OFF) and power on.
-2. Run:
-   ```cmd
-   nuwriter_program_nand.bat
-   ```
-3. Power off $\rightarrow$ Set DIP switch (SW7) to **Raw NAND Boot** (Switch 1, 4 to ON; Others to OFF) $\rightarrow$ Power on.
+1. Set SW7 to **USB Download Mode** (`1, 3, 4 ON`; others OFF) $\rightarrow$ power on.
+2. Run `nuwriter_program_nand.bat`.
+3. Wait for completion.
+4. Power off $\rightarrow$ set SW7 to **Raw NAND Boot** (`1, 4 ON`; others OFF) $\rightarrow$ power on.
 
-### 3.4 Flashing to MicroSD Card
+### 3.4 Flashing MicroSD Card
 
-1. Insert MicroSD card into the slot. Set board DIP switch (SW7) to **USB Download Mode for SD1** (Switch 1, 3, 4, 7 to ON; Switch 2, 5, 6, 8 to OFF) and power on.
-2. Run:
-   ```cmd
-   nuwriter_program_sd.bat
-   ```
-3. Power off $\rightarrow$ Set DIP switch (SW7) to **SD Boot** (Switch 1, 3, 7 to ON; Switch 2, 4, 5, 6, 8 to OFF) $\rightarrow$ Power on.
+1. Insert MicroSD card into the slot.
+2. Set SW7 to **USB Download Mode for SD1** (`1, 3, 4, 7 ON`; others OFF) $\rightarrow$ power on.
+3. Run `nuwriter_program_sd.bat`.
+4. Power off $\rightarrow$ set SW7 to **SD Boot** (`1, 3, 7 ON`; others OFF) $\rightarrow$ power on.
 
 ---
 
@@ -212,95 +178,84 @@ OpenBMC Release 2.14.0-dev
 numaker-iot-ma35d16fj87c login:
 ```
 
-### 4.2 Network & WebUI Access
+### 4.2 Network & Access
 
-- **Ping Check:**
+- **mDNS Hostname Resolution**:
   ```bash
   ping -c 3 numaker-iot-ma35d16fj87c.local
   ```
-  > [!TIP]
-  > **IP Address Fallback**: If `.local` does not resolve in your network (e.g. mDNS/multicast is blocked by your router), log into the serial console (UART0) and run `ip addr show eth0` to view the assigned IPv4 address.
+  *(If mDNS is blocked on your router, log into UART0 and check `ip addr show eth0`).*
 
-- **SSH Access:**
+- **SSH Access**:
   ```bash
   ssh root@numaker-iot-ma35d16fj87c.local
   # Password: 0penBmc
   ```
 
-- **WebUI Browser Access:**
-  Open `https://numaker-iot-ma35d16fj87c.local/` (or `https://<BMC-IP>/`) in browser.
-  > [!NOTE]
-  > **Browser HTTPS Security Warning**: OpenBMC uses a self-signed SSL certificate by default. When the browser displays `Your connection is not private` (or `NET::ERR_CERT_AUTHORITY_INVALID`), click **Advanced** and select **Proceed to <ip> (unsafe)** to open the OpenBMC WebUI. Log in with `root` / `0penBmc`.
+- **WebUI Browser Access**:
+  Navigate to `https://numaker-iot-ma35d16fj87c.local/` (or `https://<BMC-IP>/`).
+  Accept the default self-signed SSL certificate in your browser and log in with `root` / `0penBmc`.
 
 ---
 
-## 5. Functional Test Execution & Expected Results
+## 5. Subsystem Verification
 
-### 5.1 Automated Redfish Integration Test Suite
+### 5.1 Redfish Regression Test Suite
 
-> [!NOTE]
-> **Prerequisites**: Ensure the testing PC has `curl` and `jq` installed (`sudo apt-get install -y curl jq`).
-
-Run the regression test suite from your testing machine:
+Requires `curl` and `jq` on the test host:
 
 ```bash
 cd doc/numaker-iot-ma35d16fj87c/
+```
+
+```bash
 chmod +x test-redfish.sh
+```
+
+```bash
 ./test-redfish.sh
 ```
 
-**Expected Execution Output:**
+**Output:**
 ```text
 ====================================================
      MA35D16FJ87C OpenBMC Functions Integration Test    
 ====================================================
-
 [Test] GET Service Root...
 ✓ Passed (HTTP 200)
-
 [Test] GET Chassis Details (system)...
 ✓ Passed (HTTP 200)
-
 [Test] User Management (AccountService)...
 POST Create Test Account: ✓ Passed (HTTP 201)
 PATCH Change Role: ✓ Passed (HTTP 204)
 DELETE Delete Test Account: ✓ Passed (HTTP 200)
-
 ====================================================
 Test Summary: All Tests Passed!
 Report generated: test-redfish.md
 ====================================================
 ```
 
-See [`test-redfish.md`](test-redfish.md) for detailed test cases.
+See [`test-redfish.md`](test-redfish.md) for full compliance results.
 
----
-
-### 5.2 Host Serial-Over-LAN (SOL) Console Testing
+### 5.2 Host Serial-Over-LAN (SOL) Console
 
 On `numaker-iot-ma35d16fj87c`, **`UART10`** (`/dev/ttyS10`, `PH6`/`PH7`) is assigned as the Host SOL link.
 
-1. **Interactive CLI Access via SSH (Recommended)**:
+1. **Interactive CLI Access via SSH (Direct)**:
    ```bash
    ssh -t root@numaker-iot-ma35d16fj87c.local obmc-console-client
    ```
-   *Keystrokes typed in the terminal are transmitted directly to the host UART.*
+   *Connects directly to the serial console server regardless of host power state.*
 2. **WebUI Terminal**:
-   - Access **Operations $\rightarrow$ Serial-over-LAN console**.
+   Open **Operations $\rightarrow$ Serial-over-LAN console**.
+   > [!NOTE]
+   > WebUI terminal checks host power status (`PS_PWROK` on `PK12`). If evaluating standalone without a host motherboard, tie `PK12` to `3.3V` and set Host Power to On via Redfish, or use direct CLI access via `obmc-console-client`.
 
-> [!NOTE]
-> **WebUI SOL Host Power Dependency**:
-> OpenBMC's WebUI SOL terminal checks host power status (`PS_PWROK` on `PK12`). If evaluating the board standalone without a connected host, the WebUI terminal displays `System must be powered on to connect`.
-> - **Method A (Direct CLI - Recommended)**: Use `ssh -t root@<ip> obmc-console-client`, which connects directly to the serial console server regardless of host power state.
-> - **Method B (Hardware Emulation)**: Connect `PK12` to `3.3V`, then click "Power on" in WebUI / Redfish, after which the WebUI terminal connects immediately.
+Refer to [`test-sol.md`](test-sol.md) for loopback tests and wiring details.
 
-Refer to [`test-sol.md`](test-sol.md) for loopback wiring and baudrate configuration.
+### 5.3 Independent RS-485 Interface (Hardware AUD)
 
----
-
-### 5.3 Independent RS-485 Interface Testing (Hardware AUD)
-
-On `numaker-iot-ma35d16fj87c`, **`UART12`** (`/dev/ttyS12`, `PC13`~`PC15`) is configured with hardware Auto-Direction (AUD) control.
+On `numaker-iot-ma35d16fj87c`, **`UART12`** (`/dev/ttyS12`, `PC13`~`PC15`) provides hardware Auto-Direction (AUD) control.
 
 1. Configure baudrate:
    ```bash
@@ -317,41 +272,48 @@ On `numaker-iot-ma35d16fj87c`, **`UART12`** (`/dev/ttyS12`, `PC13`~`PC15`) is co
 
 Refer to [`test-rs485.md`](test-rs485.md) for hardware AUD principles and pin connections.
 
----
+### 5.4 CAN / CAN-FD Bus
 
-### 5.4 CAN / CAN-FD Bus Testing
-
-MA35D16FJ87C features 3 CAN controllers: `can0` (PN2/PN3), `can1` (PN6/PN7), `can2` (PM2/PM3).
+MA35D16FJ87C provides 3 CAN controllers: `can0` (`PN2`/`PN3`), `can1` (`PN6`/`PN7`), `can2` (`PM2`/`PM3`).
 
 > [!WARNING]
-> **CAN Transceiver Requirement**:
-> The CAN pins on the SoC output 3.3V TTL levels. To connect to a physical CAN bus or another device, an external **3.3V CAN transceiver** (e.g. SN65HVD230 / TJA1051T) with **120Ω termination resistors** on both bus ends is required. Do NOT connect SoC TTL pins directly to a 12V/24V CAN bus.
+> SoC CAN pins output 3.3V TTL levels. Connect via an external **3.3V CAN transceiver** (e.g. SN65HVD230 / TJA1051T) with **120Ω termination resistors** on both bus ends. Do NOT connect TTL pins directly to a 12V/24V CAN bus.
+
+Configure `can0` and `can1` for CAN-FD in BMC SSH:
+```bash
+ip link set can0 type can bitrate 500000 dbitrate 2000000 fd on
+```
 
 ```bash
-# In BMC SSH:
-ip link set can0 type can bitrate 500000 dbitrate 2000000 fd on
 ip link set can0 up
+```
 
+```bash
 ip link set can1 type can bitrate 500000 dbitrate 2000000 fd on
+```
+
+```bash
 ip link set can1 up
+```
 
-# Receiver:
+Receiver:
+```bash
 candump can1
+```
 
-# Transmitter:
+Transmitter:
+```bash
 cansend can0 123##3112233445566778899AABBCCDDEEFF
 ```
 
-See [`test-can.md`](test-can.md) for hardware connection pins and detailed packet formats.
+See [`test-can.md`](test-can.md) for transceiver pin connections and packet formats.
 
----
-
-### 5.5 Host Power Control Testing (GPIO)
+### 5.5 Host Power Control (GPIO)
 
 | Signal | Direction | Pin | Description |
 | :--- | :--- | :--- | :--- |
-| **`POWER_OUT`** | Output | **`PN1`** | Power Button (Active Low, 200ms on, 4s force off) |
-| **`RESET_OUT`** | Output | **`PN0`** | Reset Button (Active Low, 200ms) |
+| **`POWER_OUT`** | Output | **`PN1`** | Emulates power button (Active Low, 200ms on, 4s force off) |
+| **`RESET_OUT`** | Output | **`PN0`** | Emulates reset button (Active Low, 200ms) |
 | **`PS_PWROK`** | Input | **`PK12`** | Host PSU Power Good status (Active High 3.3V) |
 
 ```bash
@@ -360,29 +322,39 @@ curl -k -s -u root:0penBmc -X POST \
   https://numaker-iot-ma35d16fj87c.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" \
   -d '{"ResetType": "On"}' -i
+# Expected: HTTP/1.1 204 No Content
 ```
-**Expected Response:** `HTTP/1.1 204 No Content`
 
-Refer to [`test-power-control.md`](test-power-control.md) for full GPIO control guides.
-
----
+See [`test-power-control.md`](test-power-control.md) for GPIO timing and control guides.
 
 ### 5.6 SoC Temperature Monitoring
 
+Via D-Bus (on BMC):
 ```bash
 busctl get-property xyz.openbmc_project.MA35_Thermal /xyz/openbmc_project/sensors/temperature/cpu_thermal xyz.openbmc_project.Sensor.Value Value
 ```
-**Expected Output:** `d <temperature_in_celsius>` (e.g. `d 43.0`).
 
 Via Redfish:
 ```bash
 curl -k -s -u root:0penBmc https://numaker-iot-ma35d16fj87c.local/redfish/v1/Chassis/system/ThermalSubsystem/ThermalMetrics | jq .
 ```
 
-To run stress & dynamic chart polling test:
+Stress and polling test script:
 ```bash
 ./test-cpu-temp.sh
 ```
+
+### 5.7 Firmware Update via Redfish (OTA)
+
+End-to-end Redfish update with dual-bank (A/B) flashing and boot fallback:
+
+```bash
+# Automated end-to-end OTA verification (from repo root):
+./meta-numaker/doc/numaker-iot-ma35d16fj87c/test-redfish-update/test-redfish-update.sh numaker-iot-ma35d16fj87c.local \
+  build-ma35/tmp/deploy/images/numaker-iot-ma35d16fj87c/obmc-phosphor-image-numaker-iot-ma35d16fj87c.mtd-ubi-tar
+```
+
+For partition architecture, manual step-by-step curl commands, anti-rollback checks, and boot fallback testing, refer to [`test-redfish-update/README.md`](test-redfish-update/README.md).
 
 ---
 
@@ -393,5 +365,6 @@ To run stress & dynamic chart polling test:
 - [`test-rs485.md`](test-rs485.md): Independent RS-485 serial communication guide with Hardware AUD.
 - [`test-redfish.md`](test-redfish.md): Redfish integration test report and schema compliance results.
 - [`test-redfish.sh`](test-redfish.sh): Automated curl test script for Redfish API regression tests.
+- [`test-redfish-update/README.md`](test-redfish-update/README.md): Redfish OTA firmware update guide, dual-bank architecture, and automated test suite.
 - [`test-power-control.md`](test-power-control.md): Host power state machine, wiring diagrams, and GPIO pinouts.
 - [`test-cpu-temp.sh`](test-cpu-temp.sh): Live SoC thermal monitoring and workload stress testing script.

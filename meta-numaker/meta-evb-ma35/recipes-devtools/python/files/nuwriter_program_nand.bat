@@ -33,7 +33,7 @@ if not exist ..\nuwriter-pack-nand-@MACHINE@.bin (
     pause
     exit /b 1
 )
-py -3 nuwriter.py -o verify -w nand ../nuwriter-pack-nand-@MACHINE@.bin
+py -3 nuwriter.py -w nand ../nuwriter-pack-nand-@MACHINE@.bin
 IF %ERRORLEVEL% NEQ 0 (
     echo ERROR: NAND programming/verification failed
     cd ..

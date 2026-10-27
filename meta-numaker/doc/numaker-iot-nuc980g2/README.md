@@ -1,10 +1,6 @@
-# NuMaker-IoT-NUC980G2 OpenBMC User & Operation Guide
+# NuMaker-IoT-NUC980G2 OpenBMC Quickstart & Reference
 
-This document provides complete instructions for developers and engineers to build, flash, verify, and test the OpenBMC firmware on the **Nuvoton NuMaker-IoT-NUC980G2** evaluation board.
-
-> [!NOTE]
-> **What is OpenBMC & System Role**:
-> OpenBMC is an open-source Linux distribution for Baseboard Management Controllers (BMCs). In server and edge systems, this evaluation board acts as a **BMC (Management Controller)** to remotely monitor, manage, and recover an external target computer (**Host**). Management tasks are performed out-of-band over the network using DMTF Redfish REST APIs, WebUI, and GPIO host power control (`POWER_OUT`, `RESET_OUT`, `PS_PWROK`).
+Operational guide for building, flashing, and verifying OpenBMC on the **Nuvoton NuMaker-IoT-NUC980G2** evaluation board. The board acts as an out-of-band BMC controlling an external host via Redfish, SSH CLI, and GPIO power signals (`POWER_OUT`, `RESET_OUT`, `PS_PWROK`).
 
 ---
 
@@ -22,124 +18,102 @@ This document provides complete instructions for developers and engineers to bui
 | **Debug Console** | UART0 (`/dev/ttyS0`), 115200 8N1 |
 | **Network** | 10/100M Ethernet (RMII) |
 | **Default IP / mDNS** | DHCP or `numaker-iot-nuc980g2.local` |
-| **Default Credentials** | Username: `root` / Password: `0penBmc` |
+| **Default Credentials** | `root` / `0penBmc` |
 
-### 1.2 Hardware Connectors & Interface Setup
+### 1.2 Connectors
 
-Before getting started, identify the physical connectors on the board:
-- **Debug Serial Console (UART0)**: Connect a Micro-USB cable to the board's **VCOM (Virtual COM)** port (or header `PE14`/`PE15`). Open a serial terminal set to **115200 baud, 8 data bits, no parity, 1 stop bit, no flow control**.
-- **NuWriter Programming Port (USB Device)**: Connect a Micro-USB cable to the **USB (Device)** port when burning firmware. *(Do not connect NuWriter to the VCOM or Host USB ports).*
-- **Ethernet Port (LAN)**: Connect an RJ45 Ethernet cable to your local router or switch (DHCP required).
-- **Power Port**: Connect 5V Micro-USB to the dedicated Power port.
+- **Debug Serial Console (UART0)**: Micro-USB to board **VCOM** port (or header `PE14`/`PE15`), 115200 8N1.
+- **NuWriter Programming Port (USB Device)**: Micro-USB to board **USB (Device)** port. *(Do not connect NuWriter to VCOM or Host USB ports).*
+- **Ethernet (LAN)**: RJ45 cable to local network (DHCP).
+- **Power**: 5V Micro-USB to dedicated power port.
 - **Boot Mode DIP Switch**:
   - **USB Boot (Download Mode)**: Set DIP switch for USB download when flashing with NuWriter.
   - **SPI NAND Boot (Normal Run Mode)**: Set DIP switch for SPI NAND boot to run OpenBMC.
 
 ---
 
-## 2. OpenBMC Build Environment & Compilation
+## 2. Build Environment & Compilation
 
-To ensure reproducible builds and avoid package version conflicts on host distributions, building OpenBMC is performed using the pre-configured Docker container environment (Ubuntu 24.04 with all necessary Yocto dependencies).
+> [!NOTE]
+> All build commands below are executed **inside the Docker container**.
+> If you have not set up the Docker build environment yet, please refer to [Docker Build Environment Guide](../docker/README.md) to build and enter the container first.
 
-> [!IMPORTANT]
-> **First-Time Build Resources & Expectations**:
-> - **Disk Space**: Yocto/Bitbake downloads upstream source archives and builds cross-compilation toolchains from source. Ensure your host has at least **50~100 GB** of free disk space.
-> - **Build Duration**: The initial build typically takes **1 to 3 hours** depending on CPU core count and network bandwidth. Subsequent builds utilize `sstate-cache` and complete in minutes.
-> - **Network Fetch Retries**: If any transient network fetch error occurs while downloading upstream packages, simply re-run `bitbake nuwriter-pack` to resume downloading from where it stopped.
+Ensure at least **60 GB** of free disk space for toolchain builds and sstate cache.
 
----
+### 2.1 Build Steps
 
-### 2.1 Building OpenBMC via Docker (Recommended)
-
-> [!TIP]
-> **Complete Docker Documentation**: Please refer to [`../docker/README.md`](../docker/README.md) for full Docker installation, container creation, and management instructions.
-
-**Quick Start via Docker:**
-
+1. Inside the Docker container, switch to the OpenBMC repository:
 ```bash
-# 1. Enter the docker directory and build the container (run once)
-cd meta-numaker/doc/docker/
-./build.sh
+cd ~/openbmc
+```
 
-# 2. Attach to the build container
-./join.sh
-
-# 3. Inside the container, enter the shared directory and start the build:
-cd ~/shared
-git clone -b numaker https://github.com/OpenNuvoton/openbmc.git
-cd openbmc
+2. Initialize the build directory:
+```bash
 MACHINE=numaker-iot-nuc980g2 source setup numaker-iot-nuc980g2 build-nuc980
+```
+
+3. Start compilation:
+```bash
 bitbake nuwriter-pack
 ```
 
-> **Note**: For subsequent builds in a new terminal session, execute:
+> [!NOTE]
+> For subsequent sessions in a new shell:
 > ```bash
-> cd ~/shared/openbmc
+> cd ~/openbmc
+> ```
+> ```bash
 > source oe-init-build-env build-nuc980
+> ```
+> ```bash
 > bitbake nuwriter-pack
 > ```
 
----
+### 2.2 Build Outputs
 
-### 2.2 Build Output Directory
-
-**Build Output Directory:** `build-nuc980/tmp/deploy/images/numaker-iot-nuc980g2/`
+Deploy directory: `build-nuc980/tmp/deploy/images/numaker-iot-nuc980g2/`
 
 ```text
-├── nuwriter-pack-numaker-iot-nuc980g2.bin   (Raw NAND / SPI NAND image)
+├── nuwriter-pack-numaker-iot-nuc980g2.bin   (SPI NAND pack image)
 ├── install_nuwriter.bat                     (NuWriter environment installer)
 └── nuwriter_program.bat                     (One-click flasher script)
 ```
 
----
+### 2.3 Prebuilt Artifacts from GitHub Actions
 
-### 2.3 Downloading Prebuilt Artifacts from GitHub Actions
-
-You can download pre-compiled artifacts directly from GitHub Actions without compiling locally:
-1. Navigate to: [OpenBMC building GitHub Actions Workflow](https://github.com/OpenNuvoton/openbmc/actions/workflows/numaker.yml)
-2. Select the latest successful workflow run.
-3. In the **Artifacts** section, download `openbmc-numaker-iot-nuc980g2.zip`.
-4. Extract the zip archive to retrieve `nuwriter-pack.bin`.
+Precompiled zip packages are available from the CI pipeline:
+1. Go to: [OpenBMC GitHub Actions Workflow](https://github.com/OpenNuvoton/openbmc/actions/workflows/numaker.yml).
+2. Select the latest successful build.
+3. Download `openbmc-numaker-iot-nuc980g2.zip` from **Artifacts** and extract it on Windows.
 
 ---
 
-## 3. Firmware Flashing Procedure (NuWriter)
+## 3. Firmware Flashing (NuWriter)
 
-Tool requirement: [NuWriter for NUC980 (Windows)](https://github.com/OpenNuvoton/NUC980_NuWriter)
+Requires [NuWriter for NUC980 (Windows)](https://github.com/OpenNuvoton/NUC980_NuWriter).
 
 > [!TIP]
-> **Flashing Troubleshooting**:
-> - **Device Not Detected**: Ensure the board DIP switch is set to **USB Boot (Download Mode)** and your USB cable is plugged into the **USB (Device)** port (not VCOM).
-> - **Windows USB Driver**: If NuWriter reports `No device connected`, verify that the Nuvoton USB Driver (included in the NuWriter package) is installed in Windows Device Manager.
+> If NuWriter reports `No device connected`:
+> - Confirm the DIP switch is set to **USB Boot (Download Mode)**.
+> - Verify the cable is connected to **USB (Device)**, not VCOM.
+> - Check Windows Device Manager for the Nuvoton USB driver.
 
-### Step-by-Step Flashing Procedure:
+### 3.1 Flashing Steps
 
-1. **Hardware Preparation**:
-   - Set board DIP switch to **USB Boot** mode.
-   - Connect the board's USB Device port to the Windows PC using a USB cable.
-   - Power on the board.
-2. **Launch NuWriter**:
-   - Open `NuWriter.exe`.
-   - Ensure the device is recognized as `NUC980`.
+1. Set the board DIP switch to **USB Boot** mode.
+2. Connect the board's USB Device port to the Windows PC and power on.
+3. In NuWriter:
+   - Verify device is recognized as `NUC980`.
    - Select **Target**: `SPI NAND`.
-3. **Erase Flash**:
-   - Select **Erase** tab $\rightarrow$ Check **Erase All** $\rightarrow$ Click **Erase**.
-4. **Program Pack File**:
-   - Select **Burn** tab.
-   - Set **Type**: `Pack`.
-   - Click **Browse** and select `nuwriter-pack.bin`.
-   - Click **Burn** and wait for completion (approx. 2-3 minutes).
-   - Expected status: `Burn successfully! (100%)`.
-5. **Reboot to OpenBMC**:
-   - Power off the board.
-   - Switch the DIP switch to **SPI NAND Boot** mode.
-   - Connect the Serial Console (115200 8N1) and power on the board.
+   - In **Erase** tab $\rightarrow$ select **Erase All** $\rightarrow$ click **Erase**.
+   - In **Burn** tab $\rightarrow$ set **Type**: `Pack` $\rightarrow$ select `nuwriter-pack.bin` $\rightarrow$ click **Burn**.
+4. Power off $\rightarrow$ switch DIP switch to **SPI NAND Boot** mode $\rightarrow$ power on.
 
 ---
 
 ## 4. Boot Verification & Sanity Checks
 
-### 4.1 Expected Serial Boot Log
+### 4.1 Expected Serial Boot Log (UART0, 115200 8N1)
 
 ```text
 U-Boot SPL 2020.07 (Oct 12 2026 - 15:00:00 +0800)
@@ -163,196 +137,130 @@ OpenBMC Release 2.14.0-dev
 numaker-iot-nuc980g2 login:
 ```
 
-### 4.2 Network Verification & WebUI Access
+### 4.2 Network & Access
 
-Verify BMC responds to ping and mDNS hostname resolution:
+- **mDNS Hostname Resolution**:
+  ```bash
+  ping -c 3 numaker-iot-nuc980g2.local
+  ```
+  *(If mDNS is blocked on your router, log into UART0 and check `ip addr show eth0`).*
 
-```bash
-ping -c 3 numaker-iot-nuc980g2.local
-```
-> [!TIP]
-> **IP Address Fallback**: If `.local` does not resolve in your network (e.g. mDNS/multicast is blocked by your router), log into the serial console (UART0) and run `ip addr show eth0` to view the assigned IPv4 address.
+- **SSH Access**:
+  ```bash
+  ssh root@numaker-iot-nuc980g2.local
+  # Password: 0penBmc
+  ```
 
-**Expected Output:**
-```text
-PING numaker-iot-nuc980g2.local (192.168.1.100): 56 data bytes
-64 bytes from 192.168.1.100: icmp_seq=0 ttl=64 time=0.812 ms
-64 bytes from 192.168.1.100: icmp_seq=1 ttl=64 time=0.745 ms
-64 bytes from 192.168.1.100: icmp_seq=2 ttl=64 time=0.789 ms
+- **Redfish REST API**:
+  > [!NOTE]
+  > Due to memory constraints (128 MB RAM), `webui-vue` is omitted on NUC980. Management is performed directly via Redfish API (`https://<BMC-IP>/redfish/v1/`) and SSH.
 
---- numaker-iot-nuc980g2.local ping statistics ---
-3 packets transmitted, 3 packets received, 0.0% packet loss
-```
-
-SSH Login Verification:
-```bash
-ssh root@numaker-iot-nuc980g2.local
-# Enter password: 0penBmc
-```
-
-WebUI Browser Access:
-Open `https://numaker-iot-nuc980g2.local/` (or `https://<BMC-IP>/`) in your browser.
-> [!NOTE]
-> **Browser HTTPS Security Warning**: OpenBMC uses a self-signed SSL certificate by default. When the browser displays `Your connection is not private` (or `NET::ERR_CERT_AUTHORITY_INVALID`), click **Advanced** and select **Proceed to <ip> (unsafe)** to open the OpenBMC WebUI. Log in with `root` / `0penBmc`.
+  Query service root:
+  ```bash
+  curl -k -u root:0penBmc https://numaker-iot-nuc980g2.local/redfish/v1/ | jq .
+  ```
 
 ---
 
-## 5. Functional Test Execution & Expected Results
+## 5. Subsystem Verification
 
-### 5.1 Automated Redfish Integration Test Suite
+### 5.1 Redfish Regression Test Suite
 
-> [!NOTE]
-> **Prerequisites**: Ensure the testing PC has `curl` and `jq` installed (`sudo apt-get install -y curl jq`).
-
-Execute the pre-packaged automated Redfish test script:
+Requires `curl` and `jq` on the test host:
 
 ```bash
 cd doc/numaker-iot-nuc980g2/
+```
+
+```bash
 chmod +x test-redfish.sh
+```
+
+```bash
 ./test-redfish.sh
 ```
 
-**Execution Output:**
+**Output:**
 ```text
 ====================================================
      NUC980 OpenBMC Functions Integration Test    
 ====================================================
-
 [Test] GET Service Root...
 ✓ Passed (HTTP 200)
-
 [Test] GET Chassis Details (system)...
 ✓ Passed (HTTP 200)
-
 [Test] GET System details...
 ✓ Passed (HTTP 200)
-
 [Test] Power Control Tests...
-Operator prompted: Connect PF9 to 3.3V (HIGH) for Power On...
 POST Host Power On: ✓ Passed (HTTP 204)
 GET Verify Host PowerState: ✓ Passed (PowerState=On)
-
 ====================================================
 Test Summary: All Tests Passed!
 Report generated: test-redfish.md
 ====================================================
 ```
 
-Detailed test report is saved to [`test-redfish.md`](test-redfish.md).
+See [`test-redfish.md`](test-redfish.md) for full compliance results.
 
----
+### 5.2 Manual Redfish API Checks
 
-### 5.2 Manual Redfish API Commands & Expected Responses
-
-#### ① Service Root Inspection
+Service Root:
 ```bash
 curl -k -s -u root:0penBmc https://numaker-iot-nuc980g2.local/redfish/v1/ | jq .
 ```
-**Expected Response (HTTP 200):**
-```json
-{
-  "@odata.id": "/redfish/v1",
-  "@odata.type": "#ServiceRoot.v1_15_0.ServiceRoot",
-  "AccountService": {
-    "@odata.id": "/redfish/v1/AccountService"
-  },
-  "Chassis": {
-    "@odata.id": "/redfish/v1/Chassis"
-  },
-  "Id": "RootService",
-  "Name": "Root Service",
-  "RedfishVersion": "1.19.0",
-  "Systems": {
-    "@odata.id": "/redfish/v1/Systems"
-  }
-}
-```
 
-#### ② Chassis Status & Indicator LED Test
+Chassis Status:
 ```bash
-# Query Chassis
 curl -k -s -u root:0penBmc https://numaker-iot-nuc980g2.local/redfish/v1/Chassis/system | jq '{Id, Name, Status, PowerState}'
 ```
-**Expected Output (HTTP 200):**
-```json
-{
-  "Id": "system",
-  "Name": "system",
-  "PowerState": "On",
-  "Status": {
-    "Health": "OK",
-    "State": "Enabled"
-  }
-}
-```
 
+Location Indicator LED (Turn ON):
 ```bash
-# Turn ON Location Indicator LED
 curl -k -s -u root:0penBmc -X PATCH \
   https://numaker-iot-nuc980g2.local/redfish/v1/Chassis/system \
   -H "Content-Type: application/json" \
   -d '{"LocationIndicatorActive": true}' -i
 ```
-**Expected Response:** `HTTP/1.1 204 No Content` (Board LED illuminates).
 
----
-
-### 5.3 Host Power Control Testing (GPIO)
-
-NuMaker-IoT-NUC980G2 controls host motherboard power states through `x86-power-control` and `libgpiod`:
+### 5.3 Host Power Control (GPIO)
 
 | Signal | Direction | Pin | Description |
 | :--- | :--- | :--- | :--- |
-| **`POWER_OUT`** | Output | **`PD12`** | Power Button (Active Low, 200ms pulse for On, 4s for ForceOff) |
-| **`RESET_OUT`** | Output | **`PD13`** | Reset Button (Active Low, 200ms pulse for Reset) |
-| **`PS_PWROK`** | Input | **`PF9`** | Power Good input from Host PSU (Active High 3.3V) |
+| **`POWER_OUT`** | Output | **`PD12`** | Power Button (Active Low, 200ms on, 4s force off) |
+| **`RESET_OUT`** | Output | **`PD13`** | Reset Button (Active Low, 200ms) |
+| **`PS_PWROK`** | Input | **`PF9`** | Host PSU Power Good status (Active High 3.3V) |
 
 > [!NOTE]
-> **Host Power Good (`PS_PWROK` on `PF9`) Requirement**:
-> OpenBMC's `x86-power-control` checks host power status on `PF9`. When testing power control commands without a connected host motherboard:
-> - **To Power On**: Connect `PF9` to **3.3V** before or immediately after issuing the Power On command.
-> - **To Power Off / Force Off**: Disconnect `PF9` (or connect to **GND**) after issuing the Power Off command.
+> `x86-power-control` verifies host power status on `PF9`. When testing standalone:
+> - **Power On**: Connect `PF9` to **3.3V** before or immediately after issuing the Power On command.
+> - **Power Off / Force Off**: Disconnect `PF9` (or pull to **GND**) after issuing the Power Off command.
 
-#### Test Step 1: Power On Host
+Power On:
 ```bash
-# Connect PF9 to 3.3V, then issue Power On:
 curl -k -s -u root:0penBmc -X POST \
   https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" \
   -d '{"ResetType": "On"}' -i
 ```
-**Expected Response:**
-```text
-HTTP/1.1 204 No Content
-```
-Verify state changed to `On`:
+
+Verify PowerState:
 ```bash
 curl -k -s -u root:0penBmc https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system | jq .PowerState
 ```
-**Expected Output:** `"On"`
 
-#### Test Step 2: Force Off Host
+Force Off:
 ```bash
-# Disconnect PF9 to GND, then issue Force Off:
 curl -k -s -u root:0penBmc -X POST \
   https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" \
   -d '{"ResetType": "ForceOff"}' -i
 ```
-**Expected Response:** `HTTP/1.1 204 No Content`
-Verify state changed to `Off`:
-```bash
-curl -k -s -u root:0penBmc https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system | jq .PowerState
-```
-**Expected Output:** `"Off"`
 
-For comprehensive wiring and GPIO mapping details, refer to [`test-power-control.md`](test-power-control.md).
+See [`test-power-control.md`](test-power-control.md) for signal timings and wiring diagrams.
 
 ---
 
 ## 6. Document Index
-
-The following specific test procedures and test scripts are available in this directory:
 
 - [`test-redfish.md`](test-redfish.md): Full Redfish integration test results and schema compliance matrix.
 - [`test-redfish.sh`](test-redfish.sh): Automated curl test script for Redfish regression testing.

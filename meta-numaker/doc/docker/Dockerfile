@@ -48,18 +48,23 @@ RUN apt-get update && apt-get install -y \
         iproute2 \
         libelf-dev \
         openssh-client \
+        sshpass \
+        tar \
         can-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python packages for NuWriter
 RUN pip3 install --no-cache-dir --break-system-packages \
         pyusb \
+        usb \
+        crypto \
         ecdsa \
         crcmod \
         tqdm \
         pycryptodome \
         pycryptodomex \
-        pyelftools
+        pyelftools \
+        python-pkcs11
 
 # Set locale
 RUN sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
@@ -76,7 +81,8 @@ ENV LC_ALL=en_US.UTF-8 \
 RUN touch /etc/subuid /etc/subgid \
     && (id -u ubuntu >/dev/null 2>&1 && userdel -r ubuntu || true) \
     && useradd --uid 30000 --create-home build \
-    && echo "build ALL=(ALL) NOPASSWD: ALL" | tee -a /etc/sudoers
+    && echo "build ALL=(ALL) NOPASSWD: ALL" | tee -a /etc/sudoers \
+    && git config --system --add safe.directory '*'
 
 USER build
 WORKDIR /home/build

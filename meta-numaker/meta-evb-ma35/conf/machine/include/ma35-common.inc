@@ -6,6 +6,8 @@
 DEFAULTTUNE ?= "cortexa35-crypto"
 require conf/machine/include/arm/armv8a/tune-cortexa35.inc
 
+MACHINEOVERRIDES =. "ma35:"
+
 # Unified recipe providers for MA35 family
 PREFERRED_PROVIDER_virtual/kernel ?= "linux-ma35"
 PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot-ma35"
@@ -17,25 +19,43 @@ MA35_DTS ?= "${MACHINE}-bmc.dts"
 
 EXTRA_IMAGEDEPENDS += "virtual/bootloader virtual/trusted-firmware-a"
 
-# OpenBMC flash layout for 512MB SPI NAND (UBI managed)
-# MTD partitions (defined in DTS):
-#   mtd0: spinand-uboot       (0x000000 - 0x300000, 3MB)      raw
-#   mtd1: spinand-uboot-env   (0x300000 - 0x3C0000, 768KB)    raw
-#   mtd2: spinand-device-tree (0x3C0000 - 0x400000, 256KB)    raw
-#   mtd3: spinand-kernel      (0x400000 - 0x1C00000, 24MB)    raw
-#   mtd4: spinand-rootfs      (0x1C00000 - 0x10000000, 228MB) UBI volume
+# OpenBMC flash layout for 512MB Flash (Pure UBI Architecture for SPI-NAND and raw NAND)
+# MTD partitions:
+#   mtd0: (spinand|nand)-uboot   (0x0000000 - 0x00400000, 4MB)   raw (Header+BL2+FIP)
+#   mtd1: (spinand|nand)-rootfs  (0x00400000 - 0x20000000, 508MB) UBI Pool
 #
-# UBI volumes on mtd4:
-#   rootfs (UBIFS, ~200MB usable)
+# UBI volumes on mtd1 (252MB on 256MB Flash, 508MB on 512MB Flash):
+#   Volume 0: u-boot-env (256KiB, pre-loaded 64KB env)
+#   Volume 1: kernel-a   (16MiB dynamic)
+#   Volume 2: dtb-a      (512KiB dynamic)
+#   Volume 3: rofs-a     (70MiB dynamic, ubifs)
+#   Volume 4: kernel-b   (16MiB dynamic, OTA standby)
+#   Volume 5: dtb-b      (512KiB dynamic, OTA standby)
+#   Volume 6: rofs-b     (70MiB dynamic, OTA standby)
+#   Volume 7: rwfs       (10MiB autoresize -> fills remaining space)
+
+# Default storage architecture: ubi (SPI-NAND / raw NAND) or mmc (eMMC/SD)
+MA35_STORAGE_TYPE ??= "ubi"
+DISTRO_FEATURES:append = " ${@'obmc-ubi-fs' if d.getVar('MA35_STORAGE_TYPE') == 'ubi' else 'phosphor-mmc'}"
+
+# UBI storage parameters
+BMC_RO_MTD:df-obmc-ubi-fs = "spinand-rootfs"
+BMC_RW_MTD:df-obmc-ubi-fs = "spinand-rootfs"
+BMC_KERNEL_MTD:df-obmc-ubi-fs = "spinand-rootfs"
+BMC_RW_SIZE:df-obmc-ubi-fs ?= "0x600000"
+
+# MMC storage parameters (eMMC / SD Card)
+WKS_FILE ?= "sdimage-ma35-dual.wks.in"
+WKS_FILE_DEPENDS ?= "virtual/kernel virtual/bootloader virtual/trusted-firmware-a"
+IMAGE_BOOT_FILES ?= "Image Image.dtb"
 
 FLASH_SIZE = "524288"
 
-IMAGE_FSTYPES += "ubi ubifs ext4"
+# Output both UBI (SPI-NAND / NAND) and EXT4 / WIC (SD / eMMC) disk images
+IMAGE_FSTYPES += "ubi ubifs ext4 wic wic.gz"
 
-# UBI image settings for 512MB SPI-NAND
-# SPI-NAND: 2048+64 page, 128KB erase block
-# mtd4 = 484MB = 3872 PEBs, ~3800 usable LEBs after UBI overhead
-MKUBIFS_ARGS ?= "-m 2048 -e 126976 -c 3800 -x lzo -F"
+# UBI image settings for 512MB Flash (508MB rootfs partition = 4064 PEBs)
+MKUBIFS_ARGS ?= "-m 2048 -e 126976 -c 3950 -x zstd -F"
 UBINIZE_ARGS ?= "-m 2048 -p 131072 -s 2048"
 UBI_VOLNAME = "rootfs"
 

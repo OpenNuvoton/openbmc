@@ -1,206 +1,170 @@
-# MA35D16FJ87C GPIO Power Control
+# NuMaker-IoT-MA35D16FJ87C GPIO Power Control Guide
 
-## Overview
+## 1. Overview
 
-NuMaker-IoT-MA35D16FJ87C serves as a BMC (Dual Cortex-A35, 512MB DDR), controlling the Host power via GPIO.
-It uses OpenBMC's `x86-power-control` daemon with `libgpiod` to operate GPIO lines by name.
+The MA35D16FJ87C BMC controls host power states via GPIO using OpenBMC's `x86-power-control` daemon and `libgpiod`. GPIO lines are addressed by standard line names (`POWER_OUT`, `RESET_OUT`, `PS_PWROK`).
 
-## Hardware Signal Definitions
+---
 
-| Signal Name | Direction | Function | Pin | GPIO Port |
-|-------------|-----------|----------|-----|-----------|
-| `POWER_OUT` | Output | Emulates ATX power button (200ms=power on, 4s=force off) | PI12 | gpioi, line 12 |
-| `RESET_OUT` | Output | Emulates reset button (pull low for 500ms) | PI10 | gpioi, line 10 |
-| `PS_PWROK` | Input | Detects Host PSU Power Good | PH2 | gpioh, line 2 |
+## 2. Hardware Signal Definitions
 
-## Wiring Diagram
+| Signal Name | Direction | Pin | Function | Electrical |
+| :--- | :--- | :--- | :--- | :--- |
+| **`POWER_OUT`** | Output | **`PN1`** | Emulates ATX power button (200ms on, 4s force off) | Active Low, 3.3V open-drain / push-pull |
+| **`RESET_OUT`** | Output | **`PN0`** | Emulates ATX reset button (500ms pulse) | Active Low, 3.3V open-drain / push-pull |
+| **`PS_PWROK`** | Input | **`PK12`** | Detects Host PSU Power Good status | Active High, 3.3V input |
 
-```
-MA35D16FJ87C (BMC)             Host Motherboard
-──────────────────             ────────────────
-PI12 (POWER_OUT) ─────────── PWR_BTN# (power button header)
-PI10 (RESET_OUT) ─────────── RST_BTN# (reset button header)
-PH2 (PS_PWROK)   ◄────────── PWROK (ATX PSU / VRM output)
-GND ──────────────────────── GND (common ground)
-```
+### Wiring Diagram
 
-> **Electrical Specs**: MA35D1 GPIO is 3.3V. POWER_OUT/RESET_OUT are active-low (Host side has pull-up resistors). PS_PWROK is active-high input.
-
-## DTS Configuration
-
-GPIO line names are defined in `numaker-iot-ma35d16fj87c-bmc.dts`:
-
-```dts
-&gpioi {
-    gpio-line-names =
-        "", "", "", "", "", "", "", "", "", "",
-        "RESET_OUT",    /* PI10 */
-        "",
-        "POWER_OUT";    /* PI12 */
-};
-
-&gpioh {
-    gpio-line-names =
-        "", "",
-        "PS_PWROK";     /* PH2 */
-};
+```text
+  MA35D16FJ87C (BMC)             Host Motherboard
+  ──────────────────             ────────────────
+  PN1 (POWER_OUT)  ───────────► PWR_BTN# (power button header)
+  PN0 (RESET_OUT)  ───────────► RST_BTN# (reset button header)
+  PK12 (PS_PWROK)  ◄─────────── PWROK (ATX PSU / VRM output)
+  GND ───────────────────────── GND (common ground)
 ```
 
-## power-config-host0.json
+> [!NOTE]
+> `POWER_OUT` and `RESET_OUT` idle HIGH (3.3V) and pull LOW when triggered. If evaluating standalone without a host motherboard, tie `PK12` to `3.3V` to simulate Power Good, or to `GND` to simulate power off.
 
-```json
-{
-    "gpio_configs": [
-        {
-            "Name": "PowerOut",
-            "LineName": "POWER_OUT",
-            "Type": "GPIO",
-            "Polarity": "ActiveLow"
-        },
-        {
-            "Name": "PowerOk",
-            "LineName": "PS_PWROK",
-            "Type": "GPIO",
-            "Polarity": "ActiveHigh"
-        },
-        {
-            "Name": "ResetOut",
-            "LineName": "RESET_OUT",
-            "Type": "GPIO",
-            "Polarity": "ActiveLow"
-        }
-    ],
-    "timing_configs": {
-        "PowerPulseMs": 200,
-        "ForceOffPulseMs": 4000,
-        "ResetPulseMs": 500,
-        "PowerOkWatchdogMs": 8000,
-        "GracefulPowerOffS": 300,
-        "WarmResetCheckMs": 500
-    }
-}
-```
+---
 
-## Commands
+## 3. Control Commands
 
-### Redfish API
+### 3.1 Redfish API
 
+Power On (200ms pulse):
 ```bash
-# Power On (short press 200ms)
 curl -k -s -u root:0penBmc -X POST \
-  https://<BMC_IP>/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  https://numaker-iot-ma35d16fj87c.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" \
-  -d '{"ResetType": "On"}'
+  -d '{"ResetType": "On"}' -i
+```
 
-# Force Off (long press 4s)
+Force Off (4s pulse):
+```bash
 curl -k -s -u root:0penBmc -X POST \
-  https://<BMC_IP>/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  https://numaker-iot-ma35d16fj87c.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" \
-  -d '{"ResetType": "ForceOff"}'
+  -d '{"ResetType": "ForceOff"}' -i
+```
 
-# Graceful Shutdown (short press, OS handles ACPI event)
+Graceful Shutdown (short press, OS ACPI handler):
+```bash
 curl -k -s -u root:0penBmc -X POST \
-  https://<BMC_IP>/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  https://numaker-iot-ma35d16fj87c.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" \
-  -d '{"ResetType": "GracefulShutdown"}'
+  -d '{"ResetType": "GracefulShutdown"}' -i
+```
 
-# Force Restart (Reset pulse 500ms)
+Force Restart (500ms reset pulse):
+```bash
 curl -k -s -u root:0penBmc -X POST \
-  https://<BMC_IP>/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  https://numaker-iot-ma35d16fj87c.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" \
-  -d '{"ResetType": "ForceRestart"}'
+  -d '{"ResetType": "ForceRestart"}' -i
+```
 
-# Query Host Power State
+Query Host Power State:
+```bash
 curl -k -s -u root:0penBmc \
-  https://<BMC_IP>/redfish/v1/Systems/system | jq '.PowerState'
+  https://numaker-iot-ma35d16fj87c.local/redfish/v1/Systems/system | jq .PowerState
 ```
 
-### D-Bus Commands (SSH into BMC)
+### 3.2 D-Bus Commands (BMC SSH)
 
+Query current host power state:
 ```bash
-# Query Host Power State
 busctl get-property xyz.openbmc_project.State.Host \
   /xyz/openbmc_project/state/host0 \
   xyz.openbmc_project.State.Host CurrentHostState
+```
 
-# Query Chassis Power State
+Query current chassis power state:
+```bash
 busctl get-property xyz.openbmc_project.State.Chassis \
   /xyz/openbmc_project/state/chassis0 \
   xyz.openbmc_project.State.Chassis CurrentPowerState
+```
 
-# Request Power On
+Power On transition:
+```bash
 busctl set-property xyz.openbmc_project.State.Host \
   /xyz/openbmc_project/state/host0 \
   xyz.openbmc_project.State.Host RequestedHostTransition \
   s "xyz.openbmc_project.State.Host.Transition.On"
+```
 
-# Request Power Off
+Power Off transition:
+```bash
 busctl set-property xyz.openbmc_project.State.Host \
   /xyz/openbmc_project/state/host0 \
   xyz.openbmc_project.State.Host RequestedHostTransition \
   s "xyz.openbmc_project.State.Host.Transition.Off"
+```
 
-# Request Reboot
+Reboot transition:
+```bash
 busctl set-property xyz.openbmc_project.State.Host \
   /xyz/openbmc_project/state/host0 \
   xyz.openbmc_project.State.Host RequestedHostTransition \
   s "xyz.openbmc_project.State.Host.Transition.Reboot"
 ```
 
-### gpiolib Commands (SSH into BMC)
+### 3.3 Low-Level Direct GPIO Control (`gpiod`)
+
+Locate named lines:
+```bash
+gpiofind POWER_OUT
+```
 
 ```bash
-# List all gpiochips (MA35 has one per port)
-gpiodetect
-
-# Find lines by name (recommended)
-gpioinfo | grep -E "POWER_OUT|RESET_OUT|PS_PWROK"
-
-# Find specific line
-gpiofind POWER_OUT
 gpiofind RESET_OUT
+```
+
+```bash
 gpiofind PS_PWROK
+```
 
-# Read PS_PWROK state: 1=Host on, 0=Host off
+Read PS_PWROK status (1=Host on, 0=Host off):
+```bash
 gpioget $(gpiofind PS_PWROK)
+```
 
-# Manual power button press (200ms low pulse)
+Manual 200ms power button pulse:
+```bash
 gpioset -m time -u 200000 $(gpiofind POWER_OUT)=0
+```
 
-# Manual force off (4s low pulse)
+Manual 4s force power off pulse:
+```bash
 gpioset -m time -u 4000000 $(gpiofind POWER_OUT)=0
+```
 
-# Manual reset pulse (500ms)
+Manual 500ms reset pulse:
+```bash
 gpioset -m time -u 500000 $(gpiofind RESET_OUT)=0
 ```
 
-## Oscilloscope Verification
+---
 
-### Probe Connections
+## 4. Oscilloscope Verification
 
-```
-- CH1: PI12 (POWER_OUT)
-- CH2: PI10 (RESET_OUT)
-- CH3: PH2 (PS_PWROK)
-- GND: BMC board GND
-- Trigger: Falling edge, CH1 or CH2
-- Timebase: 1s/div
-```
+### Probe Mapping
 
-### Quick Reference Table
+- **CH1**: `PN1` (`POWER_OUT`)
+- **CH2**: `PN0` (`RESET_OUT`)
+- **CH3**: `PK12` (`PS_PWROK`)
+- **GND**: BMC Ground
+- **Trigger**: Falling edge on CH1 or CH2
 
-| Operation | API | Observe Pin | Pulse Polarity | Expected Width |
-|-----------|-----|-------------|----------------|----------------|
-| Power On | Redfish `On` / D-Bus `Transition.On` | **PI12** (CH1) | Active LOW | 200ms |
-| Graceful Shutdown | Redfish `GracefulShutdown` / D-Bus `Transition.Off` | **PI12** (CH1) | Active LOW | 200ms (first) |
-| Force Off | Redfish `ForceOff` | **PI12** (CH1) | Active LOW | 4000ms |
-| Force Restart | Redfish `ForceRestart` / D-Bus `Transition.Reboot` | **PI10** (CH2) | Active LOW | 500ms |
-| Power Detection | Query Chassis PowerState | **PH2** (CH3) | Read DC level | HIGH=On, LOW=Off |
+### Timing Matrix
 
-## Notes
-
-- `x86-power-control` uses `libgpiod` with line names — no hard-coded GPIO numbers needed
-- POWER_OUT/RESET_OUT idle state is HIGH (3.3V), pulled to LOW (0V) when triggered
-- PS_PWROK is continuously monitored; if floating, add 10kΩ pull-down to ensure LOW when off
-- D-Bus `Transition.Off` = graceful-first-then-force (200ms → wait 300s → 4000ms)
-- Redfish `ForceOff` = immediate 4s pulse
+| Operation | Trigger Source | Observation Pin | Active Level | Pulse Width |
+| :--- | :--- | :--- | :--- | :--- |
+| **Power On** | Redfish `On` / D-Bus `Transition.On` | **`PN1`** | LOW | 200 ms |
+| **Graceful Shutdown** | Redfish `GracefulShutdown` / D-Bus `Transition.Off` | **`PN1`** | LOW | 200 ms (initial) |
+| **Force Off** | Redfish `ForceOff` | **`PN1`** | LOW | 4000 ms |
+| **Force Restart** | Redfish `ForceRestart` / D-Bus `Transition.Reboot` | **`PN0`** | LOW | 500 ms |
+| **Power Detection** | Query `PowerState` | **`PK12`** | DC level | HIGH=On, LOW=Off |

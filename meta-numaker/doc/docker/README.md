@@ -23,26 +23,56 @@ Docker isolates the build environment from the host operating system while trans
 
 Use Docker's official modern installation method (using the new `keyrings` directory without deprecated `apt-key`):
 
+1. Update package lists:
 ```bash
-# 1. Update package lists and install basic tools
 sudo apt-get update
+```
+
+Install basic tools:
+```bash
 sudo apt-get install -y ca-certificates curl gnupg lsb-release
+```
 
-# 2. Add Docker's official GPG key to the keyrings directory
+2. Create keyrings directory:
+```bash
 sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-sudo chmod a+r /etc/apt/keyrings/docker.gpg
+```
 
-# 3. Set up the Docker stable repository
+Add Docker's official GPG key:
+```bash
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+```
+
+> [!TIP]
+> If `curl` hangs (common in WSL2 or behind corporate network firewalls/proxies due to OCSP lookup timeouts), add `-k` (`--insecure`) to bypass TLS certificate verification:
+> ```bash
+> curl -k -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+> ```
+
+Set key permissions:
+```bash
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+```
+
+3. Set up the Docker stable repository:
+```bash
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
   $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+```
 
-# 4. Install Docker Engine, CLI, and Containerd
+4. Update package lists:
+```bash
 sudo apt-get update
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+```
 
-# 5. Verify Docker installation
+Install Docker Engine, CLI, and Containerd:
+```bash
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+```
+
+5. Verify Docker installation:
+```bash
 sudo docker run --rm hello-world
 ```
 
@@ -56,6 +86,9 @@ Navigate to the `docker` directory and run `build.sh`:
 
 ```bash
 cd meta-numaker/doc/docker/
+```
+
+```bash
 ./build.sh
 ```
 
@@ -66,9 +99,10 @@ cd meta-numaker/doc/docker/
 **What `build.sh` does automatically:**
 1. Checks that the current user is not `root`.
 2. Creates the shared workspace directory at `$HOME/shared` on the host (if not already existing).
-3. Copies `Dockerfile` to `Dockerfile_build` and modifies it to match your current host UID and username.
-4. Builds the Docker image: `openbmc-numaker-<username>:v1`.
-5. Creates the persistent container: `openbmc-numaker_<username>`, mounting host `$HOME/shared` into `/home/<username>/shared`.
+3. Automatically detects your host OpenBMC repository and mounts it directly into `/home/<username>/openbmc`.
+4. Copies `Dockerfile` to `Dockerfile_build` and modifies it to match your current host UID and username.
+5. Builds the Docker image: `openbmc-numaker-<username>:v1`.
+6. Creates the persistent container: `openbmc-numaker_<username>`, mounting both host `$HOME/shared` (to `~/shared`) and the repository (to `~/openbmc`).
 
 ### 2.2 Enter the Container
 
@@ -78,23 +112,27 @@ Whenever you want to enter the build container:
 ./join.sh
 ```
 
-You will see the container prompt:
+`join.sh` automatically enters the mounted OpenBMC repository directory:
 ```text
-username@container_id:~$
+username@container_id:~/openbmc$
 ```
 
 ---
 
 ## 3. Working Inside the Container
 
-All source code and build artifacts **must** reside in the shared folder so they persist on the host system:
+When you enter the container via `./join.sh`, you are automatically located inside your mounted repository at `~/openbmc`:
 
 ```bash
-# Enter the shared workspace directory
-cd ~/shared
+cd ~/openbmc
 ```
 
-From here, you can clone your repositories and execute builds inside the container. All files generated within `~/shared` are immediately accessible on your host system under `$HOME/shared`.
+> [!NOTE]
+> **Zero Re-Cloning Needed!**
+> The OpenBMC repository on your host machine is mounted directly into `/home/<username>/openbmc`.
+> - Any code edits made on the host (e.g. via VS Code or your host IDE) are immediately visible inside the container.
+> - All compilation outputs and deployed images (`build-*/tmp/deploy/images/`) reside directly on your host filesystem.
+> - Additional persistent shared storage is also accessible at `~/shared` (mounted from host `$HOME/shared`).
 
 > [!TIP]
 > **Board-Specific Build Guides**:
@@ -120,24 +158,74 @@ From here, you can clone your repositories and execute builds inside the contain
 
 ## 5. Container Management & Lifecycle
 
+Check container status:
 ```bash
-# Check container status
 sudo docker ps -a | grep openbmc-numaker
+```
 
-# Stop the container
+Stop the container:
+```bash
 sudo docker stop openbmc-numaker_$(id -nu)
+```
 
-# Restart / Start the container
+Restart / Start the container:
+```bash
 sudo docker start openbmc-numaker_$(id -nu)
+```
 
-# One-click teardown (removes container and image):
+One-click teardown (removes container and image):
+```bash
 ./destroy.sh
+```
 
-# Remove container only (preserves image for rapid recreate):
+Remove container only (preserves image for rapid recreate):
+```bash
 ./destroy.sh -c
+```
 
-# Full rebuild from scratch:
+Full rebuild from scratch:
+```bash
 ./build.sh
+```
+
+### 5.1 Troubleshooting Stuck Containers (ZFS Storage Driver)
+
+On Ubuntu systems with ZFS root installations, Docker utilizes the `zfs` storage driver. If `./destroy.sh` encounters an error such as:
+- `driver "zfs" failed to remove root filesystem: ... dataset does not exist`
+- `driver "zfs" failed to remove root filesystem: ... filesystem has dependent clones`
+
+The container will remain trapped in `Removal In Progress` or `Dead` state, which in turn blocks image removal due to active reference conflicts.
+
+To recover and cleanly clear the stuck container:
+
+1. Identify the stuck container ID:
+```bash
+docker ps -a | grep openbmc-numaker
+```
+
+2. Stop the Docker daemon:
+```bash
+sudo systemctl stop docker
+```
+
+3. Remove the stuck container metadata directory (replace `<CONTAINER_ID>` with the ID from step 1):
+```bash
+sudo rm -rf /var/lib/docker/containers/<CONTAINER_ID>*
+```
+
+4. Restart the Docker daemon:
+```bash
+sudo systemctl start docker
+```
+
+5. Force-remove the associated Docker image:
+```bash
+docker rmi -f openbmc-numaker-$(id -nu):v1
+```
+
+6. Clean up orphaned layers and build caches:
+```bash
+docker system prune -f
 ```
 
 ---

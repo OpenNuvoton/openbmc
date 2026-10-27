@@ -1,0 +1,57 @@
+From: Antigravity <antigravity@google.com>
+Subject: [PATCH] mtd: rawnand: ma35: fix probe error cleanup and child node handling
+
+1. Remove duplicate clk_disable(nand->clk) in ma35_nand_probe() error path.
+   nand->clk is acquired via devm_clk_get_enabled(), so devres automatically
+   disables and unprepares the clock upon probe failure. Calling clk_disable()
+   explicitly causes a double-disable and triggers a kernel warning dump:
+   "nand_gate already disabled" (WARNING at drivers/clk/clk.c: clk_core_disable).
+
+2. In ma35_nand_chips_init(), skip child nodes named "partitions" if present,
+   and release the child node reference via of_node_put(nand_np) on error break.
+
+3. In ma35_nand_chip_init(), validate nsels <= 0 instead of !nsels to properly
+   detect negative error codes returned by of_property_count_elems_of_size().
+
+Upstream-Status: Pending
+Signed-off-by: Antigravity <antigravity@google.com>
+---
+ drivers/mtd/nand/raw/nuvoton-ma35-nand-controller.c | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/mtd/nand/raw/nuvoton-ma35-nand-controller.c b/drivers/mtd/nand/raw/nuvoton-ma35-nand-controller.c
+index 1fedf8e5e..218a904bb 100644
+--- a/drivers/mtd/nand/raw/nuvoton-ma35-nand-controller.c
++++ b/drivers/mtd/nand/raw/nuvoton-ma35-nand-controller.c
+@@ -865,7 +865,7 @@ static int ma35_nand_chip_init(struct device *dev, struct ma35_nand_info *nand,
+ 	int i;
+ 
+ 	nsels = of_property_count_elems_of_size(np, "reg", sizeof(u32));
+-	if (!nsels || nsels > MA35_MAX_NSELS) {
++	if (nsels <= 0 || nsels > MA35_MAX_NSELS) {
+ 		dev_err(dev, "invalid reg property size %d\n", nsels);
+ 		return -EINVAL;
+ 	}
+@@ -943,8 +943,12 @@ static int ma35_nand_chips_init(struct device *dev, struct ma35_nand_info *nand)
+ 	int ret;
+ 
+ 	for_each_child_of_node(np, nand_np) {
++		if (of_node_name_eq(nand_np, "partitions"))
++			continue;
++
+ 		ret = ma35_nand_chip_init(dev, nand, nand_np);
+ 		if (ret) {
++			of_node_put(nand_np);
+ 			ma35_chips_cleanup(nand);
+ 			return ret;
+ 		}
+@@ -997,7 +1001,6 @@ static int ma35_nand_probe(struct platform_device *pdev)
+ 	ret = ma35_nand_chips_init(&pdev->dev, nand);
+ 	if (ret) {
+ 		dev_err(&pdev->dev, "failed to init NAND chips\n");
+-		clk_disable(nand->clk);
+ 		return ret;
+ 	}
+ 
+-- 
+2.34.1

@@ -8,12 +8,19 @@ if [ "$(whoami)" = "root" ]; then
     exit 1
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)"
+
 SHARED_DIR="$HOME/shared"
 echo "Docker shared folder will mount $SHARED_DIR"
 
 if [ ! -d "$SHARED_DIR" ]; then
     mkdir -p "$SHARED_DIR"
     echo "Created shared directory: $SHARED_DIR"
+fi
+
+if [ -n "$REPO_ROOT" ] && [ -d "$REPO_ROOT" ]; then
+    echo "Detected host OpenBMC repository: $REPO_ROOT"
 fi
 
 # Generate Dockerfile with current user's UID/username
@@ -39,8 +46,18 @@ fi
 # Create container (skip if already exists)
 if ! sudo docker ps -a | grep -q "${PROJECT_NAME}_$(id -nu)"; then
     echo "Creating container: ${PROJECT_NAME}_$(id -nu) ..."
+    
+    DOCKER_MOUNTS=("-v" "$SHARED_DIR:/home/$(id -nu)/shared")
+    CONTAINER_WORKDIR="/home/$(id -nu)"
+    if [ -n "$REPO_ROOT" ] && [ -d "$REPO_ROOT" ]; then
+        echo "Mounting host repo: $REPO_ROOT -> /home/$(id -nu)/openbmc"
+        DOCKER_MOUNTS+=("-v" "$REPO_ROOT:/home/$(id -nu)/openbmc")
+        CONTAINER_WORKDIR="/home/$(id -nu)/openbmc"
+    fi
+
     if ! sudo docker create -it \
-        -v "$SHARED_DIR:/home/$(id -nu)/shared" \
+        -w "$CONTAINER_WORKDIR" \
+        "${DOCKER_MOUNTS[@]}" \
         --name "${PROJECT_NAME}_$(id -nu)" \
         "${PROJECT_NAME}-$(id -nu):v1" bash; then
         echo "ERROR: Failed to create container."

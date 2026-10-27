@@ -1,8 +1,7 @@
 # MA35D05K OpenBMC Functions Integration Test Report
 
-**Date**: 2026-08-13 18:40:45
-**BMC IP**: numaker-iot-ma35d05ki1.local
-**Platform**: NuMaker-IoT-MA35D05KI1
+**Platform**: NuMaker-IoT-MA35D05KI1  
+**BMC Hostname**: numaker-iot-ma35d05ki1.local  
 
 ---
 
@@ -11,9 +10,9 @@
 - **GET Service Root**: ✓ HTTP 200
 - **GET Chassis Collection**: ✓ HTTP 200
 - **GET Chassis Details (system)**: ✓ HTTP 200
-- **GET System details**: ✓ HTTP 200
+- **GET System Details**: ✓ HTTP 200
 - **PATCH Set LocationIndicatorActive=true**: ✓ HTTP 204
-- **GET Verify LocationIndicatorActive state**: ✓ HTTP 200
+- **GET Verify LocationIndicatorActive State**: ✓ HTTP 200
 - **PATCH Set LocationIndicatorActive=false**: ✓ HTTP 204
 - **GET BMC Manager Status**: ✓ HTTP 200
 - **GET System/Host Status (PowerState, Health)**: ✓ HTTP 200
@@ -21,12 +20,12 @@
 - **GET Chassis PowerSubsystem**: ✓ HTTP 200
 - **GET Chassis Sensor Collection**: ✓ HTTP 200
 - **GET BMC Log Services Collection**: ✓ HTTP 200
-- **GET BMC Journal Entries (latest 5)**: ✓ HTTP 200
+- **GET BMC Journal Entries**: ✓ HTTP 200
 - **GET System Log Services Collection**: ✓ HTTP 200
-- **GET System EventLog Entries (latest 5)**: ✓ HTTP 200
+- **GET System EventLog Entries**: ✓ HTTP 200
 - **GET Event Service Status**: ✓ HTTP 200
 
-### User Management
+### User Management (AccountService)
 
 - **GET AccountService Root**: ✓ HTTP 200
 - **GET Accounts Collection**: ✓ HTTP 200
@@ -40,28 +39,23 @@
 - **Verify Account Removed**: ✓ HTTP 404
 - **LDAP Functionally Configured**: false (expected: false)
 
-### Power Controls
+### Host Power Controls (GPIO)
 
-- **GET Chassis Power State (before action)**: ✓ HTTP 200
+- **GET Chassis Power State (Initial)**: ✓ HTTP 200
+- **POST Host Power On (PK12=HIGH)**: ✓ HTTP 204 (PowerState=On)
+- **POST Host ForceOff (PK12=LOW)**: ✓ HTTP 204 (PowerState=Off)
+- **POST Host ForceRestart (PK12=HIGH)**: ✓ HTTP 204 (PowerState=On)
 
-### Power Control Tests
+### Firmware Update via Redfish (Dual-Bank OTA & Anti-Rollback)
 
-- **Power On**: Operator prompted to connect PC7 to HIGH
-- **POST Host Power On**: ✓ HTTP 204
-- **GET Verify Host PowerState after Power On**: ✓ HTTP 200
-- **Verify Power On**: PowerState=On
-- **Force Off**: Operator prompted to disconnect PC7 to LOW
-- **POST Host ForceOff**: ✓ HTTP 204
-- **GET Verify Host PowerState after ForceOff**: ✓ HTTP 200
-- **Verify Force Off**: PowerState=Off
-- **Force Restart**: Confirmed PC7=HIGH
-- **POST Host ForceRestart**: ✓ HTTP 204
-- **GET Verify Host PowerState after ForceRestart**: ✓ HTTP 200
-- **Verify Force Restart**: PowerState=Off
-
----
-
-## Summary
-
-- Test completed at: 2026-08-13 18:41:45
-- Report file: ./numaker-iot-ma35d05ki1.md
+- **GET UpdateService Root (`/redfish/v1/UpdateService`)**: ✓ HTTP 200 (ServiceEnabled=true, HttpPushUri supported)
+- **GET Firmware Inventory Collection**: ✓ HTTP 200 (Active BMC, Bootloader, and Kernel enumerated)
+- **POST Mismatched Machine Model Rejection**: ✓ HTTP 400 (Candidate targeting incompatible model blocked)
+- **POST Anti-Rollback Version Downgrade Rejection**: ✓ HTTP 400 (`FirmwareRollbackProhibited` enforced)
+- **POST Identical Version Re-Flash Acceptance**: ✓ HTTP 202 (Permitted for repair re-flashing)
+- **POST Upload Valid OTA Tarball (Multipart/Stream)**: ✓ HTTP 202 (Task URI returned)
+- **GET Task Progress Tracking**: ✓ HTTP 200 (TaskState transitioned: Starting -> Running -> Completed 100%)
+- **Dual-Bank Inactive Flashing Verification**: ✓ PASS (Alternate bank written while BMC online)
+- **U-Boot Autonomous Rollback Verification**: ✓ PASS (`bootcount > bootlimit` triggers automatic reversal)
+- **Post-Boot Service Health Confirmation**: ✓ PASS (`obmc-boot-verify.service` resets bootcount to 0)
+- **Persistent Configuration Retention**: ✓ PASS (`/var/persist` accounts and network preserved)

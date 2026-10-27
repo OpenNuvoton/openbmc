@@ -1,25 +1,30 @@
-# MA35D05K CAN / CAN-FD Bus Guide
+# NuMaker-IoT-MA35D05KI1 CAN / CAN-FD Guide
 
 ## 1. Overview
 
-The NuMaker-IoT-MA35D05KI1 platform integrates four high-performance **Bosch M_CAN** controller capable of supporting both:
-- **Classic CAN 2.0A / 2.0B**: Standard 11-bit and extended 29-bit identifiers with up to 8 bytes payload.
-- **CAN-FD (Flexible Data-Rate)**: Extended payload up to 64 bytes with dual bitrates (nominal arbitration bitrate + fast data phase bitrate).
+The MA35D05KI1 platform integrates Bosch M_CAN controllers supporting:
+- **Classic CAN 2.0A / 2.0B**: 11-bit and 29-bit identifiers, up to 8 bytes payload.
+- **CAN-FD**: Extended payload up to 64 bytes with dual bitrates (nominal arbitration + fast data phase).
 
-On this board, **`CAN3`** (physical base address `0x403F0000`) is enabled and registered as the primary **`can0`** network interface in the Linux SocketCAN subsystem.
+On this board, **`CAN3`** (`0x403F0000`) is registered as **`can0`** in Linux:
+
+| Controller | Base Address | Linux Interface | TX Pin | RX Pin | Electrical |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **`CAN3`** | `0x403F0000` | `can0` | **`PG9`** | **`PG8`** | 3.3V TTL |
 
 ---
 
-## 2. Hardware Signal & Pin Definitions
+## 2. Hardware Signals & Transceiver Wiring
 
-| Signal Name | Direction | Function | MA35 Pin | Notes |
+| Signal Name | Direction | Function | Pin | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| **`CAN3_RXD`** | Input | CAN Bus Receive Data | **`PG8`** | 3.3V TTL Level |
-| **`CAN3_TXD`** | Output | CAN Bus Transmit Data | **`PG9`** | 3.3V TTL Level |
-| **`GND`** | - | Common Reference Ground | **`GND`** | Must be connected |
+| **`CAN3_TXD`** | Output | CAN Bus Transmit Data | **`PG9`** | 3.3V TTL |
+| **`CAN3_RXD`** | Input | CAN Bus Receive Data | **`PG8`** | 3.3V TTL |
+| **`GND`** | - | Common Reference Ground | **`GND`** | Common ground reference |
 
-### External CAN Transceiver Wiring
-Connect the SoC TTL pins to an external 3.3V CAN transceiver (e.g. SN65HVD230 / TJA1051T / MCP2551 with 3.3V level shift):
+### External Transceiver Wiring
+
+SoC pins output 3.3V TTL. Connect via an external 3.3V CAN transceiver (e.g. SN65HVD230, TJA1051T):
 
 ```text
  ┌───────────────────────────┐         ┌────────────────────────┐
@@ -34,111 +39,100 @@ Connect the SoC TTL pins to an external 3.3V CAN transceiver (e.g. SN65HVD230 / 
                                                            ────────┴────
 ```
 
-> ⚠️ **Bus Termination Note**: Ensure a **120Ω termination resistor** is placed across `CAN_H` and `CAN_L` at each end of the CAN bus topology.
+> [!WARNING]
+> Ensure a **120Ω termination resistor** is placed across `CAN_H` and `CAN_L` at each bus end. Do not connect SoC TTL pins directly to 12V/24V bus lines.
 
 ---
 
-## 3. Interface Configuration (Bringing Up `can0`)
+## 3. Interface Configuration
 
-> ⚠️ **Important**: CAN devices require bit-timing parameters before being enabled. Use `ip link`, not `ifconfig`.
+Always configure bit-timing via `ip link` before enabling an interface:
 
-### Mode A: Classic CAN 2.0 (e.g. 500 kbps)
+### Mode A: Classic CAN 2.0 (500 kbps)
 
 ```bash
-# 1. Bring down the interface first (if previously up)
 ip link set can0 down
+```
 
-# 2. Configure nominal bitrate (e.g. 500000 = 500 kbps) and bring up
+```bash
 ip link set can0 up type can bitrate 500000
+```
 
-# 3. Verify interface state
+```bash
 ip -details link show can0
 ```
 
-### Mode B: CAN-FD Mode (500 kbps Arbitration + 2 Mbps Data Phase)
+### Mode B: CAN-FD (500 kbps Nominal + 2 Mbps Data Phase)
 
 ```bash
-# 1. Bring down the interface
 ip link set can0 down
+```
 
-# 2. Configure nominal bitrate, data bitrate, and enable CAN-FD
+```bash
 ip link set can0 up type can bitrate 500000 dbitrate 2000000 fd on
+```
 
-# 3. Verify CAN-FD status
+```bash
 ip -details link show can0
 ```
 
-### Mode C: Internal Loopback Mode (Self-test without external PHY)
-
-For software validation without physical transceiver connected:
+### Mode C: Internal Loopback (Self-test without external PHY)
 
 ```bash
 ip link set can0 down
+```
+
+```bash
 ip link set can0 up type can bitrate 500000 loopback on
 ```
 
 ---
 
-## 4. Packet Transmission & Reception Testing (`can-utils`)
+## 4. Transmission & Reception Testing (`can-utils`)
 
-The OpenBMC image includes the full `can-utils` suite.
+### 4.1 Frame Transmission (`cansend`)
 
-### 1. Sending Frames (`cansend`)
-
-#### ① Classic CAN Standard Frame (11-bit ID)
+Standard 11-bit ID:
 ```bash
-# Send standard ID 0x123 with 8 bytes payload
 cansend can0 123#1122334455667788
-
-# Send standard ID 0x5AA with 4 bytes payload
-cansend can0 5AA#A1B2C3D4
 ```
 
-#### ② Classic CAN Extended Frame (29-bit ID)
+Extended 29-bit ID:
 ```bash
-# Send 29-bit extended ID 0x18EAFF00 with 3 bytes
 cansend can0 18EAFF00#00EE00
 ```
 
-#### ③ CAN-FD Extended Payload Frame (Up to 64 Bytes)
-Syntax for CAN-FD in `cansend`: `<CAN_ID>##<Flags><Data>`  
-- `Flags = 0`: Standard CAN-FD frame without Bitrate Switch.
-- `Flags = 3`: CAN-FD frame with **Bitrate Switch (BRS)** and **Error State Indicator (ESI)**.
-
+CAN-FD with Bitrate Switch (BRS, Flags=3) and 64-byte payload:
 ```bash
-# Send a 64-byte CAN-FD frame with Bitrate Switch (BRS):
 cansend can0 123##30102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F303132333435363738393A3B3C3D3E3F40
 ```
 
----
+### 4.2 Traffic Generator (`cangen`)
 
-### 2. Continuous Traffic Generator (`cangen`)
-
-Useful for bus load, stability, and throughput testing:
-
+Classic CAN traffic every 50ms (-g 50):
 ```bash
-# Generate continuous Classic CAN traffic every 50ms (-g 50) with verbose output (-v):
 cangen can0 -v -g 50
+```
 
-# Generate continuous CAN-FD traffic with Bitrate Switch (-b) and extended payloads (-f):
+CAN-FD traffic with Bitrate Switch (-b) and extended frames (-f):
+```bash
 cangen can0 -v -g 50 -f -b
 ```
-*(Press `Ctrl + C` to stop)*
 
----
+### 4.3 Traffic Monitoring (`candump` / `cansniffer`)
 
-### 3. Monitoring & Dumping Traffic (`candump` & `cansniffer`)
-
-Open a separate terminal window on the BMC to monitor live traffic:
-
+Dump raw traffic:
 ```bash
-# Dump all received/transmitted CAN frames in real time:
 candump can0
+```
 
-# Dump with delta timestamps and symbolic decoding:
+Dump with delta timestamps:
+```bash
 candump -td -c can0
+```
 
-# Interactive dynamic delta view (similar to 'top'):
+Dynamic delta view:
+```bash
 cansniffer can0
 ```
 
@@ -146,18 +140,17 @@ cansniffer can0
 
 ## 5. Troubleshooting
 
-1. **`SIOCSIFFLAGS: Invalid argument` / `bit-timing not yet defined`**:
-   - This occurs if you attempt to use `ifconfig can0 up`.
-   - **Solution**: Always use `ip link set can0 up type can bitrate <rate>` to configure timing before bringing up the interface.
+1. **`bit-timing not yet defined`**:
+   - `ifconfig can0 up` was run without timing parameters. Use `ip link set can0 up type can bitrate <rate>`.
 
 2. **Bus-Off Error (`state BUS-OFF`)**:
-   - Usually caused by missing termination resistors (120Ω), baud rate mismatch across nodes, or disconnected `CAN_H`/`CAN_L` lines.
-   - **Solution**: Check wiring and enable automatic bus-off recovery:
+   - Usually caused by missing 120Ω termination, mismatched baudrates, or inverted `CAN_H`/`CAN_L`.
+   - Enable automatic recovery:
      ```bash
      ip link set can0 type can restart-ms 100
      ```
 
-3. **Check Statistics & Error Counters**:
+3. **Check Error Counters & State**:
    ```bash
    ip -details -statistics link show can0
    ```

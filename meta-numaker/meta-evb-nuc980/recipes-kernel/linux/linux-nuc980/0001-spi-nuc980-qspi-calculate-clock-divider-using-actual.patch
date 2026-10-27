@@ -1,0 +1,54 @@
+From da5e48c5d2b80d4310bbe759742b461667524b91 Mon Sep 17 00:00:00 2001
+From: Wayne Lin <wayne@nuvoton.com>
+Date: Thu, 29 Oct 2026 18:40:29 +0800
+Subject: [PATCH] spi: nuc980-qspi: calculate clock divider using actual parent
+ clock
+
+Upstream-Status: Inappropriate [Configuration]
+Signed-off-by: Wayne Lin <wayne@nuvoton.com>
+---
+ drivers/spi/spi-nuc980-qspi.c | 15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/spi/spi-nuc980-qspi.c b/drivers/spi/spi-nuc980-qspi.c
+index cc61c5cd1..059f26dbb 100644
+--- a/drivers/spi/spi-nuc980-qspi.c
++++ b/drivers/spi/spi-nuc980-qspi.c
+@@ -178,14 +178,18 @@ static int nuvoton_spi_clk_setup(struct nuvoton_spi *hw, unsigned long freq)
+ 	unsigned int clk;
+ 	unsigned int div;
+ 
+-	//clk = clk_get_rate(hw->clk);
+-	clk = 180000000;
++	clk = clk_get_rate(hw->clk);
++	if (!clk)
++		clk = 150000000;
+ 	div = DIV_ROUND_UP(clk, freq) - 1;
+ 	hw->pdata->hz = freq;
+ 	hw->pdata->divider = div;
+ 
+ 	nuvoton_set_divider(hw);
+ 
++	dev_info(hw->dev, "setup clock: req %lu Hz, parent %u Hz, div %u (actual %u Hz)\n",
++	         freq, clk, div, clk / (div + 1));
++
+ 	return 0;
+ }
+ 
+@@ -807,6 +811,13 @@ static struct nuvoton_qspi_info *nuvoton_spi_parse_dt(struct device *dev)
+ 		sci->txbitlen = temp;
+ 	}
+ 
++	if (of_property_read_u32(dev->of_node, "divider", &temp)) {
++		dev_warn(dev, "can't get divider from dt\n");
++		sci->divider = 2;
++	} else {
++		sci->divider = temp;
++	}
++
+ 	if (of_property_read_u32(dev->of_node, "bus_num", &temp)) {
+ 		dev_warn(dev, "can't get bus_num from dt\n");
+ 		sci->bus_num = 0;
+-- 
+2.43.0
+
