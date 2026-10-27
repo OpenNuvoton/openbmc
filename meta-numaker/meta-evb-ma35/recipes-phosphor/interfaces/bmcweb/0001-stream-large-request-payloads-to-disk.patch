@@ -1,0 +1,339 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: OpenBMC Authors <openbmc@lists.ozlabs.org>
+Date: Fri, 16 Oct 2026 19:20:00 +08:00
+Subject: [PATCH] Stream large request payloads directly to disk to prevent OOM
+
+Stream non-multipart payloads larger than 10MB directly to a temporary file
+on flash (/tmp/images) instead of buffering into heap RAM. Use an unlinked
+temporary file on flash for MemoryFileDescriptor instead of memfd_create,
+and immediately release request body memory with malloc_trim(0) after writing
+to disk.
+
+Upstream-Status: Pending
+---
+diff --git a/http/http_body.hpp b/http/http_body.hpp
+index d970e202f6..a80e22f612 100644
+--- a/http/http_body.hpp
++++ b/http/http_body.hpp
+@@ -126,6 +126,24 @@ class HttpBody::value_type
+         return emptyFile;
+     }
+ 
++    boost::beast::file_posix& file()
++    {
++        if (auto* fileBody = std::get_if<FileBody>(&bodyData))
++        {
++            return fileBody->fileHandle.fileHandle;
++        }
++        static boost::beast::file_posix emptyFile;
++        return emptyFile;
++    }
++
++    void setFileSize(size_t size)
++    {
++        if (auto* fileBody = std::get_if<FileBody>(&bodyData))
++        {
++            fileBody->fileSize = size;
++        }
++    }
++
+     std::string& str()
+     {
+         if (auto* s = std::get_if<std::string>(&bodyData))
+@@ -428,6 +446,32 @@ class HttpBody::reader
+                 return;
+             }
+ 
++            // Stream large payloads (> 10MB) directly to a temporary file on flash
++            // to avoid RAM exhaustion on memory-constrained systems.
++            if (*contentLength > 10UL * 1024UL * 1024UL &&
++                !contentType.starts_with("multipart/form-data"))
++            {
++                std::error_code ecDir;
++                std::filesystem::create_directories("/tmp/images", ecDir);
++                char pathTemplate[] = "/tmp/images/upload-XXXXXX";
++                int fd = mkostemp(pathTemplate, O_CLOEXEC | O_RDWR);
++                if (fd >= 0)
++                {
++                    unlink(pathTemplate);
++                    value.setFd(fd, ec);
++                    if (ec)
++                    {
++                        close(fd);
++                    }
++                    else
++                    {
++                        BMCWEB_LOG_INFO(
++                            "Streaming large upload ({} bytes) directly to /tmp/images temp file",
++                            *contentLength);
++                    }
++                }
++            }
++
+             if (!value.file().is_open())
+             {
+                 value.str().reserve(static_cast<size_t>(*contentLength));
+@@ -457,6 +501,16 @@ class HttpBody::reader
+                     return 0;
+                 }
+             }
++            else if (value.file().is_open())
++            {
++                value.file().write(ptr, b.size(), ec);
++                if (ec)
++                {
++                    BMCWEB_LOG_ERROR("Failed to write buffer to file: {}",
++                                     ec.message());
++                    return 0;
++                }
++            }
+             else
+             {
+                 value.str().append(ptr, b.size());
+@@ -468,6 +522,21 @@ class HttpBody::reader
+ 
+     void finish(boost::beast::error_code& ec)
+     {
++        if (value.file().is_open())
++        {
++            boost::system::error_code ec2;
++            uint64_t size = value.file().size(ec2);
++            if (!ec2 && size < std::numeric_limits<size_t>::max())
++            {
++                value.setFileSize(static_cast<size_t>(size));
++            }
++            value.file().seek(0, ec);
++            if (ec)
++            {
++                BMCWEB_LOG_ERROR("Failed to rewind file: {}", ec.message());
++                return;
++            }
++        }
+         if (multipartParser)
+         {
+             ParserError state = multipartParser->finish();
+diff --git a/redfish-core/lib/update_service.hpp b/redfish-core/lib/update_service.hpp
+index aadd041a68..0b79ef431f 100644
+--- a/redfish-core/lib/update_service.hpp
++++ b/redfish-core/lib/update_service.hpp
+@@ -31,6 +31,7 @@
+ 
+ #include <sys/mman.h>
+ #include <unistd.h>
++#include <malloc.h>
+ 
+ #include <boost/asio/error.hpp>
+ #include <boost/asio/steady_timer.hpp>
+@@ -91,9 +92,23 @@ struct MemoryFileDescriptor
+ {
+     int fd = -1;
+ 
+-    explicit MemoryFileDescriptor(const std::string& filename) :
+-        fd(memfd_create(filename.c_str(), 0))
+-    {}
++    MemoryFileDescriptor() = default;
++
++    explicit MemoryFileDescriptor(const std::string& /*filename*/)
++    {
++        std::error_code ecDir;
++        std::filesystem::create_directories("/tmp/images", ecDir);
++        char pathTemplate[] = "/tmp/images/update-XXXXXX";
++        fd = mkostemp(pathTemplate, O_CLOEXEC | O_RDWR);
++        if (fd >= 0)
++        {
++            unlink(pathTemplate);
++        }
++        else
++        {
++            fd = memfd_create("update-image", 0);
++        }
++    }
+ 
+     MemoryFileDescriptor(const MemoryFileDescriptor&) = default;
+     MemoryFileDescriptor(MemoryFileDescriptor&& other) noexcept : fd(other.fd)
+@@ -101,7 +116,19 @@ struct MemoryFileDescriptor
+         other.fd = -1;
+     }
+     MemoryFileDescriptor& operator=(const MemoryFileDescriptor&) = delete;
+-    MemoryFileDescriptor& operator=(MemoryFileDescriptor&&) = default;
++    MemoryFileDescriptor& operator=(MemoryFileDescriptor&& other) noexcept
++    {
++        if (this != &other)
++        {
++            if (fd != -1)
++            {
++                close(fd);
++            }
++            fd = other.fd;
++            other.fd = -1;
++        }
++        return *this;
++    }
+ 
+     ~MemoryFileDescriptor()
+     {
+@@ -990,25 +1017,12 @@ inline void handleMultipartManagerUpdate(
+ 
+ inline void processUpdateRequest(
+     const std::shared_ptr<bmcweb::AsyncResp>& asyncResp,
+-    task::Payload&& payload, std::string_view body,
++    task::Payload&& payload, MemoryFileDescriptor memfd,
+     const std::string& applyTime, const std::vector<std::string>& targets)
+ {
+-    MemoryFileDescriptor memfd("update-image");
+     if (memfd.fd == -1)
+     {
+-        BMCWEB_LOG_ERROR("Failed to create image memfd");
+-        messages::internalError(asyncResp->res);
+-        return;
+-    }
+-    if (write(memfd.fd, body.data(), body.length()) !=
+-        static_cast<ssize_t>(body.length()))
+-    {
+-        BMCWEB_LOG_ERROR("Failed to write to image memfd");
+-        messages::internalError(asyncResp->res);
+-        return;
+-    }
+-    if (!memfd.rewind())
+-    {
++        BMCWEB_LOG_ERROR("Invalid image file descriptor");
+         messages::internalError(asyncResp->res);
+         return;
+     }
+@@ -1040,21 +1054,20 @@ inline void processUpdateRequest(
+                 handleBMCUpdate(asyncResp, std::move(payload), memfd, applyTime,
+                                 ec, objectPaths);
+             });
++        return;
+     }
+-    else
+-    {
+-        constexpr std::array<std::string_view, 1> interfaces = {
+-            "xyz.openbmc_project.Software.Version"};
+-        dbus::utility::getSubTree(
+-            "/xyz/openbmc_project/software", 1, interfaces,
+-            [asyncResp, payload = std::move(payload), memfd = std::move(memfd),
+-             applyTime, targets](const boost::system::error_code& ec,
+-                                 const dbus::utility::MapperGetSubTreeResponse&
+-                                     subtree) mutable {
+-                getSwInfo(asyncResp, std::move(payload), memfd, applyTime,
+-                          targets[0], ec, subtree);
+-            });
+-    }
++
++    constexpr std::array<std::string_view, 1> interfaces = {
++        "xyz.openbmc_project.Software.Version"};
++    dbus::utility::getSubTree(
++        "/xyz/openbmc_project/software", 1, interfaces,
++        [asyncResp, payload = std::move(payload), memfd = std::move(memfd),
++         applyTime, targets](const boost::system::error_code& ec,
++                             const dbus::utility::MapperGetSubTreeResponse&
++                                 subtree) mutable {
++            getSwInfo(asyncResp, std::move(payload), memfd, applyTime,
++                      targets[0], ec, subtree);
++        });
+ }
+ 
+ inline void updateMultipartContext(
+@@ -1081,8 +1094,33 @@ inline void updateMultipartContext(
+         }
+         task::Payload payload(req);
+ 
++        MemoryFileDescriptor memfd("update-image");
++        if (memfd.fd == -1)
++        {
++            BMCWEB_LOG_ERROR("Failed to create image memfd");
++            messages::internalError(asyncResp->res);
++            return;
++        }
++        if (write(memfd.fd, multipart->uploadData.data(),
++                  multipart->uploadData.length()) !=
++            static_cast<ssize_t>(multipart->uploadData.length()))
++        {
++            BMCWEB_LOG_ERROR("Failed to write to image memfd");
++            messages::internalError(asyncResp->res);
++            return;
++        }
++        if (!memfd.rewind())
++        {
++            messages::internalError(asyncResp->res);
++            return;
++        }
++
++        multipart->uploadData.clear();
++        req.clear();
++        malloc_trim(0);
++
+         processUpdateRequest(
+-            asyncResp, std::move(payload), multipart->uploadData,
++            asyncResp, std::move(payload), std::move(memfd),
+             applyTimeNewVal,
+             multipart->params.targets.value_or(std::vector<std::string>{}));
+     }
+@@ -1099,7 +1137,7 @@ inline void updateMultipartContext(
+ }
+ 
+ inline void doHTTPUpdate(const std::shared_ptr<bmcweb::AsyncResp>& asyncResp,
+-                         const crow::Request& req)
++                         crow::Request& req)
+ {
+     if constexpr (BMCWEB_REDFISH_UPDATESERVICE_USE_DBUS)
+     {
+@@ -1110,8 +1148,47 @@ inline void doHTTPUpdate(const std::shared_ptr<bmcweb::AsyncResp>& asyncResp,
+         std::vector<std::string> targets;
+         targets.emplace_back(BMCWEB_REDFISH_MANAGER_URI_NAME);
+ 
++        MemoryFileDescriptor memfd;
++        if (req.req.body().file().is_open())
++        {
++            int dupFd = dup(req.req.body().file().native_handle());
++            if (dupFd < 0)
++            {
++                BMCWEB_LOG_ERROR("Failed to dup file handle: {}", errno);
++                messages::internalError(asyncResp->res);
++                return;
++            }
++            lseek(dupFd, 0, SEEK_SET);
++            memfd.fd = dupFd;
++        }
++        else
++        {
++            memfd = MemoryFileDescriptor("update-image");
++            if (memfd.fd == -1)
++            {
++                BMCWEB_LOG_ERROR("Failed to create image memfd");
++                messages::internalError(asyncResp->res);
++                return;
++            }
++            if (write(memfd.fd, req.body().data(), req.body().length()) !=
++                static_cast<ssize_t>(req.body().length()))
++            {
++                BMCWEB_LOG_ERROR("Failed to write to image memfd");
++                messages::internalError(asyncResp->res);
++                return;
++            }
++            if (!memfd.rewind())
++            {
++                messages::internalError(asyncResp->res);
++                return;
++            }
++        }
++
++        req.clear();
++        malloc_trim(0);
++
+         processUpdateRequest(
+-            asyncResp, std::move(payload), req.body(),
++            asyncResp, std::move(payload), std::move(memfd),
+             "xyz.openbmc_project.Software.ApplyTime.RequestedApplyTimes.Immediate",
+             targets);
+     }
+@@ -1126,7 +1203,7 @@ inline void doHTTPUpdate(const std::shared_ptr<bmcweb::AsyncResp>& asyncResp,
+ }
+ 
+ inline void handleUpdateServicePost(
+-    App& app, const crow::Request& req,
++    App& app, crow::Request& req,
+     const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)
+ {
+     if (!redfish::setUpRedfishRoute(app, req, asyncResp))

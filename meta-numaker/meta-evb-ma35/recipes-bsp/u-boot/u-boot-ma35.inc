@@ -14,31 +14,46 @@ UBOOT_SRC ?= "git://github.com/OpenNuvoton/MA35D1_u-boot-v2020.07.git;branch=mas
 SRCREV = "${UBOOT_SRCREV}"
 UBOOT_SRCREV ?= "${AUTOREV}"
 
-SRCBRANCH = "2020.07"
-SRC_URI = "${UBOOT_SRC}"
+SRC_URI = "${UBOOT_SRC} \
+           file://patch-uboot-configs.py"
 
 PV = "2020.07+git${SRCPV}"
 B = "${WORKDIR}/build"
 LOCALVERSION ?= "-${SRCBRANCH}"
 
-# Fix SPI-NAND boot: correct UBI partition number, memory size, and remove UBIFS distro boot probe
+# Configure U-Boot for Scheme A (Unified UBI Pool) & Dual Bank fail-safe boot
 do_configure:prepend() {
-    for h in ${S}/include/configs/ma35d0.h ${S}/include/configs/ma35d1.h; do
-        if [ -f "$h" ]; then
-            sed -i 's/\<spinand_ubiblock=[^[:space:]\\]*/spinand_ubiblock=spinand-rootfs/' "$h"
-            sed -i 's/\<nand_ubiblock=[^[:space:]\\]*/nand_ubiblock=nand-rootfs/' "$h"
-            sed -i 's|rdinit=/sbin/init|init=/sbin/init|' "$h"
-            sed -i 's/CONFIG_SYS_BOOTM_LEN.*SZ_64M/CONFIG_SYS_BOOTM_LEN\t\t\tSZ_16M/' "$h"
-            sed -i 's/#define BOOT_TARGET_UBIFS(func).*/#define BOOT_TARGET_UBIFS(func)/' "$h"
-            sed -i '/BOOT_TARGET_UBIFS(func)[[:space:]]*\\/d' "$h"
+    if [ -f "${UNPACKDIR}/patch-uboot-configs.py" ]; then
+        python3 "${UNPACKDIR}/patch-uboot-configs.py" "${S}"
+    else
+        python3 "${WORKDIR}/patch-uboot-configs.py" "${S}"
+    fi
+    for defcfg in ${S}/configs/*spinand_defconfig; do
+        if [ -f "$defcfg" ]; then
+            sed -i 's|CONFIG_MTDPARTS_DEFAULT=.*|CONFIG_MTDPARTS_DEFAULT="mtdparts=spi-nand0:4m(uboot),-(rootfs)"|' "$defcfg"
+            sed -i 's/CONFIG_ENV_UBI_PART=".*"/CONFIG_ENV_UBI_PART="rootfs"/' "$defcfg"
+            sed -i 's/CONFIG_ENV_UBI_VOLUME=".*"/CONFIG_ENV_UBI_VOLUME="u-boot-env"/' "$defcfg"
+            sed -i '/CONFIG_BOOTCOUNT/d' "$defcfg"
+            echo "CONFIG_BOOTCOUNT_LIMIT=y" >> "$defcfg"
+            echo "CONFIG_BOOTCOUNT_ENV=y" >> "$defcfg"
         fi
     done
-    if [ -f "${S}/include/configs/ma35d0.h" ]; then
-        sed -i 's/kernelmem=256M\\0/kernelmem=256M swiotlb=1\\0/' ${S}/include/configs/ma35d0.h
-    fi
-    if [ -f "${S}/include/configs/ma35d1.h" ]; then
-        sed -i 's/kernelmem=256M\\0/kernelmem=512M swiotlb=1\\0/' ${S}/include/configs/ma35d1.h
-    fi
+    for defcfg in ${S}/configs/*nand_defconfig; do
+        if echo "$defcfg" | grep -q "spinand"; then
+            continue
+        fi
+        if [ -f "$defcfg" ]; then
+            sed -i 's|CONFIG_MTDPARTS_DEFAULT=.*|CONFIG_MTDPARTS_DEFAULT="mtdparts=nand0:4m(uboot),-(rootfs)"|' "$defcfg"
+            sed -i 's/CONFIG_ENV_IS_IN_NAND=y/CONFIG_ENV_IS_IN_UBI=y/' "$defcfg"
+            sed -i '/CONFIG_ENV_OFFSET/d' "$defcfg"
+            sed -i '/CONFIG_ENV_UBI/d' "$defcfg"
+            echo 'CONFIG_ENV_UBI_PART="rootfs"' >> "$defcfg"
+            echo 'CONFIG_ENV_UBI_VOLUME="u-boot-env"' >> "$defcfg"
+            sed -i '/CONFIG_BOOTCOUNT/d' "$defcfg"
+            echo "CONFIG_BOOTCOUNT_LIMIT=y" >> "$defcfg"
+            echo "CONFIG_BOOTCOUNT_ENV=y" >> "$defcfg"
+        fi
+    done
     for dts in ${S}/arch/arm/dts/ma35d0*.dts; do
         if [ -f "$dts" ]; then
             sed -i 's/0x07000000/0x10000000/' "$dts"
@@ -47,6 +62,16 @@ do_configure:prepend() {
     for dts in ${S}/arch/arm/dts/ma35d1*.dts; do
         if [ -f "$dts" ]; then
             sed -i 's/0x07000000/0x20000000/' "$dts"
+        fi
+    done
+}
+
+do_configure:append() {
+    for cfg in ${B}/.config ${B}/*/.config; do
+        if [ -f "$cfg" ]; then
+            sed -i '/CONFIG_BOOTCOUNT/d' "$cfg"
+            echo "CONFIG_BOOTCOUNT_LIMIT=y" >> "$cfg"
+            echo "CONFIG_BOOTCOUNT_ENV=y" >> "$cfg"
         fi
     done
 }

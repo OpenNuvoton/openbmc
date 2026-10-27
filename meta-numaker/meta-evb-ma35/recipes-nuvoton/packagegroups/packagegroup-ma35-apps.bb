@@ -29,12 +29,28 @@ SUMMARY:${PN}-chassis = "MA35 Chassis"
 RDEPENDS:${PN}-chassis = ""
 
 SUMMARY:${PN}-flash = "MA35 Flash"
-RDEPENDS:${PN}-flash = ""
+RDEPENDS:${PN}-flash = " \
+    phosphor-software-manager-download-mgr \
+    phosphor-software-manager-updater \
+    phosphor-software-manager-version \
+    u-boot-ma35-fw-utils \
+    mtd-utils \
+"
+
+RDEPENDS:${PN}-flash:append:ma35 = " \
+    phosphor-software-manager-updater-ubi \
+    mtd-utils-ubifs \
+"
+
+RDEPENDS:${PN}-flash:append:df-phosphor-mmc = " \
+    phosphor-software-manager-updater-mmc \
+"
 
 SUMMARY:${PN}-system = "MA35 System"
 RDEPENDS:${PN}-system = " \
     avahi-daemon \
     bmcweb \
+    curl \
     entity-manager \
     x86-power-control \
     can-utils \
@@ -42,4 +58,6 @@ RDEPENDS:${PN}-system = " \
     net-tools \
     ethtool \
     ma35-soc-temp \
+    e2fsprogs-resize2fs \
+    parted \
 "

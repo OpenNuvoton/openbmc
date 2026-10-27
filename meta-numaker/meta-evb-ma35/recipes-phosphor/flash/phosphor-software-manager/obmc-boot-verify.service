@@ -1,0 +1,12 @@
+[Unit]
+Description=Verify OpenBMC Startup and Confirm Active Firmware
+After=bmcweb.service
+Wants=bmcweb.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/obmc-boot-verify.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# NOTE: Run this script on the Host Linux PC (NOT on the BMC).
+#
 # --- Configuration Area ---
 BMC_IP="numaker-iot-nuc980g2.local"  # mDNS hostname (avahi)
 USER="root"
@@ -35,6 +37,7 @@ report "## Test Results\n"
 
 echo -e "${BLUE}====================================================${NC}"
 echo -e "      NUC980 OpenBMC Functions Integration Test      "
+echo -e "      (Running on Host Linux PC, targeting remote BMC) "
 echo -e "${BLUE}====================================================${NC}"
 
 # Function to run Redfish GET

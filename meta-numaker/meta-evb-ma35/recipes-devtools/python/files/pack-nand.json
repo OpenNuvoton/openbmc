@@ -22,18 +22,8 @@
           "type": 1
         },
         {
-          "offset": "0x3C0000",
-          "file": "Image.dtb",
-          "type": 1
-        },
-        {
           "offset": "0x400000",
-          "file": "Image",
-          "type": 1
-        },
-        {
-          "offset": "0x1C00000",
-          "file": "obmc-phosphor-image.ubi",
+          "file": "obmc-phosphor-image-nand.ubi",
           "type": 1
         }
     ]

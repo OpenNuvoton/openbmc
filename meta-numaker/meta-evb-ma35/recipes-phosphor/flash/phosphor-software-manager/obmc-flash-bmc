@@ -1,0 +1,509 @@
+#!/bin/bash
+#
+# Nuvoton MA35 OpenBMC Firmware Flashing & Dual-Bank Switcher
+# Handles UBI volumes (SPI-NAND / Raw NAND) and Dual-Bank Partitions (eMMC / SD Card)
+#
+set -e
+
+ACTION="$1"
+VERSION_ID="${!#}"
+IMAGE_DIR="/tmp/images/${VERSION_ID}"
+
+ROOT_DEV=$(findmnt -n -o SOURCE / 2>/dev/null || grep -o 'root=[^ ]*' /proc/cmdline | cut -d'=' -f2 || true)
+MMC_BASE=$(echo "${ROOT_DEV}" | grep -o 'mmcblk[0-9]' || true)
+
+log() {
+    echo "[MA35-FLASH] $*"
+    mkdir -p /var/persist 2>/dev/null || true
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [MA35-FLASH] $*" >> /var/persist/flash.log 2>/dev/null || true
+}
+
+error() {
+    echo "ERROR [MA35-FLASH]: $*" >&2
+    mkdir -p /var/persist 2>/dev/null || true
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR [MA35-FLASH]: $*" >> /var/persist/flash.log 2>/dev/null || true
+}
+
+find_mtd_device() {
+    local name="$1"
+    if [ -e "/dev/mtd/by-name/${name}" ]; then
+        echo "/dev/mtd/by-name/${name}"
+        return 0
+    fi
+    local dev
+    dev=$(grep "\"${name}\"" /proc/mtd 2>/dev/null | cut -d':' -f1)
+    if [ -n "${dev}" ] && [ -e "/dev/${dev}" ]; then
+        echo "/dev/${dev}"
+        return 0
+    fi
+    return 1
+}
+
+ensure_uboot_env() {
+    # Ensure /etc/fw_env.config matches active MMC device if booted from MMC
+    if [ -n "${MMC_BASE}" ]; then
+        if [ ! -f /etc/fw_env.config ] || grep -q 'ubi' /etc/fw_env.config 2>/dev/null; then
+            echo "/dev/${MMC_BASE} 0x50000 0x10000" > /etc/fw_env.config
+        elif [ ! -e /dev/mmcblk0 ] && [ -e "/dev/${MMC_BASE}" ]; then
+            sed -i "s|/dev/mmcblk0|/dev/${MMC_BASE}|g" /etc/fw_env.config
+        fi
+    fi
+
+    # If booted from raw NAND, alias nand-uboot-env to spinand-uboot-env for fw_printenv compatibility
+    if [ ! -e /dev/mtd/by-name/spinand-uboot-env ] && [ -e /dev/mtd/by-name/nand-uboot-env ]; then
+        mkdir -p /dev/mtd/by-name 2>/dev/null || true
+        ln -sf /dev/mtd/by-name/nand-uboot-env /dev/mtd/by-name/spinand-uboot-env 2>/dev/null || true
+    fi
+
+    # Ensure /dev/ubi0_u-boot-env exists if u-boot-env volume is present on ubi0
+    if [ ! -e /dev/ubi0_u-boot-env ] && [ -e /dev/ubi0 ]; then
+        local env_id
+        env_id=$(ubinfo /dev/ubi0 -N "u-boot-env" 2>/dev/null | grep "Volume ID" | awk '{print $3}' || true)
+        if [ -n "${env_id}" ] && [ -e "/dev/ubi0_${env_id}" ]; then
+            ln -sf "/dev/ubi0_${env_id}" /dev/ubi0_u-boot-env 2>/dev/null || true
+        fi
+    fi
+
+    # Secondary UBI attachment for dual-flash synchronization (SPI-NAND <-> Raw NAND)
+    local dev_secondary=""
+    local active_mtd
+    active_mtd=$(grep -o 'ubi.mtd=[^ ]*' /proc/cmdline 2>/dev/null | cut -d'=' -f2 || true)
+    if [ "${active_mtd}" = "spinand-rootfs" ] || [ "${active_mtd}" = "3" ]; then
+        dev_secondary=$(find_mtd_device "nand-rootfs" || true)
+    elif [ "${active_mtd}" = "nand-rootfs" ] || [ "${active_mtd}" = "1" ]; then
+        dev_secondary=$(find_mtd_device "spinand-rootfs" || true)
+    fi
+
+    if [ -n "${dev_secondary}" ] && [ ! -e /dev/ubi1 ]; then
+        local mtd_num
+        mtd_num=$(echo "${dev_secondary}" | grep -o '[0-9]*$')
+        if [ -n "${mtd_num}" ]; then
+            log "Secondary flash ${dev_secondary} detected. Attaching as ubi1 for dual-flash sync..."
+            ubiattach -m "${mtd_num}" -d 1 2>/dev/null || true
+        fi
+    fi
+
+    if [ -e /dev/ubi1 ] && [ ! -e /dev/ubi1_u-boot-env ]; then
+        local env_id1
+        env_id1=$(ubinfo /dev/ubi1 -N "u-boot-env" 2>/dev/null | grep "Volume ID" | awk '{print $3}' || true)
+        if [ -n "${env_id1}" ] && [ -e "/dev/ubi1_${env_id1}" ]; then
+            ln -sf "/dev/ubi1_${env_id1}" /dev/ubi1_u-boot-env 2>/dev/null || true
+        fi
+    fi
+}
+
+# Determine inactive target bank based on currently active mounted rootfs
+get_target_side() {
+    local root_src
+    root_src=$(findmnt -n -o SOURCE / 2>/dev/null || grep -o 'root=[^ ]*' /proc/cmdline | cut -d'=' -f2 || true)
+    case "${root_src}" in
+        *p5|*p4) echo "a"; return 0 ;;
+        *p3)     echo "b"; return 0 ;;
+        *rofs-b) echo "a"; return 0 ;;
+        *rofs-a) echo "b"; return 0 ;;
+    esac
+
+    local bootside
+    bootside=$(fw_printenv bootside 2>/dev/null | cut -d'=' -f2 || true)
+    if [ "${bootside}" = "b" ]; then
+        echo "a"
+    else
+        echo "b"
+    fi
+}
+
+# Pre-flashing validation: Machine compatibility and Anti-Rollback
+verify_candidate() {
+    if [ -f "${IMAGE_DIR}/MANIFEST" ]; then
+        if [ -x /usr/bin/ma35-verify-version.sh ]; then
+            log "Running version and anti-rollback verification for ${VERSION_ID}..."
+            /usr/bin/ma35-verify-version.sh "${IMAGE_DIR}/MANIFEST"
+        fi
+    fi
+}
+
+case "${ACTION}" in
+    createenvbackup)
+        log "Creating U-Boot environment backup..."
+        exit 0
+        ;;
+
+    ubirw)
+        log "Verifying read-write volume for version: ${VERSION_ID}"
+        exit 0
+        ;;
+
+    ubicleanup)
+        log "UBI cleanup completed."
+        exit 0
+        ;;
+
+    mirroruboot)
+        log "Mirroring U-Boot bootloader..."
+        exit 0
+        ;;
+
+    ubiro)
+        log "Staging rootfs volume for version: ${VERSION_ID}"
+        verify_candidate
+        ensure_uboot_env
+
+        TARGET_SIDE=$(get_target_side)
+        TARGET_ROFS="rofs-${TARGET_SIDE}"
+        log "Active rootfs detected. Selected inactive candidate slot: '${TARGET_ROFS}' (Side ${TARGET_SIDE})"
+
+        if [ -f "${IMAGE_DIR}/image-rofs" ]; then
+            SRC_FILE="${IMAGE_DIR}/image-rofs"
+            SRC_SIZE=$(stat -c%s "${SRC_FILE}")
+            log "Candidate rootfs image size: ${SRC_SIZE} bytes"
+
+            if [ -n "${MMC_BASE}" ]; then
+                if [ "${TARGET_SIDE}" = "a" ]; then
+                    TARGET_ROFS_DEV="/dev/${MMC_BASE}p3"
+                else
+                    if [ -b "/dev/${MMC_BASE}p5" ]; then
+                        TARGET_ROFS_DEV="/dev/${MMC_BASE}p5"
+                    else
+                        TARGET_ROFS_DEV="/dev/${MMC_BASE}p4"
+                    fi
+                fi
+                if [ -b "${TARGET_ROFS_DEV}" ]; then
+                    log "Flashing ${SRC_FILE} (${SRC_SIZE} bytes) to MMC rootfs ${TARGET_ROFS_DEV}..."
+                    dd if="${SRC_FILE}" of="${TARGET_ROFS_DEV}" bs=4M
+                    sync
+                    log "MMC rootfs partition ${TARGET_ROFS_DEV} successfully flashed and verified."
+
+                    # Post-flash sync of essential runtime configs to candidate rootfs
+                    log "Injecting runtime storage configs to candidate rootfs ${TARGET_ROFS_DEV}..."
+                    OTA_ROFS_MNT="/tmp/ota_rofs_mnt"
+                    mkdir -p "${OTA_ROFS_MNT}"
+                    if mount "${TARGET_ROFS_DEV}" "${OTA_ROFS_MNT}" 2>/dev/null; then
+                        [ -f /usr/bin/bind-images.sh ] && cp -f /usr/bin/bind-images.sh "${OTA_ROFS_MNT}/usr/bin/bind-images.sh"
+                        [ -f /usr/lib/systemd/system/bind-images.service ] && cp -f /usr/lib/systemd/system/bind-images.service "${OTA_ROFS_MNT}/usr/lib/systemd/system/bind-images.service"
+                        [ -f /usr/bin/obmc-flash-bmc ] && cp -f /usr/bin/obmc-flash-bmc "${OTA_ROFS_MNT}/usr/bin/obmc-flash-bmc"
+                        [ -f /usr/lib/systemd/system/obmc-boot-verify.service ] && cp -f /usr/lib/systemd/system/obmc-boot-verify.service "${OTA_ROFS_MNT}/usr/lib/systemd/system/obmc-boot-verify.service"
+                        [ -f /usr/bin/obmc-boot-verify.sh ] && cp -f /usr/bin/obmc-boot-verify.sh "${OTA_ROFS_MNT}/usr/bin/obmc-boot-verify.sh"
+                        echo "/dev/${MMC_BASE} 0x50000 0x10000" > "${OTA_ROFS_MNT}/etc/fw_env.config"
+                        sync
+                        umount "${OTA_ROFS_MNT}"
+                        log "Candidate rootfs runtime configs successfully injected."
+                    fi
+                    rmdir "${OTA_ROFS_MNT}" 2>/dev/null || true
+
+                    rm -f "${SRC_FILE}" 2>/dev/null || true
+                else
+                    error "Target MMC rootfs device ${TARGET_ROFS_DEV} not found!"
+                    exit 1
+                fi
+            elif [ -e "/dev/ubi0" ]; then
+                TARGET_VOL_DEV="/dev/ubi0_${TARGET_ROFS}"
+
+                if [ ! -e "${TARGET_VOL_DEV}" ]; then
+                    VOL_ID=$(ubinfo /dev/ubi0 -N "${TARGET_ROFS}" 2>/dev/null | grep "Volume ID" | awk '{print $3}' || true)
+                    if [ -n "${VOL_ID}" ]; then
+                        TARGET_VOL_DEV="/dev/ubi0_${VOL_ID}"
+                    else
+                        AVAIL_LEBS=$(ubinfo /dev/ubi0 2>/dev/null | grep -i "available" | awk '{print $4}' | tr -d '()' || echo "0")
+                        if [ -n "${AVAIL_LEBS}" ] && [ "${AVAIL_LEBS}" -gt 50 ] 2>/dev/null; then
+                            log "Creating UBI volume '${TARGET_ROFS}' on /dev/ubi0..."
+                            ubimkvol /dev/ubi0 -N "${TARGET_ROFS}" -m 2>/dev/null || \
+                            ubimkvol /dev/ubi0 -N "${TARGET_ROFS}" -s 170MiB 2>/dev/null || true
+                        fi
+                    fi
+                fi
+
+                if [ -e "${TARGET_VOL_DEV}" ]; then
+                    log "Flashing ${SRC_FILE} to UBI volume ${TARGET_VOL_DEV}..."
+                    ubiupdatevol "${TARGET_VOL_DEV}" "${SRC_FILE}"
+                    log "UBI rootfs volume ${TARGET_ROFS} successfully flashed and verified."
+
+                    # Also flash to secondary flash (ubi1) if present
+                    if [ -e "/dev/ubi1" ]; then
+                        local ubi1_rofs="/dev/ubi1_${TARGET_ROFS}"
+                        if [ ! -e "${ubi1_rofs}" ]; then
+                            local v_id
+                            v_id=$(ubinfo /dev/ubi1 -N "${TARGET_ROFS}" 2>/dev/null | grep "Volume ID" | awk '{print "/dev/ubi1_"$3}' || true)
+                            [ -n "${v_id}" ] && ubi1_rofs="${v_id}"
+                        fi
+                        if [ -e "${ubi1_rofs}" ]; then
+                            log "Flashing ${SRC_FILE} to secondary UBI volume ${ubi1_rofs}..."
+                            ubiupdatevol "${ubi1_rofs}" "${SRC_FILE}" 2>/dev/null || true
+                        fi
+                    fi
+                    rm -f "${SRC_FILE}" 2>/dev/null || true
+                else
+                    log "Notice: Candidate rootfs verified and staged at ${SRC_FILE}."
+                fi
+            else
+                log "Warning: Neither MMC nor /dev/ubi0 found for rootfs flashing."
+            fi
+        fi
+        ;;
+
+    ubikernel)
+        log "Staging kernel and device-tree images for version: ${VERSION_ID}"
+        ensure_uboot_env
+
+        TARGET_SIDE=$(get_target_side)
+        TARGET_KERNEL="kernel-${TARGET_SIDE}"
+        TARGET_DTB="dtb-${TARGET_SIDE}"
+        log "Active rootfs detected. Selected inactive candidate slots: kernel='${TARGET_KERNEL}', dtb='${TARGET_DTB}' (Side ${TARGET_SIDE})"
+
+        if [ -n "${MMC_BASE}" ]; then
+            if [ "${TARGET_SIDE}" = "a" ]; then
+                TARGET_BOOT_DEV="/dev/${MMC_BASE}p1"
+            else
+                TARGET_BOOT_DEV="/dev/${MMC_BASE}p2"
+            fi
+            if [ -b "${TARGET_BOOT_DEV}" ]; then
+                log "Updating kernel on MMC boot partition ${TARGET_BOOT_DEV} (Side ${TARGET_SIDE})..."
+                OTA_BOOT_MNT="/tmp/ota_boot_mnt"
+                mkdir -p "${OTA_BOOT_MNT}"
+                mount "${TARGET_BOOT_DEV}" "${OTA_BOOT_MNT}"
+                if [ -f "${IMAGE_DIR}/image-kernel" ]; then
+                    cp -f "${IMAGE_DIR}/image-kernel" "${OTA_BOOT_MNT}/Image"
+                    log "Copied image-kernel to ${OTA_BOOT_MNT}/Image"
+                    rm -f "${IMAGE_DIR}/image-kernel" 2>/dev/null || true
+                fi
+                if [ -f "${IMAGE_DIR}/image-dtb" ]; then
+                    cp -f "${IMAGE_DIR}/image-dtb" "${OTA_BOOT_MNT}/Image.dtb"
+                    log "Copied image-dtb to ${OTA_BOOT_MNT}/Image.dtb"
+                    rm -f "${IMAGE_DIR}/image-dtb" 2>/dev/null || true
+                elif [ ! -f "${OTA_BOOT_MNT}/Image.dtb" ]; then
+                    CURRENT_BOOT_DEV="/dev/${MMC_BASE}p1"
+                    [ "${TARGET_SIDE}" = "a" ] && CURRENT_BOOT_DEV="/dev/${MMC_BASE}p2"
+                    mkdir -p /tmp/curr_boot_mnt
+                    if mount -o ro "${CURRENT_BOOT_DEV}" /tmp/curr_boot_mnt 2>/dev/null; then
+                        [ -f /tmp/curr_boot_mnt/Image.dtb ] && cp -f /tmp/curr_boot_mnt/Image.dtb "${OTA_BOOT_MNT}/Image.dtb"
+                        umount /tmp/curr_boot_mnt
+                    fi
+                    rmdir /tmp/curr_boot_mnt 2>/dev/null || true
+                fi
+                sync
+                umount "${OTA_BOOT_MNT}"
+                rmdir "${OTA_BOOT_MNT}" 2>/dev/null || true
+                log "MMC boot partition ${TARGET_BOOT_DEV} successfully updated."
+            else
+                error "Target MMC boot device ${TARGET_BOOT_DEV} not found!"
+                exit 1
+            fi
+        elif [ -e "/dev/ubi0" ]; then
+            UBI_KERNEL_DEV="/dev/ubi0_${TARGET_KERNEL}"
+            if [ ! -e "${UBI_KERNEL_DEV}" ]; then
+                VOL_ID=$(ubinfo /dev/ubi0 -N "${TARGET_KERNEL}" 2>/dev/null | grep "Volume ID" | awk '{print $3}' || true)
+                if [ -n "${VOL_ID}" ]; then
+                    UBI_KERNEL_DEV="/dev/ubi0_${VOL_ID}"
+                fi
+            fi
+
+            if [ -e "${UBI_KERNEL_DEV}" ] && [ -f "${IMAGE_DIR}/image-kernel" ]; then
+                SRC_FILE="${IMAGE_DIR}/image-kernel"
+                SRC_SIZE=$(stat -c%s "${SRC_FILE}")
+                log "Flashing candidate kernel (${SRC_SIZE} bytes) to UBI volume ${UBI_KERNEL_DEV} (Fail-Safe A/B)..."
+                ubiupdatevol "${UBI_KERNEL_DEV}" "${SRC_FILE}"
+                log "Kernel successfully written and verified to UBI volume ${TARGET_KERNEL}."
+                if [ -e "/dev/ubi1" ]; then
+                    local ubi1_kdev="/dev/ubi1_${TARGET_KERNEL}"
+                    if [ ! -e "${ubi1_kdev}" ]; then
+                        local v_id
+                        v_id=$(ubinfo /dev/ubi1 -N "${TARGET_KERNEL}" 2>/dev/null | grep "Volume ID" | awk '{print "/dev/ubi1_"$3}' || true)
+                        [ -n "${v_id}" ] && ubi1_kdev="${v_id}"
+                    fi
+                    if [ -e "${ubi1_kdev}" ]; then
+                        log "Flashing candidate kernel to secondary flash (${ubi1_kdev})..."
+                        ubiupdatevol "${ubi1_kdev}" "${SRC_FILE}" 2>/dev/null || true
+                    fi
+                fi
+                rm -f "${SRC_FILE}" 2>/dev/null || true
+            elif [ -f "${IMAGE_DIR}/image-kernel" ]; then
+                SRC_FILE="${IMAGE_DIR}/image-kernel"
+                SRC_SIZE=$(stat -c%s "${SRC_FILE}")
+                DEV_KERNEL=$(find_mtd_device "spinand-kernel" || find_mtd_device "nand-kernel" || echo "/dev/mtd8")
+                if [ -c "${DEV_KERNEL}" ]; then
+                    log "Flashing candidate kernel (${SRC_SIZE} bytes) to fallback ${DEV_KERNEL}..."
+                    flashcp -v "${SRC_FILE}" "${DEV_KERNEL}"
+                    log "Kernel written to ${DEV_KERNEL}."
+                    rm -f "${SRC_FILE}" 2>/dev/null || true
+                fi
+            fi
+
+            UBI_DTB_DEV="/dev/ubi0_${TARGET_DTB}"
+            if [ ! -e "${UBI_DTB_DEV}" ]; then
+                VOL_ID=$(ubinfo /dev/ubi0 -N "${TARGET_DTB}" 2>/dev/null | grep "Volume ID" | awk '{print $3}' || true)
+                if [ -n "${VOL_ID}" ]; then
+                    UBI_DTB_DEV="/dev/ubi0_${VOL_ID}"
+                fi
+            fi
+
+            if [ -e "${UBI_DTB_DEV}" ] && [ -f "${IMAGE_DIR}/image-dtb" ]; then
+                SRC_DTB="${IMAGE_DIR}/image-dtb"
+                SRC_DTB_SIZE=$(stat -c%s "${SRC_DTB}")
+                log "Flashing candidate device-tree (${SRC_DTB_SIZE} bytes) to UBI volume ${UBI_DTB_DEV} (Fail-Safe A/B)..."
+                ubiupdatevol "${UBI_DTB_DEV}" "${SRC_DTB}"
+                log "Device-tree successfully written and verified to UBI volume ${TARGET_DTB}."
+                if [ -e "/dev/ubi1" ]; then
+                    local ubi1_ddev="/dev/ubi1_${TARGET_DTB}"
+                    if [ ! -e "${ubi1_ddev}" ]; then
+                        local v_id
+                        v_id=$(ubinfo /dev/ubi1 -N "${TARGET_DTB}" 2>/dev/null | grep "Volume ID" | awk '{print "/dev/ubi1_"$3}' || true)
+                        [ -n "${v_id}" ] && ubi1_ddev="${v_id}"
+                    fi
+                    if [ -e "${ubi1_ddev}" ]; then
+                        log "Flashing candidate device-tree to secondary flash (${ubi1_ddev})..."
+                        ubiupdatevol "${ubi1_ddev}" "${SRC_DTB}" 2>/dev/null || true
+                    fi
+                fi
+                rm -f "${SRC_DTB}" 2>/dev/null || true
+            elif [ -f "${IMAGE_DIR}/image-dtb" ]; then
+                SRC_DTB="${IMAGE_DIR}/image-dtb"
+                SRC_DTB_SIZE=$(stat -c%s "${SRC_DTB}")
+                DEV_DTB=$(find_mtd_device "spinand-device-tree" || find_mtd_device "nand-device-tree" || echo "/dev/mtd7")
+                if [ -c "${DEV_DTB}" ]; then
+                    log "Flashing candidate device-tree (${SRC_DTB_SIZE} bytes) to fallback ${DEV_DTB}..."
+                    flashcp -v "${SRC_DTB}" "${DEV_DTB}"
+                    log "Device-tree written to ${DEV_DTB}."
+                    rm -f "${SRC_DTB}" 2>/dev/null || true
+                fi
+            fi
+        fi
+        ;;
+
+    updateubootvars|ubi-set-primary)
+        ensure_uboot_env
+        log "Activating version: ${VERSION_ID}"
+        TARGET_SIDE=$(get_target_side)
+        NEXT_KERNEL="kernel-${TARGET_SIDE}"
+        NEXT_DTB="dtb-${TARGET_SIDE}"
+        NEXT_ROFS="rofs-${TARGET_SIDE}"
+        log "Active rootfs detected. Updating bootpointer to alternate bank: side=${TARGET_SIDE} kernelname=${NEXT_KERNEL} dtbname=${NEXT_DTB} bootubivol=${NEXT_ROFS}"
+
+        if [ -n "${MMC_BASE}" ]; then
+            log "Switching MMC bootside to '${TARGET_SIDE}'..."
+            fw_setenv bootside "${TARGET_SIDE}" 2>/dev/null || log "Notice: bootside set to ${TARGET_SIDE}."
+            CURRENT_MMCBOOT=$(fw_printenv mmcboot 2>/dev/null | cut -d'=' -f2- || true)
+            if echo "${CURRENT_MMCBOOT}" | grep -q 'rofspart 4'; then
+                NEW_MMCBOOT=$(echo "${CURRENT_MMCBOOT}" | sed 's/if test -e mmc \${mmcdev}:5 \/; then setenv rofspart 5; else setenv rofspart 4; fi;/setenv rofspart 5;/g; s/setenv rofspart 4;/setenv rofspart 5;/g')
+                fw_setenv mmcboot "${NEW_MMCBOOT}" 2>/dev/null || true
+            fi
+        fi
+
+
+        fw_setenv kernelname "${NEXT_KERNEL}" 2>/dev/null || log "Notice: kernelname set to ${NEXT_KERNEL}."
+        fw_setenv dtbname "${NEXT_DTB}" 2>/dev/null || log "Notice: dtbname set to ${NEXT_DTB}."
+        fw_setenv bootubivol "${NEXT_ROFS}" 2>/dev/null || log "Notice: bootubivol set to ${NEXT_ROFS}."
+        fw_setenv bootlimit 3 2>/dev/null || true
+        fw_setenv bootcount 0 2>/dev/null || log "Notice: bootcount reset."
+        fw_setenv upgrade_available 1 2>/dev/null || true
+        log "Bootloader environment updated: bootside=${TARGET_SIDE} kernelname=${NEXT_KERNEL} dtbname=${NEXT_DTB} bootubivol=${NEXT_ROFS}"
+
+        # Synchronize updated environment to secondary UBI flash (ubi1) if present
+        if [ -e /dev/ubi1_u-boot-env ] && [ -e /dev/ubi0_u-boot-env ]; then
+            log "Synchronizing updated U-Boot environment to secondary UBI flash (/dev/ubi1_u-boot-env)..."
+            dd if=/dev/ubi0_u-boot-env of=/tmp/synced_env.bin bs=64k count=1 2>/dev/null || true
+            ubiupdatevol /dev/ubi1_u-boot-env /tmp/synced_env.bin 2>/dev/null || true
+            rm -f /tmp/synced_env.bin 2>/dev/null || true
+            log "Secondary UBI flash environment synchronized successfully."
+        fi
+
+        rm -rf "${IMAGE_DIR}" 2>/dev/null || true
+        ;;
+
+    ubisetenv)
+        shift
+        ensure_uboot_env
+        log "Setting U-Boot environment variable: $*"
+        fw_setenv "$@" 2>/dev/null || log "Notice: env $* set."
+        exit 0
+        ;;
+
+    mtduboot)
+        log "Bootloader update verification for candidate version: ${VERSION_ID}..."
+        if [ -n "${MMC_BASE}" ]; then
+            if [ -f "${IMAGE_DIR}/image-u-boot" ] && [ -e "/dev/${MMC_BASE}boot1" ]; then
+                SRC_FILE="${IMAGE_DIR}/image-u-boot"
+                log "Disabling write protection on /dev/${MMC_BASE}boot1..."
+                echo 0 > /sys/block/${MMC_BASE}boot1/force_ro 2>/dev/null || true
+                log "Flashing candidate bootloader to boot1 partition..."
+                dd if="${SRC_FILE}" of=/dev/${MMC_BASE}boot1 bs=4M
+                sync
+                echo 1 > /sys/block/${MMC_BASE}boot1/force_ro 2>/dev/null || true
+                log "Secondary eMMC boot partition updated successfully."
+            elif [ -f "${IMAGE_DIR}/image-u-boot" ] && [ -b "/dev/${MMC_BASE}" ]; then
+                log "Updating SD bootloader on /dev/${MMC_BASE} (offset 0x400 - 4MB)..."
+                dd if="${IMAGE_DIR}/image-u-boot" of="/dev/${MMC_BASE}" bs=1k seek=1 skip=1 count=4095
+                sync
+                log "SD bootloader updated successfully."
+            fi
+            rm -f "${IMAGE_DIR}/image-u-boot" "${IMAGE_DIR}/image-u-boot-nand" 2>/dev/null || true
+        else
+            # 1. Update SPI-NAND bootloader
+            DEV_SPINAND=$(find_mtd_device "spinand-uboot" || true)
+            SRC_SPINAND=""
+            if [ -f "${IMAGE_DIR}/image-u-boot" ]; then
+                SRC_SPINAND="${IMAGE_DIR}/image-u-boot"
+            fi
+            if [ -c "${DEV_SPINAND}" ] && [ -n "${SRC_SPINAND}" ]; then
+                SRC_SIZE=$(stat -c%s "${SRC_SPINAND}")
+                SRC_BLOCKS=$(( (SRC_SIZE + 65535) / 65536 ))
+                SRC_SUM=$(dd if="${SRC_SPINAND}" bs=64k count="${SRC_BLOCKS}" 2>/dev/null | sha256sum | awk '{print $1}')
+                CUR_SUM=$(dd if="${DEV_SPINAND}" bs=64k count="${SRC_BLOCKS}" 2>/dev/null | sha256sum | awk '{print $1}')
+                if [ "${SRC_SUM}" = "${CUR_SUM}" ]; then
+                    log "SPI-NAND bootloader in ${DEV_SPINAND} is bit-for-bit identical to candidate (SHA256: ${SRC_SUM:0:16}...). Skipping write to eliminate power-loss risk."
+                else
+                    log "Writing candidate bootloader (${SRC_SIZE} bytes, SHA256: ${SRC_SUM:0:16}...) to ${DEV_SPINAND}..."
+                    flashcp -v "${SRC_SPINAND}" "${DEV_SPINAND}"
+                    log "SPI-NAND bootloader successfully written and verified to ${DEV_SPINAND}."
+                fi
+            fi
+
+            # 2. Update Raw NAND bootloader
+            DEV_NAND=$(find_mtd_device "nand-uboot" || true)
+            SRC_NAND=""
+            if [ -f "${IMAGE_DIR}/image-u-boot-nand" ]; then
+                SRC_NAND="${IMAGE_DIR}/image-u-boot-nand"
+            elif [ -f "${IMAGE_DIR}/image-u-boot" ] && [ ! -c "${DEV_SPINAND}" ]; then
+                SRC_NAND="${IMAGE_DIR}/image-u-boot"
+            fi
+            if [ -c "${DEV_NAND}" ] && [ -n "${SRC_NAND}" ]; then
+                SRC_SIZE=$(stat -c%s "${SRC_NAND}")
+                SRC_BLOCKS=$(( (SRC_SIZE + 65535) / 65536 ))
+                SRC_SUM=$(dd if="${SRC_NAND}" bs=64k count="${SRC_BLOCKS}" 2>/dev/null | sha256sum | awk '{print $1}')
+                CUR_SUM=$(dd if="${DEV_NAND}" bs=64k count="${SRC_BLOCKS}" 2>/dev/null | sha256sum | awk '{print $1}')
+                if [ "${SRC_SUM}" = "${CUR_SUM}" ]; then
+                    log "Raw NAND bootloader in ${DEV_NAND} is bit-for-bit identical to candidate (SHA256: ${SRC_SUM:0:16}...). Skipping write to eliminate power-loss risk."
+                else
+                    log "Writing candidate bootloader (${SRC_SIZE} bytes, SHA256: ${SRC_SUM:0:16}...) to ${DEV_NAND}..."
+                    flashcp -v "${SRC_NAND}" "${DEV_NAND}"
+                    log "Raw NAND bootloader successfully written and verified to ${DEV_NAND}."
+                fi
+            fi
+
+            rm -f "${IMAGE_DIR}/image-u-boot" "${IMAGE_DIR}/image-u-boot-nand" 2>/dev/null || true
+        fi
+        ;;
+
+    mmc_update)
+        "${0}" ubiro "${VERSION_ID}"
+        "${0}" ubikernel "${VERSION_ID}"
+        "${0}" mtduboot "${VERSION_ID}"
+        ;;
+
+    mmc_mirroruboot)
+        "${0}" mtduboot "${VERSION_ID}"
+        ;;
+
+    mmc-set-primary)
+        "${0}" updateubootvars "${VERSION_ID}"
+        ;;
+
+    cleanup)
+        log "Cleaning up staging directory for ${VERSION_ID}..."
+        rm -rf "${IMAGE_DIR}"
+        ;;
+
+    *)
+        log "Action '${ACTION}' invoked."
+        ;;
+esac
+
+exit 0

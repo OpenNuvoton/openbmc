@@ -15,6 +15,8 @@ KERNEL_SRC ?= "git://github.com/OpenNuvoton/MA35D1_linux-6.6.y.git;branch=master
 SRC_URI = "${KERNEL_SRC}"
 SRC_URI += "file://${MA35_DEFCONFIG}"
 SRC_URI += "file://${MA35_DTS}"
+SRC_URI += "file://0002-mtd-rawnand-ma35-fix-probe-error-cleanup-and-child-p.patch"
+SRC_URI += "file://patch-kernel-dtsi.py"
 SRCREV = "${KERNEL_SRCREV}"
 
 SRCBRANCH = "6.6.93"
@@ -40,10 +42,13 @@ do_configure:prepend() {
     cp ${UNPACKDIR}/${MA35_DTS} \
         ${S}/arch/arm64/boot/dts/nuvoton/${MA35_DTS_TARGET}
 
-    # Expand SPI-NAND and raw NAND rootfs partitions for 512MB flash
-    # Original: 0x6400000 (100MB) or 0x0, New: 0x1E400000 (484MB)
-    sed -i -E '/(spinand|nand)-rootfs/{n;s|reg = <0x1[cC]00000 0x[0-9a-fA-F]+>|reg = <0x1c00000 0x1E400000>|}' \
-        ${S}/arch/arm64/boot/dts/nuvoton/${MA35_DTSI}
+    # Convert SPI-NAND and raw NAND partition schemes to Pure UBI Architecture:
+    # 4MB uboot (0x0 - 0x400000) + 508MB rootfs UBI pool (0x400000 - 0x20000000)
+    if [ -f "${UNPACKDIR}/patch-kernel-dtsi.py" ]; then
+        python3 "${UNPACKDIR}/patch-kernel-dtsi.py" "${S}"
+    else
+        python3 "${WORKDIR}/patch-kernel-dtsi.py" "${S}"
+    fi
 }
 
 do_deploy:append() {

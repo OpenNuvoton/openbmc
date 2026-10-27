@@ -1,0 +1,20 @@
+# short-description: Create a dual-bank image for SD card / eMMC on Nuvoton MA35
+# long-description: Creates an SD/eMMC card image with dual-bank EXT4 partitions
+#                   matching the OpenBMC Redfish Dual-Bank update specification.
+#
+# Storage Layout:
+# 0 - 4MB: Reserved for Bootloader (Header 0x400, BL2 0x20000/0x30000, FIP 0xC0000, U-Boot Env 0x50000)
+# Part 1: boot-a (EXT4, kernel Image + DTB)
+# Part 2: boot-b (EXT4, standby kernel + DTB)
+# Part 3: rofs-a (EXT4, read-only rootfs)
+# Part 4: rofs-b (EXT4, standby read-only rootfs)
+# Part 5: rwfs   (EXT4, persistent overlay mounted at /var/persist)
+
+bootloader --ptable msdos
+
+part --align 4096 --size 4M --no-table
+part --fstype=ext4 --fixed-size 32M --source bootimg-partition --label boot-a
+part --fstype=ext4 --fixed-size 32M --source bootimg-partition --label boot-b
+part --fstype=ext4 --fixed-size 256M --source rootfs --label rofs-a
+part --fstype=ext4 --fixed-size 256M --source rootfs --label rofs-b
+part --fstype=ext4 --fixed-size 256M --label rwfs
