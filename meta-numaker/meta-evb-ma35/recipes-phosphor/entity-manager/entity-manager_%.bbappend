@@ -8,6 +8,8 @@ do_install:append() {
         sed -i 's#ExecStartPre=/bin/mkdir -p /var/configuration#ExecStartPre=/bin/sh -c "mkdir -p /var/configuration /tmp/overlays 2>/dev/null || true"#g' ${D}${systemd_system_unitdir}/xyz.openbmc_project.EntityManager.service
     fi
 
+    # Remove upstream third-party vendor configs and install only this machine's JSON
+    rm -rf ${D}${datadir}/entity-manager/configurations
     install -d ${D}${datadir}/entity-manager/configurations
     if [ -f "${WORKDIR}/sources/${MACHINE}.json" ]; then
         install -m 0644 ${WORKDIR}/sources/${MACHINE}.json ${D}${datadir}/entity-manager/configurations/

@@ -7,6 +7,10 @@ EXTRA_IMAGECMD:squashfs-xz:append:ma35d0 = " -b 262144 -Xbcj arm"
 EXTRA_IMAGECMD:squashfs-xz:append:ma35d05k = " -b 262144 -Xbcj arm"
 EXTRA_IMAGECMD:squashfs-xz:append:ma35d1 = " -b 262144 -Xbcj arm"
 
+# Trim EXT4 overhead, reserved blocks, and oversized default inode table
+IMAGE_OVERHEAD_FACTOR:ma35 = "1.02"
+EXTRA_IMAGECMD:ext4:ma35 = "-i 16384 -m 0"
+
 IMAGE_FEATURES:remove:ma35d0 = " \
     obmc-ikvm \
     obmc-user-mgmt-ldap \

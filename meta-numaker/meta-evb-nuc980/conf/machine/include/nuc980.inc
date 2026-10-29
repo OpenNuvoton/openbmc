@@ -3,13 +3,17 @@ PREFERRED_VERSION_linux-nuc980 ?= "6.6%"
 PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot-nuc980"
 PREFERRED_PROVIDER_u-boot ?= "u-boot-nuc980"
 
-# NUC980 is ARM926EJ-S
+# NUC980 is ARM926EJ-S; optimize target binaries for size (-Os) and Thumb instruction set
 DEFAULTTUNE ?= "arm926ejs"
+ARM_INSTRUCTION_SET = "thumb"
+# OpenSSH requires -fzero-call-used-regs which is unsupported on ARMv5 Thumb-1
+ARM_INSTRUCTION_SET:pn-openssh = "arm"
+FULL_OPTIMIZATION:nuc980 = "-Os ${DEBUG_LEVELFLAG}"
 
 IMAGE_FSTYPES += "ubi ubifs"
 
 # UBI/UBIFS parameters for 128MB SPI NAND (2048 page, 128KB PEB)
-MKUBIFS_ARGS = "-m 2048 -e 126976 -c 920 -x lzo -F"
+MKUBIFS_ARGS = "-m 2048 -e 126976 -c 920 -x zstd -F"
 UBINIZE_ARGS = "-m 2048 -p 131072 -s 2048"
 UBI_VOLNAME = "rootfs"
 

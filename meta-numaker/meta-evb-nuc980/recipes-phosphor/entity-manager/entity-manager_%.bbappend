@@ -9,11 +9,15 @@ do_install:append() {
     if [ -f "${D}${systemd_system_unitdir}/xyz.openbmc_project.EntityManager.service" ]; then
         sed -i 's/\[Unit\]/\[Unit\]\nAfter=local-fs.target var-volatile-configuration.service/g' ${D}${systemd_system_unitdir}/xyz.openbmc_project.EntityManager.service
     fi
+    # Remove upstream third-party vendor configs and install only nuc980-evb.json
+    rm -rf ${D}${datadir}/entity-manager/configurations
     install -d ${D}${datadir}/entity-manager/configurations
     if [ -f "${WORKDIR}/sources/nuc980-evb.json" ]; then
         install -m 0644 ${WORKDIR}/sources/nuc980-evb.json ${D}${datadir}/entity-manager/configurations/
-    else
+    elif [ -f "${WORKDIR}/nuc980-evb.json" ]; then
         install -m 0644 ${WORKDIR}/nuc980-evb.json ${D}${datadir}/entity-manager/configurations/
+    else
+        install -m 0644 ${UNPACKDIR}/nuc980-evb.json ${D}${datadir}/entity-manager/configurations/
     fi
 
     # Pre-create empty directory for volatile-binds mountpoint

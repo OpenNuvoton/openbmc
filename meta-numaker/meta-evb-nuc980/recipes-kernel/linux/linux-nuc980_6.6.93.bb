@@ -9,6 +9,7 @@ KBRANCH = "master"
 SRC_URI = "git://github.com/OpenNuvoton/NUC980-linux-6.6.y.git;protocol=https;branch=${KBRANCH} \
     file://defconfig \
     file://nuc980-iot-128m-bmc.dts \
+    file://0001-spi-nuc980-qspi-calculate-clock-divider-using-actual.patch \
 "
 SRCREV = "${AUTOREV}"
 

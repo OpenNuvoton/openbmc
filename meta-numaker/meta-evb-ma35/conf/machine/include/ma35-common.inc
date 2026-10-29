@@ -55,7 +55,7 @@ FLASH_SIZE = "524288"
 IMAGE_FSTYPES += "ubi ubifs ext4 wic wic.gz"
 
 # UBI image settings for 512MB Flash (508MB rootfs partition = 4064 PEBs)
-MKUBIFS_ARGS ?= "-m 2048 -e 126976 -c 3950 -x lzo -F"
+MKUBIFS_ARGS ?= "-m 2048 -e 126976 -c 3950 -x zstd -F"
 UBINIZE_ARGS ?= "-m 2048 -p 131072 -s 2048"
 UBI_VOLNAME = "rootfs"
 
