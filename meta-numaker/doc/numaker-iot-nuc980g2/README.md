@@ -34,32 +34,38 @@ Operational guide for building, flashing, and verifying OpenBMC on the **Nuvoton
 
 ## 2. Build Environment & Compilation
 
-Build OpenBMC inside the tested Ubuntu 24.04 Docker environment (details in [`../docker/README.md`](../docker/README.md)).
+> [!NOTE]
+> All build commands below are executed **inside the Docker container**.
+> If you have not set up the Docker build environment yet, please refer to [Docker Build Environment Guide](../docker/README.md) to build and enter the container first.
+
 Ensure at least **60 GB** of free disk space for toolchain builds and sstate cache.
 
-### 2.1 Build Steps (Docker)
+### 2.1 Build Steps
 
+1. Inside the Docker container, switch to the OpenBMC repository:
 ```bash
-# 1. Build and enter the container (run once)
-cd meta-numaker/doc/docker/
-./build.sh
-./join.sh
+cd ~/openbmc
+```
 
-# 2. Inside the container, clone and initialize the build directory:
-cd ~/shared
-git clone -b numaker https://github.com/OpenNuvoton/openbmc.git
-cd openbmc
+2. Initialize the build directory:
+```bash
 MACHINE=numaker-iot-nuc980g2 source setup numaker-iot-nuc980g2 build-nuc980
+```
 
-# 3. Start compilation:
+3. Start compilation:
+```bash
 bitbake nuwriter-pack
 ```
 
 > [!NOTE]
 > For subsequent sessions in a new shell:
 > ```bash
-> cd ~/shared/openbmc
+> cd ~/openbmc
+> ```
+> ```bash
 > source oe-init-build-env build-nuc980
+> ```
+> ```bash
 > bitbake nuwriter-pack
 > ```
 
@@ -164,7 +170,13 @@ Requires `curl` and `jq` on the test host:
 
 ```bash
 cd doc/numaker-iot-nuc980g2/
+```
+
+```bash
 chmod +x test-redfish.sh
+```
+
+```bash
 ./test-redfish.sh
 ```
 
@@ -192,19 +204,22 @@ See [`test-redfish.md`](test-redfish.md) for full compliance results.
 
 ### 5.2 Manual Redfish API Checks
 
+Service Root:
 ```bash
-# Service Root
 curl -k -s -u root:0penBmc https://numaker-iot-nuc980g2.local/redfish/v1/ | jq .
+```
 
-# Chassis Status
+Chassis Status:
+```bash
 curl -k -s -u root:0penBmc https://numaker-iot-nuc980g2.local/redfish/v1/Chassis/system | jq '{Id, Name, Status, PowerState}'
+```
 
-# Location Indicator LED (Turn ON)
+Location Indicator LED (Turn ON):
+```bash
 curl -k -s -u root:0penBmc -X PATCH \
   https://numaker-iot-nuc980g2.local/redfish/v1/Chassis/system \
   -H "Content-Type: application/json" \
   -d '{"LocationIndicatorActive": true}' -i
-# Expected: HTTP/1.1 204 No Content
 ```
 
 ### 5.3 Host Power Control (GPIO)
@@ -220,24 +235,25 @@ curl -k -s -u root:0penBmc -X PATCH \
 > - **Power On**: Connect `PF9` to **3.3V** before or immediately after issuing the Power On command.
 > - **Power Off / Force Off**: Disconnect `PF9` (or pull to **GND**) after issuing the Power Off command.
 
+Power On:
 ```bash
-# Power On:
 curl -k -s -u root:0penBmc -X POST \
   https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" \
   -d '{"ResetType": "On"}' -i
-# Expected: HTTP/1.1 204 No Content
+```
 
-# Verify PowerState:
+Verify PowerState:
+```bash
 curl -k -s -u root:0penBmc https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system | jq .PowerState
-# Expected: "On"
+```
 
-# Force Off:
+Force Off:
+```bash
 curl -k -s -u root:0penBmc -X POST \
   https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" \
   -d '{"ResetType": "ForceOff"}' -i
-# Expected: HTTP/1.1 204 No Content
 ```
 
 See [`test-power-control.md`](test-power-control.md) for signal timings and wiring diagrams.

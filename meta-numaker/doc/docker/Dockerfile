@@ -81,7 +81,8 @@ ENV LC_ALL=en_US.UTF-8 \
 RUN touch /etc/subuid /etc/subgid \
     && (id -u ubuntu >/dev/null 2>&1 && userdel -r ubuntu || true) \
     && useradd --uid 30000 --create-home build \
-    && echo "build ALL=(ALL) NOPASSWD: ALL" | tee -a /etc/sudoers
+    && echo "build ALL=(ALL) NOPASSWD: ALL" | tee -a /etc/sudoers \
+    && git config --system --add safe.directory '*'
 
 USER build
 WORKDIR /home/build

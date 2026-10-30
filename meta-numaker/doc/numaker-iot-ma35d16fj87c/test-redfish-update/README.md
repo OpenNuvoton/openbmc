@@ -112,8 +112,17 @@ SD1 (MicroSD) / eMMC MBR Dual-Bank Layout
 The initial WIC image allocates 256 MB to partition 6 (`rwfs`). Because `p6` is mounted online (`/images` and `/var/persist`), `parted -s` (`--script`) aborts on the busy-partition warning; pass `echo yes | parted ---pretend-input-tty` (three leading hyphens) to confirm online expansion before staging large (`170 MB+`) EXT4 OTA packages:
 ```bash
 echo yes | parted ---pretend-input-tty /dev/mmcblk1 resizepart 4 100%
+```
+
+```bash
 echo yes | parted ---pretend-input-tty /dev/mmcblk1 resizepart 6 100%
+```
+
+```bash
 resize2fs /dev/mmcblk1p6
+```
+
+```bash
 df -h /var/persist
 ```
 
@@ -154,6 +163,9 @@ Before extracting or writing flash partitions, [`ma35-verify-version.sh`](file:/
 Install the required CLI utilities on your Linux workstation:
 ```bash
 sudo apt-get update
+```
+
+```bash
 sudo apt-get install -y curl sshpass jq tar
 ```
 
@@ -315,14 +327,19 @@ curl -k -s -u root:0penBmc \
 `PercentComplete` advances from `0` to `100` during extraction and flashing, then triggers a reboot when `ApplyTime` is `Immediate`.
 
 ### Step 4: Verify Reboot & Active Bank
+
+1. Confirm Redfish Manager state:
 ```bash
-# 1. Confirm Redfish Manager state
 curl -k -s -u root:0penBmc https://numaker-iot-ma35d16fj87c.local/redfish/v1/Managers/bmc | jq .Status
+```
 
-# 2. Check active boot bank (SPI-NAND / Raw NAND)
+2. Check active boot bank (SPI-NAND / Raw NAND):
+```bash
 ssh root@numaker-iot-ma35d16fj87c.local "fw_printenv bootubivol kernelname dtbname upgrade_available bootcount"
+```
 
-# Or check active boot bank (SD1 / eMMC)
+Or check active boot bank (SD1 / eMMC):
+```bash
 ssh root@numaker-iot-ma35d16fj87c.local "cat /proc/cmdline && fw_printenv bootside upgrade_available bootcount"
 ```
 
@@ -333,12 +350,18 @@ ssh root@numaker-iot-ma35d16fj87c.local "cat /proc/cmdline && fw_printenv bootsi
 Log in to the BMC via serial console or SSH to inspect update status and logs.
 
 ### 5.1 Inspect D-Bus Software Manager State
-```bash
-# Check service status
-systemctl status xyz.openbmc_project.Software.Manager.service
 
-# List software objects and activation state
+Check service status:
+```bash
+systemctl status xyz.openbmc_project.Software.Manager.service
+```
+
+List software objects and activation state:
+```bash
 busctl tree xyz.openbmc_project.Software.Manager
+```
+
+```bash
 busctl introspect xyz.openbmc_project.Software.Manager \
   /xyz/openbmc_project/software/<VERSION_ID> \
   xyz.openbmc_project.Software.Activation

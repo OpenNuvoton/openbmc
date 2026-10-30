@@ -48,10 +48,12 @@ stty -F /dev/ttyS12 115200 cs8 -cstopb -parenb raw -echo
 
 ### 4.3 Send & Receive Test
 
+Terminal 1 (Receiver):
 ```bash
-# Terminal 1 (Receiver):
 cat /dev/ttyS12
+```
 
-# Terminal 2 (Transmitter):
+Terminal 2 (Transmitter):
+```bash
 echo "Hello from NuMaker MA35D16FJ87C RS485" > /dev/ttyS12
 ```

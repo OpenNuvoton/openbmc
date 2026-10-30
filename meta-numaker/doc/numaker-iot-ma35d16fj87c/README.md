@@ -55,32 +55,38 @@ SW7 defines boot source and bus configuration at power-on.
 
 ## 2. Build Environment & Compilation
 
-Build OpenBMC inside the tested Ubuntu 24.04 Docker environment (details in [`../docker/README.md`](../docker/README.md)).
+> [!NOTE]
+> All build commands below are executed **inside the Docker container**.
+> If you have not set up the Docker build environment yet, please refer to [Docker Build Environment Guide](../docker/README.md) to build and enter the container first.
+
 Ensure at least **60 GB** of free disk space for toolchain builds and sstate cache.
 
-### 2.1 Build Steps (Docker)
+### 2.1 Build Steps
 
+1. Inside the Docker container, switch to the OpenBMC repository:
 ```bash
-# 1. Build and enter the container (run once)
-cd meta-numaker/doc/docker/
-./build.sh
-./join.sh
+cd ~/openbmc
+```
 
-# 2. Inside the container, clone and initialize the build directory:
-cd ~/shared
-git clone -b numaker https://github.com/OpenNuvoton/openbmc.git
-cd openbmc
+2. Initialize the build directory:
+```bash
 MACHINE=numaker-iot-ma35d16fj87c source setup numaker-iot-ma35d16fj87c build-ma35
+```
 
-# 3. Start compilation:
+3. Start compilation:
+```bash
 bitbake nuwriter-pack
 ```
 
 > [!NOTE]
 > For subsequent sessions in a new shell:
 > ```bash
-> cd ~/shared/openbmc
+> cd ~/openbmc
+> ```
+> ```bash
 > source oe-init-build-env build-ma35
+> ```
+> ```bash
 > bitbake nuwriter-pack
 > ```
 
@@ -200,7 +206,13 @@ Requires `curl` and `jq` on the test host:
 
 ```bash
 cd doc/numaker-iot-ma35d16fj87c/
+```
+
+```bash
 chmod +x test-redfish.sh
+```
+
+```bash
 ./test-redfish.sh
 ```
 
@@ -267,18 +279,30 @@ MA35D16FJ87C provides 3 CAN controllers: `can0` (`PN2`/`PN3`), `can1` (`PN6`/`PN
 > [!WARNING]
 > SoC CAN pins output 3.3V TTL levels. Connect via an external **3.3V CAN transceiver** (e.g. SN65HVD230 / TJA1051T) with **120Ω termination resistors** on both bus ends. Do NOT connect TTL pins directly to a 12V/24V CAN bus.
 
+Configure `can0` and `can1` for CAN-FD in BMC SSH:
 ```bash
-# In BMC SSH: configure can0 and can1 for CAN-FD
 ip link set can0 type can bitrate 500000 dbitrate 2000000 fd on
+```
+
+```bash
 ip link set can0 up
+```
 
+```bash
 ip link set can1 type can bitrate 500000 dbitrate 2000000 fd on
+```
+
+```bash
 ip link set can1 up
+```
 
-# Receiver:
+Receiver:
+```bash
 candump can1
+```
 
-# Transmitter:
+Transmitter:
+```bash
 cansend can0 123##3112233445566778899AABBCCDDEEFF
 ```
 
@@ -305,12 +329,13 @@ See [`test-power-control.md`](test-power-control.md) for GPIO timing and control
 
 ### 5.6 SoC Temperature Monitoring
 
+Via D-Bus (on BMC):
 ```bash
-# Via D-Bus (on BMC):
 busctl get-property xyz.openbmc_project.MA35_Thermal /xyz/openbmc_project/sensors/temperature/cpu_thermal xyz.openbmc_project.Sensor.Value Value
-# Expected Output: d <temperature_in_celsius> (e.g. d 43.0)
+```
 
-# Via Redfish:
+Via Redfish:
+```bash
 curl -k -s -u root:0penBmc https://numaker-iot-ma35d16fj87c.local/redfish/v1/Chassis/system/ThermalSubsystem/ThermalMetrics | jq .
 ```
 

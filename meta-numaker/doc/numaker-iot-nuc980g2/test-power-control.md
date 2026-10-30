@@ -34,62 +34,78 @@ The NUC980G2 BMC controls host power states via GPIO using OpenBMC's `x86-power-
 
 ### 3.1 Redfish API
 
+Power On (200ms pulse):
 ```bash
-# Power On (200ms pulse)
 curl -k -s -u root:0penBmc -X POST \
   https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" \
   -d '{"ResetType": "On"}' -i
+```
 
-# Force Off (4s pulse)
+Force Off (4s pulse):
+```bash
 curl -k -s -u root:0penBmc -X POST \
   https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" \
   -d '{"ResetType": "ForceOff"}' -i
+```
 
-# Graceful Shutdown (short press, OS ACPI handler)
+Graceful Shutdown (short press, OS ACPI handler):
+```bash
 curl -k -s -u root:0penBmc -X POST \
   https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" \
   -d '{"ResetType": "GracefulShutdown"}' -i
+```
 
-# Force Restart (500ms reset pulse)
+Force Restart (500ms reset pulse):
+```bash
 curl -k -s -u root:0penBmc -X POST \
   https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
   -H "Content-Type: application/json" \
   -d '{"ResetType": "ForceRestart"}' -i
+```
 
-# Query Host Power State
+Query Host Power State:
+```bash
 curl -k -s -u root:0penBmc \
   https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system | jq .PowerState
 ```
 
 ### 3.2 D-Bus Commands (BMC SSH)
 
+Query current host power state:
 ```bash
-# Query current host power state
 busctl get-property xyz.openbmc_project.State.Host \
   /xyz/openbmc_project/state/host0 \
   xyz.openbmc_project.State.Host CurrentHostState
+```
 
-# Query current chassis power state
+Query current chassis power state:
+```bash
 busctl get-property xyz.openbmc_project.State.Chassis \
   /xyz/openbmc_project/state/chassis0 \
   xyz.openbmc_project.State.Chassis CurrentPowerState
+```
 
-# Power On transition
+Power On transition:
+```bash
 busctl set-property xyz.openbmc_project.State.Host \
   /xyz/openbmc_project/state/host0 \
   xyz.openbmc_project.State.Host RequestedHostTransition \
   s "xyz.openbmc_project.State.Host.Transition.On"
+```
 
-# Power Off transition (graceful first, then force off after timeout)
+Power Off transition (graceful first, then force off after timeout):
+```bash
 busctl set-property xyz.openbmc_project.State.Host \
   /xyz/openbmc_project/state/host0 \
   xyz.openbmc_project.State.Host RequestedHostTransition \
   s "xyz.openbmc_project.State.Host.Transition.Off"
+```
 
-# Reboot transition
+Reboot transition:
+```bash
 busctl set-property xyz.openbmc_project.State.Host \
   /xyz/openbmc_project/state/host0 \
   xyz.openbmc_project.State.Host RequestedHostTransition \
@@ -98,22 +114,36 @@ busctl set-property xyz.openbmc_project.State.Host \
 
 ### 3.3 Low-Level Direct GPIO Control (`gpiod`)
 
+Locate named lines:
 ```bash
-# Locate named lines
 gpiofind POWER_OUT
+```
+
+```bash
 gpiofind RESET_OUT
+```
+
+```bash
 gpiofind PS_PWROK
+```
 
-# Read PS_PWROK status (1=Host on, 0=Host off)
+Read PS_PWROK status (1=Host on, 0=Host off):
+```bash
 gpioget $(gpiofind PS_PWROK)
+```
 
-# Manual 200ms power button pulse
+Manual 200ms power button pulse:
+```bash
 gpioset gpiochip0 108=0 && sleep 0.2 && gpioset gpiochip0 108=1
+```
 
-# Manual 4s force power off pulse
+Manual 4s force power off pulse:
+```bash
 gpioset gpiochip0 108=0 && sleep 4 && gpioset gpiochip0 108=1
+```
 
-# Manual 500ms reset pulse
+Manual 500ms reset pulse:
+```bash
 gpioset gpiochip0 109=0 && sleep 0.5 && gpioset gpiochip0 109=1
 ```
 

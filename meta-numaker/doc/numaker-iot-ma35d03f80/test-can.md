@@ -58,7 +58,13 @@ Always configure bit-timing via `ip link` before enabling an interface. Replace 
 
 ```bash
 ip link set can0 down
+```
+
+```bash
 ip link set can0 up type can bitrate 500000
+```
+
+```bash
 ip -details link show can0
 ```
 
@@ -66,7 +72,13 @@ ip -details link show can0
 
 ```bash
 ip link set can0 down
+```
+
+```bash
 ip link set can0 up type can bitrate 500000 dbitrate 2000000 fd on
+```
+
+```bash
 ip -details link show can0
 ```
 
@@ -74,6 +86,9 @@ ip -details link show can0
 
 ```bash
 ip link set can0 down
+```
+
+```bash
 ip link set can0 up type can bitrate 500000 loopback on
 ```
 
@@ -85,52 +100,69 @@ ip link set can0 up type can bitrate 500000 loopback on
 
 With `can0` and `can1` wired to the same terminated bus:
 
+1. Bring up both interfaces:
 ```bash
-# 1. Bring up both interfaces
 ip link set can0 up type can bitrate 500000
-ip link set can1 up type can bitrate 500000
-
-# 2. Run listener on can1 in background
-candump can1 &
-
-# 3. Transmit test frame from can0
-cansend can0 123#1122334455667788
-# Expected on can1: can1 123 [8] 11 22 33 44 55 66 77 88
 ```
+
+```bash
+ip link set can1 up type can bitrate 500000
+```
+
+2. Run listener on can1 in background:
+```bash
+candump can1 &
+```
+
+3. Transmit test frame from can0:
+```bash
+cansend can0 123#1122334455667788
+```
+*(Expected on `can1`: `can1 123 [8] 11 22 33 44 55 66 77 88`)*
 
 ### 4.2 Frame Transmission (`cansend`)
 
+Standard 11-bit ID:
 ```bash
-# Standard 11-bit ID
 cansend can0 123#1122334455667788
+```
 
-# Extended 29-bit ID
+Extended 29-bit ID:
+```bash
 cansend can0 18EAFF00#00EE00
+```
 
-# CAN-FD with Bitrate Switch (BRS, Flags=3) and 64-byte payload
+CAN-FD with Bitrate Switch (BRS, Flags=3) and 64-byte payload:
+```bash
 cansend can0 123##30102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F202122232425262728292A2B2C2D2E2F303132333435363738393A3B3C3D3E3F40
 ```
 
 ### 4.3 Traffic Generator (`cangen`)
 
+Classic CAN traffic every 50ms (-g 50):
 ```bash
-# Classic CAN traffic every 50ms (-g 50)
 cangen can0 -v -g 50
+```
 
-# CAN-FD traffic with Bitrate Switch (-b) and extended frames (-f)
+CAN-FD traffic with Bitrate Switch (-b) and extended frames (-f):
+```bash
 cangen can0 -v -g 50 -f -b
 ```
 
 ### 4.4 Traffic Monitoring (`candump` / `cansniffer`)
 
+Dump raw traffic:
 ```bash
-# Dump raw traffic
 candump can0
+```
 
-# Dump with delta timestamps
+Dump with delta timestamps:
+```bash
 candump -td -c can0
+```
 
-# Dynamic delta view
+Dynamic delta view:
+```bash
 cansniffer can0
 ```
 
