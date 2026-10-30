@@ -2,12 +2,26 @@
 
 Operational guide for over-the-air (OTA) firmware updates on the **NuMaker-IoT-MA35D05KI1** using the DMTF Redfish `UpdateService` API, covering dual-bank (A/B) storage layouts, direct-to-disk streaming, anti-rollback checks, watchdog boot fallback, and automated test scripts.
 
+> [!CAUTION]
+> ### ⚠️ HARDWARE PREREQUISITE & CRITICAL NOTICE
+> **A 512 MB (4G-bit) or larger SPI-NAND Flash is strictly required to test and run Redfish OTA updates on this board.**
+>
+> * **Root Cause of 256 MB Update Failure (Why 256 MB Fails with HTTP 404 at 0%)**:
+>   - The platform utilizes a Dual-Bank A/B redundancy architecture (`rofs-a` 70 MB + `rofs-b` 70 MB + `kernel-a/b` 32 MB + DTB/Env ~1 MB).
+>   - On the stock factory **256 MB (2G-bit)** Flash, after reserving physical erase blocks for UBI wear-leveling and bad block management (~40 PEBs), the persistent writable partition `rwfs` (mounted at `/var/persist` and `/tmp/images`) is limited to **~65 MB** of usable space.
+>   - The Redfish OTA firmware bundle (`obmc-phosphor-image-numaker-iot-ma35d05ki1.mtd-ubi-tar`) is approximately **62 MB**. When uploaded to disk, it occupies over 95% of the available `rwfs` partition.
+>   - When `phosphor-software-manager` extracts the archive (`image-rofs` 46.6 MB + `image-kernel` 9.4 MB + `image-u-boot` 4.2 MB = 60.2 MB), `tar` immediately exhausts available disk space (**`ENOSPC: No space left on device`**). Consequently, the update task terminates prematurely at 0% progress and returns HTTP 404 Not Found.
+> * **Required Action & Workarounds**:
+>   1. **Upgrade Flash Chip (Mandatory for SPI-NAND OTA)**: Replace the on-board SPI-NAND chip with a **512 MB (4G-bit)** component (e.g., Winbond W25N04KV or equivalent). On a 512 MB chip, `rwfs` automatically resizes to **~315 MB**, providing ample staging capacity for smooth OTA execution.
+>   2. **USB NuWriter Programming (for 256 MB Flash)**: If the board remains populated with the default 256 MB Flash, **do not attempt in-band Redfish OTA updates**. Instead, flash the entire firmware bundle over USB using NuWriter with `nuwriter-pack-spinand-numaker-iot-ma35d05ki1.bin`.
+>   3. **Boot via SD1 / eMMC**: Boards booted from MicroSD or eMMC using the EXT4 dual-bank layout are unaffected by this limitation, as `p6` (`rwfs`) provides several gigabytes of storage.
+
 ---
 
 ## Table of Contents
 
 1. [Architecture & Update Mechanism](#1-architecture--update-mechanism)
-   - [1.1 SPI-NAND / Raw NAND: Pure UBI Dual-Bank Layout](#11-spi-nand--raw-nand-pure-ubi-dual-bank-layout)
+   - [1.1 SPI-NAND: Pure UBI Dual-Bank Layout](#11-spi-nand-pure-ubi-dual-bank-layout)
    - [1.2 SD1 / eMMC: MBR EXT4 Dual-Bank Layout](#12-sd1--emmc-mbr-ext4-dual-bank-layout)
    - [1.3 Direct-to-Disk Streaming (Low-Memory OOM Prevention)](#13-direct-to-disk-streaming-low-memory-oom-prevention)
    - [1.4 Target Verification & Anti-Rollback](#14-target-verification--anti-rollback)
@@ -31,32 +45,32 @@ Operational guide for over-the-air (OTA) firmware updates on the **NuMaker-IoT-M
 
 ## 1. Architecture & Update Mechanism
 
-### 1.1 SPI-NAND / Raw NAND: Pure UBI Dual-Bank Layout
+### 1.1 SPI-NAND: Pure UBI Dual-Bank Layout
 
-SPI-NAND (512 MB) and Raw NAND (1024 MB) use a two-partition MTD layout, delegating wear-leveling and bad-block management to UBI:
+SPI-NAND uses a two-partition MTD layout, delegating wear-leveling and bad-block management to UBI:
 
 ```text
-SPI-NAND (512MB) / Raw NAND (1024MB) UBI Layout
+SPI-NAND (256MB / 512MB) UBI Layout
 +-------------------------+-----------------------------------------------------------+
 | mtd0: uboot             | mtd1: rootfs (Pure UBI Pool)                              |
-| 0x00000000 - 0x00400000 | 0x00400000 - 0x20000000 (508 MB on 512MB SPI-NAND)        |
-| (4 MB Raw Bootloader)   | 0x00400000 - 0x40000000 (1020 MB on 1GB Raw NAND)         |
+| 0x00000000 - 0x00400000 | 0x00400000 - 0x10000000 (252 MB on 256MB SPI-NAND)        |
+| (4 MB Raw Bootloader)   | 0x00400000 - 0x20000000 (508 MB on 512MB SPI-NAND)        |
 |                         |                                                           |
 |  * Header               |  |-- Vol 0: u-boot-env (256 KB, preloaded 64KB env)       |
 |  * BL2 DTB              |  |-- Vol 1: kernel-a   (16 MB, Bank A Kernel)             |
 |  * BL2 Bin              |  |-- Vol 2: dtb-a      (512 KB, Bank A DTB)               |
-|  * FIP (BL31 + U-Boot)  |  |-- Vol 3: rofs-a     (100 MB, Bank A UBIFS RootFS)      |
+|  * FIP (BL31 + U-Boot)  |  |-- Vol 3: rofs-a     (70 MB, Bank A UBIFS RootFS)       |
 |                         |  |-- Vol 4: kernel-b   (16 MB, Bank B Kernel Standby)     |
 |                         |  |-- Vol 5: dtb-b      (512 KB, Bank B DTB Standby)       |
-|                         |  |-- Vol 6: rofs-b     (100 MB, Bank B UBIFS Standby)     |
-|                         |  `-- Vol 7: rwfs       (10 MB autoresize -> ~255MB/~760MB)|
+|                         |  |-- Vol 6: rofs-b     (70 MB, Bank B UBIFS Standby)      |
+|                         |  `-- Vol 7: rwfs       (10 MB autoresize -> ~65MB / ~315MB)|
 +-------------------------+-----------------------------------------------------------+
 ```
 
 | MTD Partition | Label | Size & Offset | Contents & UBI Volumes |
 | :--- | :--- | :--- | :--- |
-| **`mtd0`** | `spinand-uboot`<br>`nand-uboot` | 4 MB<br>(`0x0`–`0x400000`) | **Raw Bootloader**: Header + BL2 DTB + BL2 Bin + FIP (BL31 + U-Boot) |
-| **`mtd1`** | `spinand-rootfs`<br>`nand-rootfs` | 508 MB (SPI-NAND)<br>1020 MB (Raw NAND) | **Pure UBI Pool**:<br>• `Vol 0 (u-boot-env)`: 256 KB, U-Boot environment<br>• `Vol 1 (kernel-a)`: 16 MB, Bank A Linux kernel<br>• `Vol 2 (dtb-a)`: 512 KB, Bank A device tree<br>• `Vol 3 (rofs-a)`: 100 MB, Bank A UBIFS read-only rootfs<br>• `Vol 4 (kernel-b)`: 16 MB, Bank B standby kernel<br>• `Vol 5 (dtb-b)`: 512 KB, Bank B standby device tree<br>• `Vol 6 (rofs-b)`: 100 MB, Bank B standby UBIFS rootfs<br>• `Vol 7 (rwfs)`: 10 MB (autoresizes to fill remaining flash, mounted at `/var/persist`) |
+| **`mtd0`** | `spinand-uboot` | 4 MB<br>(`0x0`–`0x400000`) | **Raw Bootloader**: Header + BL2 DTB + BL2 Bin + FIP (BL31 + U-Boot) |
+| **`mtd1`** | `spinand-rootfs` | 252 MB (256MB SPI-NAND)<br>508 MB (512MB SPI-NAND) | **Pure UBI Pool**:<br>• `Vol 0 (u-boot-env)`: 256 KB, U-Boot environment<br>• `Vol 1 (kernel-a)`: 16 MB, Bank A Linux kernel<br>• `Vol 2 (dtb-a)`: 512 KB, Bank A device tree<br>• `Vol 3 (rofs-a)`: 70 MB, Bank A UBIFS read-only rootfs<br>• `Vol 4 (kernel-b)`: 16 MB, Bank B standby kernel<br>• `Vol 5 (dtb-b)`: 512 KB, Bank B standby device tree<br>• `Vol 6 (rofs-b)`: 70 MB, Bank B standby UBIFS rootfs<br>• `Vol 7 (rwfs)`: 10 MB (autoresizes to fill remaining flash, mounted at `/var/persist`) |
 
 - **Dual-Bank Update Flow**:
   - The updater inspects `/proc/cmdline` and `/proc/mounts` to identify the active bank.
@@ -64,6 +78,10 @@ SPI-NAND (512MB) / Raw NAND (1024MB) UBI Layout
   - Once all volumes are written, `fw_setenv` updates the U-Boot boot pointers (`bootubivol`, `kernelname`, `dtbname`).
 - **Bootloader Write Guard**:
   - Before erasing and writing `image-u-boot` (4 MB) to `mtd0`, the updater compares its SHA-256 digest against the existing `mtd0` contents and skips flashing if identical, reducing flash wear and power-loss exposure.
+
+> [!WARNING]
+> **SPI-NAND Capacity vs. Redfish OTA Staging**:
+> On a 256 MB SPI-NAND flash, `rwfs` has only ~65 MB of usable space, which cannot accommodate both the 62 MB uploaded tarball and the 60+ MB extracted partition images simultaneously. Attempting an OTA update on a 256 MB flash inevitably causes an `ENOSPC` out-of-disk-space error. **The flash chip must be upgraded to 512 MB to support Redfish OTA functionality.**
 
 ---
 
@@ -172,7 +190,7 @@ ping -c 2 numaker-iot-ma35d05ki1.local
 
 ### 2.3 Firmware Update Tarball Format
 
-#### 1. SPI-NAND / Raw NAND Package (`*.mtd-ubi-tar`)
+#### 1. SPI-NAND Package (`*.mtd-ubi-tar`)
 ```text
 obmc-phosphor-image-numaker-iot-ma35d05ki1.mtd-ubi-tar
 ├── MANIFEST            # Metadata (version, MachineName, SecurityVersion)
@@ -180,7 +198,6 @@ obmc-phosphor-image-numaker-iot-ma35d05ki1.mtd-ubi-tar
 ├── image-dtb           # Device tree blob (written to dtb-a / dtb-b)
 ├── image-rofs          # UBIFS rootfs image (written to rofs-a / rofs-b)
 ├── image-u-boot        # (Optional) 4 MB SPI-NAND bootloader image
-├── image-u-boot-nand   # (Optional) 4 MB Raw NAND bootloader image
 └── image-rwfs          # Placeholder file required by phosphor-software-manager
 ```
 
@@ -214,6 +231,10 @@ All test scripts are located in `meta-numaker/doc/numaker-iot-ma35d05ki1/test-re
 
 ### 3.1 End-to-End Firmware Update (`test-redfish-update.sh`)
 
+> [!CAUTION]
+> **SPI-NAND Target Hardware Prerequisite**:
+> When testing SPI-NAND boot targets, confirm that the on-board flash has been upgraded to a **512 MB (4G-bit)** chip. Running this test on the default 256 MB chip will fail at 0% archive extraction due to `rwfs` exhaustion (`ENOSPC`), causing the task to terminate prematurely with HTTP 404. For 256 MB boards, use NuWriter USB flashing instead.
+
 Uploads the firmware tarball, polls the Redfish task monitor until completion, waits for the BMC to reboot, and verifies that the active bank switched.
 
 Usage:
@@ -221,7 +242,7 @@ Usage:
 ./test-redfish-update.sh <BMC_IP> <IMAGE_FILE> [username:password] [Immediate|OnReset]
 ```
 
-Example (SPI-NAND / Raw NAND):
+Example (SPI-NAND):
 ```bash
 bash meta-numaker/doc/numaker-iot-ma35d05ki1/test-redfish-update/test-redfish-update.sh \
   numaker-iot-ma35d05ki1.local \
@@ -318,7 +339,7 @@ curl -k -s -u root:0penBmc \
 # 1. Confirm Redfish Manager state
 curl -k -s -u root:0penBmc https://numaker-iot-ma35d05ki1.local/redfish/v1/Managers/bmc | jq .Status
 
-# 2. Check active boot bank (SPI-NAND / Raw NAND)
+# 2. Check active boot bank (SPI-NAND)
 ssh root@numaker-iot-ma35d05ki1.local "fw_printenv bootubivol kernelname dtbname upgrade_available bootcount"
 
 # Or check active boot bank (SD1 / eMMC)

@@ -39,24 +39,25 @@ SPI-NAND (512 MB) and Raw NAND (1024 MB) use a two-partition MTD layout, delegat
 SPI-NAND (512MB) / Raw NAND (1024MB) UBI Layout
 +-------------------------+-----------------------------------------------------------+
 | mtd0: uboot             | mtd1: rootfs (Pure UBI Pool)                              |
-| 0x00000000 - 0x00400000 | 0x00400000 - 0x20000000 (508 MB on 512MB SPI-NAND)        |
-| (4 MB Raw Bootloader)   | 0x00400000 - 0x40000000 (1020 MB on 1GB Raw NAND)         |
+| 0x00000000 - 0x00400000 | 0x00400000 - 0x10000000 (252 MB on 256MB SPI-NAND)        |
+| (4 MB Raw Bootloader)   | 0x00400000 - 0x20000000 (508 MB on 512MB SPI-NAND)        |
+|                         | 0x00400000 - 0x40000000 (1020 MB on 1GB Raw NAND)         |
 |                         |                                                           |
 |  * Header               |  |-- Vol 0: u-boot-env (256 KB, preloaded 64KB env)       |
 |  * BL2 DTB              |  |-- Vol 1: kernel-a   (16 MB, Bank A Kernel)             |
 |  * BL2 Bin              |  |-- Vol 2: dtb-a      (512 KB, Bank A DTB)               |
-|  * FIP (BL31 + U-Boot)  |  |-- Vol 3: rofs-a     (100 MB, Bank A UBIFS RootFS)      |
+|  * FIP (BL31 + U-Boot)  |  |-- Vol 3: rofs-a     (70 MB, Bank A UBIFS RootFS)       |
 |                         |  |-- Vol 4: kernel-b   (16 MB, Bank B Kernel Standby)     |
 |                         |  |-- Vol 5: dtb-b      (512 KB, Bank B DTB Standby)       |
-|                         |  |-- Vol 6: rofs-b     (100 MB, Bank B UBIFS Standby)     |
-|                         |  `-- Vol 7: rwfs       (10 MB autoresize -> ~255MB/~760MB)|
+|                         |  |-- Vol 6: rofs-b     (70 MB, Bank B UBIFS Standby)      |
+|                         |  `-- Vol 7: rwfs       (10 MB autoresize -> ~65MB / ~315MB)|
 +-------------------------+-----------------------------------------------------------+
 ```
 
 | MTD Partition | Label | Size & Offset | Contents & UBI Volumes |
 | :--- | :--- | :--- | :--- |
 | **`mtd0`** | `spinand-uboot`<br>`nand-uboot` | 4 MB<br>(`0x0`–`0x400000`) | **Raw Bootloader**: Header + BL2 DTB + BL2 Bin + FIP (BL31 + U-Boot) |
-| **`mtd1`** | `spinand-rootfs`<br>`nand-rootfs` | 508 MB (SPI-NAND)<br>1020 MB (Raw NAND) | **Pure UBI Pool**:<br>• `Vol 0 (u-boot-env)`: 256 KB, U-Boot environment<br>• `Vol 1 (kernel-a)`: 16 MB, Bank A Linux kernel<br>• `Vol 2 (dtb-a)`: 512 KB, Bank A device tree<br>• `Vol 3 (rofs-a)`: 100 MB, Bank A UBIFS read-only rootfs<br>• `Vol 4 (kernel-b)`: 16 MB, Bank B standby kernel<br>• `Vol 5 (dtb-b)`: 512 KB, Bank B standby device tree<br>• `Vol 6 (rofs-b)`: 100 MB, Bank B standby UBIFS rootfs<br>• `Vol 7 (rwfs)`: 10 MB (autoresizes to fill remaining flash, mounted at `/var/persist`) |
+| **`mtd1`** | `spinand-rootfs`<br>`nand-rootfs` | 252 MB (256MB SPI-NAND)<br>508 MB (512MB SPI-NAND)<br>1020 MB (Raw NAND) | **Pure UBI Pool**:<br>• `Vol 0 (u-boot-env)`: 256 KB, U-Boot environment<br>• `Vol 1 (kernel-a)`: 16 MB, Bank A Linux kernel<br>• `Vol 2 (dtb-a)`: 512 KB, Bank A device tree<br>• `Vol 3 (rofs-a)`: 70 MB, Bank A UBIFS read-only rootfs<br>• `Vol 4 (kernel-b)`: 16 MB, Bank B standby kernel<br>• `Vol 5 (dtb-b)`: 512 KB, Bank B standby device tree<br>• `Vol 6 (rofs-b)`: 70 MB, Bank B standby UBIFS rootfs<br>• `Vol 7 (rwfs)`: 10 MB (autoresizes to fill remaining flash, mounted at `/var/persist`) |
 
 - **Dual-Bank Update Flow**:
   - The updater inspects `/proc/cmdline` and `/proc/mounts` to identify the active bank.

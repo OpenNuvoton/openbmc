@@ -45,15 +45,15 @@ EXTRA_USERS_PARAMS:append:ma35d0 = " groupadd ipmi;"
 EXTRA_USERS_PARAMS:append:ma35d05k = " groupadd ipmi;"
 EXTRA_USERS_PARAMS:append:ma35d1 = " groupadd ipmi;"
 
-# Complete Dual-Bank UBI layout for MA35 SPI-NAND (484MB total capacity):
+# Complete Dual-Bank UBI layout for MA35 SPI-NAND (supports 256MB and 512MB Flash):
 # - Volume 0: u-boot-env (256KiB) for persistent U-Boot environment
 # - Volume 1: kernel-a   (16MiB)  for Bank A Kernel
 # - Volume 2: dtb-a      (512KiB) for Bank A Device Tree
-# - Volume 3: rofs-a     (170MiB) for Bank A RootFS
+# - Volume 3: rofs-a     (70MiB)  for Bank A RootFS
 # - Volume 4: kernel-b   (16MiB)  for Bank B Kernel (pre-allocated for OTA)
 # - Volume 5: dtb-b      (512KiB) for Bank B Device Tree (pre-allocated for OTA)
-# - Volume 6: rofs-b     (100MiB) for Bank B RootFS (pre-allocated for OTA)
-# - Volume 7: rwfs       (~230MiB, autoresize) for writable persistence & staging
+# - Volume 6: rofs-b     (70MiB)  for Bank B RootFS (pre-allocated for OTA)
+# - Volume 7: rwfs       (10MiB, autoresize) for writable persistence & staging (~65MB on 256MB, ~315MB on 512MB)
 do_image_ubi[depends] += "virtual/kernel:do_deploy virtual/bootloader:do_deploy u-boot-tools-native:do_populate_sysroot"
 do_image_wic[depends] += "virtual/kernel:do_deploy virtual/bootloader:do_deploy virtual/trusted-firmware-a:do_deploy"
 IMAGE_TYPEDEP:ubi = "ubifs"
@@ -68,6 +68,11 @@ IMAGE_CMD:ubi:ma35 () {
 	elif [ -f "${DEPLOY_DIR_IMAGE}/u-boot-initial-env" ]; then
 		mkenvimage -s 0x10000 -o ${IMGDEPLOYDIR}/u-boot-env-${IMAGE_NAME}.bin ${DEPLOY_DIR_IMAGE}/u-boot-initial-env
 		ENV_IMAGE_LINE="image=${IMGDEPLOYDIR}/u-boot-env-${IMAGE_NAME}.bin"
+	fi
+
+	UBIFS_IMAGE="${IMGDEPLOYDIR}/${IMAGE_NAME}.ubifs"
+	if [ ! -f "${UBIFS_IMAGE}" ] && [ -f "${IMGDEPLOYDIR}/${IMAGE_LINK_NAME}.ubifs" ]; then
+		UBIFS_IMAGE="${IMGDEPLOYDIR}/${IMAGE_LINK_NAME}.ubifs"
 	fi
 
 	cat <<EOF > ${IMGDEPLOYDIR}/ubinize-${IMAGE_NAME}.cfg
@@ -97,11 +102,11 @@ vol_size=512KiB
 
 [rofs-a]
 mode=ubi
-image=${IMGDEPLOYDIR}/${IMAGE_NAME}.ubifs
+image=${UBIFS_IMAGE}
 vol_id=3
 vol_type=dynamic
 vol_name=rofs-a
-vol_size=100MiB
+vol_size=70MiB
 
 [kernel-b]
 mode=ubi
@@ -122,7 +127,7 @@ mode=ubi
 vol_id=6
 vol_type=dynamic
 vol_name=rofs-b
-vol_size=100MiB
+vol_size=70MiB
 
 [rwfs]
 mode=ubi

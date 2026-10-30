@@ -92,20 +92,31 @@ ensure_uboot_env() {
     fi
 }
 
-# Determine inactive target bank based on currently active mounted rootfs
-get_target_side() {
+# Determine currently running bank
+get_current_side() {
     local root_src
     root_src=$(findmnt -n -o SOURCE / 2>/dev/null || grep -o 'root=[^ ]*' /proc/cmdline | cut -d'=' -f2 || true)
     case "${root_src}" in
-        *p5|*p4) echo "a"; return 0 ;;
-        *p3)     echo "b"; return 0 ;;
-        *rofs-b) echo "a"; return 0 ;;
-        *rofs-a) echo "b"; return 0 ;;
+        *p5|*p4) echo "b"; return 0 ;;
+        *p3)     echo "a"; return 0 ;;
+        *rofs-b) echo "b"; return 0 ;;
+        *rofs-a) echo "a"; return 0 ;;
     esac
 
     local bootside
     bootside=$(fw_printenv bootside 2>/dev/null | cut -d'=' -f2 || true)
     if [ "${bootside}" = "b" ]; then
+        echo "b"
+    else
+        echo "a"
+    fi
+}
+
+# Determine inactive target bank based on currently active mounted rootfs
+get_target_side() {
+    local cur
+    cur=$(get_current_side)
+    if [ "${cur}" = "b" ]; then
         echo "a"
     else
         echo "b"
@@ -191,6 +202,8 @@ case "${ACTION}" in
                     rmdir "${OTA_ROFS_MNT}" 2>/dev/null || true
 
                     rm -f "${SRC_FILE}" 2>/dev/null || true
+                    mkdir -p /var/persist 2>/dev/null || true
+                    touch "/var/persist/.ota_rofs_done_${VERSION_ID}"
                 else
                     error "Target MMC rootfs device ${TARGET_ROFS_DEV} not found!"
                     exit 1
@@ -231,6 +244,8 @@ case "${ACTION}" in
                         fi
                     fi
                     rm -f "${SRC_FILE}" 2>/dev/null || true
+                    mkdir -p /var/persist 2>/dev/null || true
+                    touch "/var/persist/.ota_rofs_done_${VERSION_ID}"
                 else
                     log "Notice: Candidate rootfs verified and staged at ${SRC_FILE}."
                 fi
@@ -282,6 +297,8 @@ case "${ACTION}" in
                 sync
                 umount "${OTA_BOOT_MNT}"
                 rmdir "${OTA_BOOT_MNT}" 2>/dev/null || true
+                mkdir -p /var/persist 2>/dev/null || true
+                touch "/var/persist/.ota_kernel_done_${VERSION_ID}"
                 log "MMC boot partition ${TARGET_BOOT_DEV} successfully updated."
             else
                 error "Target MMC boot device ${TARGET_BOOT_DEV} not found!"
@@ -354,6 +371,8 @@ case "${ACTION}" in
                     fi
                 fi
                 rm -f "${SRC_DTB}" 2>/dev/null || true
+                mkdir -p /var/persist 2>/dev/null || true
+                touch "/var/persist/.ota_kernel_done_${VERSION_ID}"
             elif [ -f "${IMAGE_DIR}/image-dtb" ]; then
                 SRC_DTB="${IMAGE_DIR}/image-dtb"
                 SRC_DTB_SIZE=$(stat -c%s "${SRC_DTB}")
@@ -371,15 +390,58 @@ case "${ACTION}" in
     updateubootvars|ubi-set-primary)
         ensure_uboot_env
         log "Activating version: ${VERSION_ID}"
+        CURRENT_SIDE=$(get_current_side)
         TARGET_SIDE=$(get_target_side)
-        NEXT_KERNEL="kernel-${TARGET_SIDE}"
-        NEXT_DTB="dtb-${TARGET_SIDE}"
-        NEXT_ROFS="rofs-${TARGET_SIDE}"
-        log "Active rootfs detected. Updating bootpointer to alternate bank: side=${TARGET_SIDE} kernelname=${NEXT_KERNEL} dtbname=${NEXT_DTB} bootubivol=${NEXT_ROFS}"
+
+        ROFS_FLAG="/var/persist/.ota_rofs_done_${VERSION_ID}"
+        KERNEL_FLAG="/var/persist/.ota_kernel_done_${VERSION_ID}"
+        KERNEL_VALID=0
 
         if [ -n "${MMC_BASE}" ]; then
-            log "Switching MMC bootside to '${TARGET_SIDE}'..."
-            fw_setenv bootside "${TARGET_SIDE}" 2>/dev/null || log "Notice: bootside set to ${TARGET_SIDE}."
+            [ "${TARGET_SIDE}" = "a" ] && T_BOOT="/dev/${MMC_BASE}p1" || T_BOOT="/dev/${MMC_BASE}p2"
+            if [ -b "${T_BOOT}" ]; then
+                mkdir -p /tmp/chk_boot 2>/dev/null || true
+                if mount -o ro "${T_BOOT}" /tmp/chk_boot 2>/dev/null; then
+                    if [ -f /tmp/chk_boot/Image ] || [ -f /tmp/chk_boot/fitImage ]; then
+                        KERNEL_VALID=1
+                    fi
+                    umount /tmp/chk_boot 2>/dev/null || true
+                fi
+                rmdir /tmp/chk_boot 2>/dev/null || true
+            fi
+        elif [ -e "/dev/ubi0" ]; then
+            T_KDEV="/dev/ubi0_kernel-${TARGET_SIDE}"
+            if [ ! -e "${T_KDEV}" ]; then
+                V_ID=$(ubinfo /dev/ubi0 -N "kernel-${TARGET_SIDE}" 2>/dev/null | grep "Volume ID" | awk '{print $3}' || true)
+                [ -n "${V_ID}" ] && T_KDEV="/dev/ubi0_${V_ID}"
+            fi
+            if [ -e "${T_KDEV}" ]; then
+                MAGIC=$(dd if="${T_KDEV}" bs=1 skip=56 count=4 2>/dev/null || true)
+                if [ "${MAGIC}" = "ARM"$'\x64' ]; then
+                    KERNEL_VALID=1
+                fi
+            fi
+        fi
+
+        if [ -f "${ROFS_FLAG}" ] && [ -f "${KERNEL_FLAG}" ] && [ "${KERNEL_VALID}" -eq 1 ]; then
+            log "Candidate firmware verified on slot ${TARGET_SIDE}. Switching active bank: ${CURRENT_SIDE} -> ${TARGET_SIDE}"
+            NEXT_SIDE="${TARGET_SIDE}"
+            UPGRADE_AVAIL=1
+            rm -f "${ROFS_FLAG}" "${KERNEL_FLAG}" 2>/dev/null || true
+        else
+            log "Notice: Candidate slot ${TARGET_SIDE} was NOT completely flashed or has invalid kernel! Preserving safe active bank: ${CURRENT_SIDE}"
+            NEXT_SIDE="${CURRENT_SIDE}"
+            UPGRADE_AVAIL=0
+            rm -f "${ROFS_FLAG}" "${KERNEL_FLAG}" 2>/dev/null || true
+        fi
+
+        NEXT_KERNEL="kernel-${NEXT_SIDE}"
+        NEXT_DTB="dtb-${NEXT_SIDE}"
+        NEXT_ROFS="rofs-${NEXT_SIDE}"
+
+        if [ -n "${MMC_BASE}" ]; then
+            log "Configuring MMC bootside to '${NEXT_SIDE}'..."
+            fw_setenv bootside "${NEXT_SIDE}" 2>/dev/null || log "Notice: bootside set to ${NEXT_SIDE}."
             CURRENT_MMCBOOT=$(fw_printenv mmcboot 2>/dev/null | cut -d'=' -f2- || true)
             if echo "${CURRENT_MMCBOOT}" | grep -q 'rofspart 4'; then
                 NEW_MMCBOOT=$(echo "${CURRENT_MMCBOOT}" | sed 's/if test -e mmc \${mmcdev}:5 \/; then setenv rofspart 5; else setenv rofspart 4; fi;/setenv rofspart 5;/g; s/setenv rofspart 4;/setenv rofspart 5;/g')
@@ -387,14 +449,13 @@ case "${ACTION}" in
             fi
         fi
 
-
         fw_setenv kernelname "${NEXT_KERNEL}" 2>/dev/null || log "Notice: kernelname set to ${NEXT_KERNEL}."
         fw_setenv dtbname "${NEXT_DTB}" 2>/dev/null || log "Notice: dtbname set to ${NEXT_DTB}."
         fw_setenv bootubivol "${NEXT_ROFS}" 2>/dev/null || log "Notice: bootubivol set to ${NEXT_ROFS}."
         fw_setenv bootlimit 3 2>/dev/null || true
         fw_setenv bootcount 0 2>/dev/null || log "Notice: bootcount reset."
-        fw_setenv upgrade_available 1 2>/dev/null || true
-        log "Bootloader environment updated: bootside=${TARGET_SIDE} kernelname=${NEXT_KERNEL} dtbname=${NEXT_DTB} bootubivol=${NEXT_ROFS}"
+        fw_setenv upgrade_available ${UPGRADE_AVAIL} 2>/dev/null || true
+        log "Bootloader environment updated: bootside=${NEXT_SIDE} kernelname=${NEXT_KERNEL} dtbname=${NEXT_DTB} bootubivol=${NEXT_ROFS} (upgrade_available=${UPGRADE_AVAIL})"
 
         # Synchronize updated environment to secondary UBI flash (ubi1) if present
         if [ -e /dev/ubi1_u-boot-env ] && [ -e /dev/ubi0_u-boot-env ]; then

@@ -24,15 +24,15 @@ EXTRA_IMAGEDEPENDS += "virtual/bootloader virtual/trusted-firmware-a"
 #   mtd0: (spinand|nand)-uboot   (0x0000000 - 0x00400000, 4MB)   raw (Header+BL2+FIP)
 #   mtd1: (spinand|nand)-rootfs  (0x00400000 - 0x20000000, 508MB) UBI Pool
 #
-# UBI volumes on mtd1 (508MB = 4064 PEBs):
+# UBI volumes on mtd1 (252MB on 256MB Flash, 508MB on 512MB Flash):
 #   Volume 0: u-boot-env (256KiB, pre-loaded 64KB env)
 #   Volume 1: kernel-a   (16MiB dynamic)
 #   Volume 2: dtb-a      (512KiB dynamic)
-#   Volume 3: rofs-a     (100MiB dynamic, ubifs)
+#   Volume 3: rofs-a     (70MiB dynamic, ubifs)
 #   Volume 4: kernel-b   (16MiB dynamic, OTA standby)
 #   Volume 5: dtb-b      (512KiB dynamic, OTA standby)
-#   Volume 6: rofs-b     (100MiB dynamic, OTA standby)
-#   Volume 7: rwfs       (10MiB autoresize -> fills remaining ~255MB!)
+#   Volume 6: rofs-b     (70MiB dynamic, OTA standby)
+#   Volume 7: rwfs       (10MiB autoresize -> fills remaining space)
 
 # Default storage architecture: ubi (SPI-NAND / raw NAND) or mmc (eMMC/SD)
 MA35_STORAGE_TYPE ??= "ubi"
