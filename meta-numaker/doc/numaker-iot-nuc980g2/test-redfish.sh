@@ -137,6 +137,31 @@ run_patch() {
     fi
 }
 
+# Function to run Redfish DELETE
+run_delete() {
+    local endpoint=$1
+    local name=$2
+    echo -e "\n${BLUE}[Test] DELETE ${name}...${NC}"
+
+    local response
+    response=$(curl -k -s -u "${USER}:${PASS}" \
+        -X DELETE \
+        --max-time 15 \
+        -w "\n%{http_code}" \
+        "https://${BMC_IP}${endpoint}")
+    local http_code=$(echo "$response" | tail -n1)
+    local body=$(echo "$response" | sed '$d')
+
+    if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 204 ]; then
+        echo -e "${GREEN}✓ Delete Success (HTTP ${http_code})${NC}"
+        report "- **DELETE ${name}**: ✓ HTTP ${http_code}"
+    else
+        echo -e "${RED}✗ Delete Failed! HTTP Code: ${http_code}${NC}"
+        report "- **DELETE ${name}**: ✗ HTTP ${http_code}"
+        echo "$body"
+    fi
+}
+
 # 1. Test Service Root
 run_get "/redfish/v1/" "Service Root"
 
@@ -251,6 +276,87 @@ run_get "/redfish/v1/Systems/system/LogServices/EventLog/Entries?\$top=5" "Syste
 # 19. Redfish Event Service status
 run_get "/redfish/v1/EventService" "Event Service Status"
 
+# --- User Management (phosphor-user-manager / AccountService) ---
+echo -e "\n${YELLOW}>>> Section: User Management <<<${NC}"
+report "\n### User Management (AccountService)\n"
+
+TEST_USER="rftestuser"
+TEST_PASS="TestPass123"
+
+# 20. AccountService root
+run_get "/redfish/v1/AccountService" "AccountService Root"
+
+# 21. Accounts collection (should include root)
+run_get "/redfish/v1/AccountService/Accounts" "Accounts Collection"
+
+# 22. Create a test local account
+run_post "/redfish/v1/AccountService/Accounts" \
+    "Create Test Account (${TEST_USER})" \
+    "{\"UserName\": \"${TEST_USER}\", \"Password\": \"${TEST_PASS}\", \"RoleId\": \"Operator\"}"
+sleep 2
+
+# 23. Verify the new account exists
+run_get "/redfish/v1/AccountService/Accounts/${TEST_USER}" "Verify New Account (${TEST_USER})"
+
+# 24. Login as the new local account (verify local PAM auth works)
+echo -e "\n${BLUE}[Test] Login as new local account (${TEST_USER})...${NC}"
+LOGIN_CODE=$(curl -k -s -o /dev/null -w "%{http_code}" -u "${TEST_USER}:${TEST_PASS}" "https://${BMC_IP}/redfish/v1/Systems/system")
+if [ "$LOGIN_CODE" -eq 200 ]; then
+    echo -e "${GREEN}✓ Login Success (HTTP 200)${NC}"
+    report "- **Login as ${TEST_USER}**: ✓ HTTP 200"
+else
+    echo -e "${RED}✗ Login Failed! HTTP Code: ${LOGIN_CODE}${NC}"
+    report "- **Login as ${TEST_USER}**: ✗ HTTP ${LOGIN_CODE}"
+fi
+
+# 25. Change role (Operator -> ReadOnly)
+run_patch "/redfish/v1/AccountService/Accounts/${TEST_USER}" \
+    "Change Role to ReadOnly" '{"RoleId": "ReadOnly"}'
+
+# 26. Disable the account, then verify login is rejected
+run_patch "/redfish/v1/AccountService/Accounts/${TEST_USER}" \
+    "Disable Account" '{"Enabled": false}'
+sleep 1
+echo -e "\n${BLUE}[Test] Verify disabled account is rejected...${NC}"
+DISABLED_CODE=$(curl -k -s -o /dev/null -w "%{http_code}" -u "${TEST_USER}:${TEST_PASS}" "https://${BMC_IP}/redfish/v1/Systems/system")
+if [ "$DISABLED_CODE" -eq 401 ]; then
+    echo -e "${GREEN}✓ Disabled account correctly rejected (HTTP 401)${NC}"
+    report "- **Verify Disabled Account Rejected**: ✓ HTTP 401"
+else
+    echo -e "${RED}✗ Unexpected HTTP Code: ${DISABLED_CODE} (expected 401)${NC}"
+    report "- **Verify Disabled Account Rejected**: ✗ HTTP ${DISABLED_CODE} (expected 401)"
+fi
+
+# 27. Delete the test account and verify removal
+run_delete "/redfish/v1/AccountService/Accounts/${TEST_USER}" "Delete Test Account (${TEST_USER})"
+sleep 1
+echo -e "\n${BLUE}[Test] Verify test account removed...${NC}"
+GONE_CODE=$(curl -k -s -o /dev/null -w "%{http_code}" -u "${USER}:${PASS}" "https://${BMC_IP}/redfish/v1/AccountService/Accounts/${TEST_USER}")
+if [ "$GONE_CODE" -eq 404 ]; then
+    echo -e "${GREEN}✓ Account successfully removed (HTTP 404)${NC}"
+    report "- **Verify Account Removed**: ✓ HTTP 404"
+else
+    echo -e "${RED}✗ Unexpected HTTP Code: ${GONE_CODE} (expected 404)${NC}"
+    report "- **Verify Account Removed**: ✗ HTTP ${GONE_CODE} (expected 404)"
+fi
+
+# 28. Confirm LDAP remote user management is NOT functionally enabled
+#     (trimmed for 128MB platform). Note: bmcweb always exposes a static
+#     "LDAP" stub (just a link to /LDAP/Certificates) per the Redfish schema
+#     even when nss-pam-ldapd/phosphor-ldap aren't installed, so checking for
+#     the field's mere presence is not a valid test. Check for the
+#     "ServiceEnabled"/"Authentication" sub-properties instead, which are only
+#     populated when phosphor-ldap is actually installed and functional.
+echo -e "\n${BLUE}[Test] Verify LDAP backend is not functionally configured (expected)...${NC}"
+response=$(curl -k -s -u "${USER}:${PASS}" "https://${BMC_IP}/redfish/v1/AccountService")
+if command -v jq &> /dev/null; then
+    ldap_configured=$(echo "$response" | jq -r '.LDAP | has("ServiceEnabled") or has("Authentication")')
+    echo -e "  LDAP functionally configured: ${YELLOW}${ldap_configured}${NC}"
+    report "- **LDAP Functionally Configured**: ${ldap_configured} (expected: false)"
+else
+    echo "$response" | grep -o '"ServiceEnabled"\|"Authentication"' || echo "  LDAP backend not configured (expected)"
+fi
+
 # --- Power Controls ---
 echo -e "\n${YELLOW}>>> Section: Power Controls <<<${NC}"
 report "\n### Power Controls\n"
@@ -279,13 +385,13 @@ sleep 1' 2>/dev/null
     echo -e "${GREEN}  power-control daemon verified running${NC}"
 fi
 
-# 20. Check current Chassis power state before actions
+# 29. Check current Chassis power state before actions
 run_get "/redfish/v1/Chassis/system" "Chassis Power State (before action)"
 
 # --- Power On Test ---
 report "\n### Power Control Tests\n"
 
-# 21. Host Power On
+# 30. Host Power On
 echo -e "\n${YELLOW}>>> Action: Request Host Power On <<<${NC}"
 echo -e "${RED}┌─────────────────────────────────────────────────────────────┐${NC}"
 echo -e "${RED}│  ⚡ POWER ON: After sending command, connect PF9 (PS_PWROK) │${NC}"
@@ -300,7 +406,7 @@ run_post "/redfish/v1/Systems/system/Actions/ComputerSystem.Reset" \
     '{"ResetType": "On"}'
 sleep 5
 
-# 22. Verify host power state after power on
+# 31. Verify host power state after power on
 echo -e "\n${BLUE}[Verify] Confirm PF9 (PS_PWROK) reads HIGH → Chassis=On${NC}"
 run_get "/redfish/v1/Systems/system" "Verify Host PowerState after Power On"
 POWER_STATE=$(curl -k -s -u "${USER}:${PASS}" "https://${BMC_IP}/redfish/v1/Systems/system" | jq -r '.PowerState // "N/A"')
@@ -308,7 +414,7 @@ echo -e "  PowerState: ${GREEN}${POWER_STATE}${NC}"
 report "- **Verify Power On**: PowerState=${POWER_STATE}"
 
 # --- Force Off Test ---
-# 23. Host ForceOff
+# 32. Host ForceOff
 echo -e "\n${YELLOW}>>> Action: Request Host ForceOff <<<${NC}"
 echo -e "${RED}┌─────────────────────────────────────────────────────────────┐${NC}"
 echo -e "${RED}│  ⚡ FORCE OFF: After sending command, disconnect PF9       │${NC}"
@@ -327,14 +433,14 @@ sleep 5
 echo -e "${RED}  >>> Please confirm PF9 is now LOW (3.3V disconnected) <<<${NC}"
 read -p "  Press Enter to confirm PF9 is LOW..."
 
-# 24. Verify host power state after ForceOff
+# 33. Verify host power state after ForceOff
 run_get "/redfish/v1/Systems/system" "Verify Host PowerState after ForceOff"
 POWER_STATE=$(curl -k -s -u "${USER}:${PASS}" "https://${BMC_IP}/redfish/v1/Systems/system" | jq -r '.PowerState // "N/A"')
 echo -e "  PowerState: ${GREEN}${POWER_STATE}${NC}"
 report "- **Verify Force Off**: PowerState=${POWER_STATE}"
 
 # --- Force Restart Test ---
-# 25. Host ForceRestart (from whatever current state)
+# 34. Host ForceRestart (from whatever current state)
 echo -e "\n${YELLOW}>>> Action: Request Host ForceRestart <<<${NC}"
 echo -e "${RED}┌─────────────────────────────────────────────────────────────┐${NC}"
 echo -e "${RED}│  ⚡ RESTART: RESET_OUT (PD13) will pulse LOW for 500ms     │${NC}"
@@ -349,13 +455,13 @@ run_post "/redfish/v1/Systems/system/Actions/ComputerSystem.Reset" \
     '{"ResetType": "ForceRestart"}'
 sleep 5
 
-# 26. Verify host power state after restart
+# 35. Verify host power state after restart
 run_get "/redfish/v1/Systems/system" "Verify Host PowerState after ForceRestart"
 POWER_STATE=$(curl -k -s -u "${USER}:${PASS}" "https://${BMC_IP}/redfish/v1/Systems/system" | jq -r '.PowerState // "N/A"')
 echo -e "  PowerState: ${GREEN}${POWER_STATE}${NC}"
 report "- **Verify Force Restart**: PowerState=${POWER_STATE}"
 
-# 27. Check supported ResetType values
+# 36. Check supported ResetType values
 echo -e "\n${BLUE}[Test] Query supported ResetType values...${NC}"
 response=$(curl -k -s -u "${USER}:${PASS}" "https://${BMC_IP}/redfish/v1/Systems/system")
 if command -v jq &> /dev/null; then

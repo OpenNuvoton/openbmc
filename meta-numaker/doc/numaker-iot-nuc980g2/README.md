@@ -191,6 +191,10 @@ chmod +x test-redfish.sh
 ✓ Passed (HTTP 200)
 [Test] GET System details...
 ✓ Passed (HTTP 200)
+[Test] User Management (AccountService)...
+POST Create Test Account (rftestuser): ✓ Passed (HTTP 201)
+PATCH Change Role to ReadOnly: ✓ Passed (HTTP 204)
+DELETE Delete Test Account (rftestuser): ✓ Passed (HTTP 200)
 [Test] Power Control Tests...
 POST Host Power On: ✓ Passed (HTTP 204)
 GET Verify Host PowerState: ✓ Passed (PowerState=On)
