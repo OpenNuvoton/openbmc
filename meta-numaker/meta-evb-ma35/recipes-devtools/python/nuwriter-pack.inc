@@ -28,7 +28,6 @@ SRC_URI = " \
     file://header-nand.json \
     file://pack-nand.json \
     file://header-sd.json \
-    file://pack-sd.json \
     file://install_nuwriter.bat \
     file://nuwriter_program_spinand.bat \
     file://nuwriter_program_nand.bat \
@@ -111,22 +110,7 @@ do_compile() {
 
     if [ "$HAVE_SD" = "1" ]; then
         install -m 0644 ${S}/header-sd.json ${DEPLOY_DIR_IMAGE_MA35}/
-        install -m 0644 ${S}/pack-sd.json ${DEPLOY_DIR_IMAGE_MA35}/
         sed -i "s/bl2-ma35/bl2-${TFA_PLATFORM}/g" ${DEPLOY_DIR_IMAGE_MA35}/header-sd.json
-        sed -i "s/bl2-ma35/bl2-${TFA_PLATFORM}/g" ${DEPLOY_DIR_IMAGE_MA35}/pack-sd.json
-
-        # If rootfs.ext4 is not present, exclude it from pack-sd.json
-        if [ ! -e rootfs.ext4 ]; then
-            bbwarn "rootfs.ext4 not found in ${DEPLOY_DIR_IMAGE_MA35}, excluding from pack-sd.json"
-            python3 -c "
-import json
-with open('${DEPLOY_DIR_IMAGE_MA35}/pack-sd.json', 'r') as f:
-    d = json.load(f)
-d['image'] = [img for img in d['image'] if img.get('file') != 'rootfs.ext4']
-with open('${DEPLOY_DIR_IMAGE_MA35}/pack-sd.json', 'w') as f:
-    json.dump(d, f, indent=4)
-"
-        fi
     fi
 
     NUWRITER="${RECIPE_SYSROOT_NATIVE}/usr/share/nuwriter/nuwriter.py"
@@ -224,7 +208,7 @@ with open('${DEPLOY_DIR_IMAGE_MA35}/pack-sd.json', 'w') as f:
         cp pack/pack.bin pack-nand/pack.bin
     fi
 
-    # Generate SD FIP, header, and pack
+    # Generate SD FIP and header (used by WIC injection and mmc-ext4-tar)
     if [ "$HAVE_SD" = "1" ]; then
         generate_fip "${UBOOT_SD_BIN}" "fip-sd.bin"
         cp -f ${DEPLOY_DIR_IMAGE_MA35}/fip-sd.bin ${DEPLOY_DIR_IMAGE_MA35}/fip.bin
@@ -236,14 +220,6 @@ with open('${DEPLOY_DIR_IMAGE_MA35}/pack-sd.json', 'w') as f:
         fi
         mkdir -p conv-sd
         cp conv/header.bin conv-sd/header.bin
-
-        bbnote "Generating NuWriter SD pack.bin..."
-        python3 ${NUWRITER} -p pack-sd.json
-        if [ ! -d pack ] || [ ! -f pack/pack.bin ]; then
-            bbfatal "nuwriter -p failed to generate pack/pack.bin for SD"
-        fi
-        mkdir -p pack-sd
-        cp pack/pack.bin pack-sd/pack.bin
     fi
 
     # Ensure default fip.bin points to primary boot media
@@ -328,12 +304,8 @@ do_deploy() {
         sed -i "s/@NUWRITER_DDR_IMG@/${NUWRITER_DDR_IMG}/g" ${DEPLOYDIR}/nuwriter_program_nand.bat
     fi
 
-    # Deploy SD artifacts
+    # Deploy SD artifacts (nuwriter_program_sd.bat flashes WIC image directly)
     if [ "$HAVE_SD" = "1" ]; then
-        if [ -f ${DEPLOY_DIR_IMAGE_MA35}/pack-sd/pack.bin ]; then
-            install -m 0644 ${DEPLOY_DIR_IMAGE_MA35}/pack-sd/pack.bin \
-                ${DEPLOYDIR}/nuwriter-pack-sd-${MACHINE}.bin
-        fi
         if [ -f ${DEPLOY_DIR_IMAGE_MA35}/conv-sd/header.bin ]; then
             install -m 0644 ${DEPLOY_DIR_IMAGE_MA35}/conv-sd/header.bin \
                 ${DEPLOYDIR}/nuwriter-header-sd-${MACHINE}.bin

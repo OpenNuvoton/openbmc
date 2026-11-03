@@ -94,11 +94,11 @@ Deploy directory: `build-ma35/tmp/deploy/images/numaker-iot-ma35d05ki1/`
 ```text
 ├── nuwriter-pack-spinand-numaker-iot-ma35d05ki1.bin   (SPI NAND image)
 ├── nuwriter-pack-nand-numaker-iot-ma35d05ki1.bin      (Raw NAND image)
-├── nuwriter-pack-sd-numaker-iot-ma35d05ki1.bin        (SD card image)
+├── obmc-phosphor-image-numaker-iot-ma35d05ki1.wic     (SD card full disk WIC image)
 ├── install_nuwriter.bat                               (NuWriter environment installer)
 ├── nuwriter_program_spinand.bat                       (SPI NAND one-click flasher)
 ├── nuwriter_program_nand.bat                          (Raw NAND one-click flasher)
-└── nuwriter_program_sd.bat                            (SD card one-click flasher)
+└── nuwriter_program_sd.bat                            (SD card one-click flasher via WIC)
 ```
 
 ### 2.3 Prebuilt Artifacts from GitHub Actions

@@ -126,7 +126,10 @@ SD1 (MicroSD) / eMMC MBR Dual-Bank Layout
   - **Boot Pointer Switch**: Updates U-Boot environment variables (`bootside=b` or `a`, `bootcount=0`, `upgrade_available=1`).
 
 #### Online Partition Resize on SD Cards
-The initial WIC image allocates 256 MB to partition 6 (`rwfs`). Because `p6` is mounted online (`/images` and `/var/persist`), `parted -s` (`--script`) aborts on the busy-partition warning; pass `echo yes | parted ---pretend-input-tty` (three leading hyphens) to confirm online expansion before staging large (`170 MB+`) EXT4 OTA packages:
+The initial WIC image allocates 256 MB to partition 6 (`rwfs`). On first boot, [`bind-images.sh`](file:///usr/bin/bind-images.sh) automatically runs this online partition resize logic and marks `/var/persist/.sd_resized` to expand `rwfs` to 100% of the SD card capacity.
+
+If you ever need to manually perform or verify the expansion:
+Because `p6` is mounted online (`/images` and `/var/persist`), `parted -s` (`--script`) aborts on the busy-partition warning; pass `echo yes | parted ---pretend-input-tty` (three leading hyphens) to confirm online expansion:
 ```bash
 echo yes | parted ---pretend-input-tty /dev/mmcblk1 resizepart 4 100%
 ```

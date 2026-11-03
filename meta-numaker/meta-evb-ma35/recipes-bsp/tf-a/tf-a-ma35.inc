@@ -4,7 +4,9 @@ LIC_FILES_CHKSUM = "file://license.rst;md5=1dd070c98a281d18d9eefd938729b031"
 
 FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
-SRC_URI = "git://github.com/OpenNuvoton/MA35D1_arm-trusted-firmware-v2.3.git;branch=master;protocol=https"
+SRC_URI = "git://github.com/OpenNuvoton/MA35D1_arm-trusted-firmware-v2.3.git;branch=master;protocol=https \
+           file://0001-plat-nuvoton-override-por-from-sram-when-usb-boot.patch \
+          "
 SRC_URI += "file://${TFA_DDR_HEADER}"
 
 SECTION = "bootloaders"

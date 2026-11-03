@@ -18,6 +18,22 @@ fi
 mkdir -p /images/staging /images/persist
 rm -rf /images/staging/* 2>/dev/null || true
 
+# Auto-expand SD/eMMC partition & ext4 filesystem to maximum on first boot
+if [ -n "${RWFS_DEV}" ] && [ -b "${RWFS_DEV}" ] && [ ! -f /images/persist/.sd_resized ]; then
+    MMC_DISK=$(echo "${RWFS_DEV}" | sed 's/p[0-9]*$//')
+    PART_NUM=$(echo "${RWFS_DEV}" | grep -o '[0-9]*$')
+    if [ -b "${MMC_DISK}" ] && [ -n "${PART_NUM}" ] && command -v parted >/dev/null 2>&1 && command -v resize2fs >/dev/null 2>&1; then
+        echo "bind-images: First boot detected, expanding ${MMC_DISK} (partition ${PART_NUM}) and ext4 rwfs to 100%..."
+        if [ "${PART_NUM}" -gt 4 ]; then
+            echo yes | parted ---pretend-input-tty "${MMC_DISK}" resizepart 4 100% >/dev/null 2>&1 || true
+        fi
+        echo yes | parted ---pretend-input-tty "${MMC_DISK}" resizepart "${PART_NUM}" 100% >/dev/null 2>&1 || true
+        resize2fs "${RWFS_DEV}" >/dev/null 2>&1 || true
+        touch /images/persist/.sd_resized
+        echo "bind-images: SD online resize completed successfully."
+    fi
+fi
+
 if ! mountpoint -q /tmp/images; then
     mount --bind /images/staging /tmp/images 2>/dev/null || mount --bind /images /tmp/images
 fi

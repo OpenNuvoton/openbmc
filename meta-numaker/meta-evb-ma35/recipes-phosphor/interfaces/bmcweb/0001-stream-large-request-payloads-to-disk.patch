@@ -9,6 +9,9 @@ temporary file on flash for MemoryFileDescriptor instead of memfd_create,
 and immediately release request body memory with malloc_trim(0) after writing
 to disk.
 
+Do not advertise MultipartHttpPushUri so web UI and clients fall back to
+HttpPushUri (application/octet-stream) to avoid in-memory multipart buffering.
+
 Upstream-Status: Pending
 ---
 diff --git a/http/http_body.hpp b/http/http_body.hpp
@@ -113,7 +116,7 @@ index d970e202f6..a80e22f612 100644
          {
              ParserError state = multipartParser->finish();
 diff --git a/redfish-core/lib/update_service.hpp b/redfish-core/lib/update_service.hpp
-index aadd041a68..0b79ef431f 100644
+index aadd041a68..199b7ca169 100644
 --- a/redfish-core/lib/update_service.hpp
 +++ b/redfish-core/lib/update_service.hpp
 @@ -31,6 +31,7 @@
@@ -337,3 +340,12 @@ index aadd041a68..0b79ef431f 100644
      const std::shared_ptr<bmcweb::AsyncResp>& asyncResp)
  {
      if (!redfish::setUpRedfishRoute(app, req, asyncResp))
+@@ -1178,8 +1255,6 @@ inline void handleUpdateServiceGet(
+ 
+     asyncResp->res.jsonValue["HttpPushUri"] =
+         "/redfish/v1/UpdateService/update";
+-    asyncResp->res.jsonValue["MultipartHttpPushUri"] =
+-        "/redfish/v1/UpdateService/update-multipart";
+ 
+     // UpdateService cannot be disabled
+     asyncResp->res.jsonValue["ServiceEnabled"] = true;

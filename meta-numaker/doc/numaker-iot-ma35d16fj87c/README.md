@@ -97,11 +97,11 @@ Deploy directory: `build-ma35/tmp/deploy/images/numaker-iot-ma35d16fj87c/`
 ```text
 ├── nuwriter-pack-spinand-numaker-iot-ma35d16fj87c.bin   (SPI NAND image)
 ├── nuwriter-pack-nand-numaker-iot-ma35d16fj87c.bin      (Raw NAND image)
-├── nuwriter-pack-sd-numaker-iot-ma35d16fj87c.bin        (SD card image)
+├── obmc-phosphor-image-numaker-iot-ma35d16fj87c.wic     (SD card full disk WIC image)
 ├── install_nuwriter.bat                                 (NuWriter environment installer)
 ├── nuwriter_program_spinand.bat                         (SPI NAND one-click flasher)
 ├── nuwriter_program_nand.bat                            (Raw NAND one-click flasher)
-└── nuwriter_program_sd.bat                              (SD card one-click flasher)
+└── nuwriter_program_sd.bat                              (SD card one-click flasher via WIC)
 ```
 
 ### 2.3 Prebuilt Artifacts from GitHub Actions
@@ -344,6 +344,11 @@ Stress and polling test script:
 ./test-cpu-temp.sh
 ```
 
+High-frequency stress testing (20ms / 50 Hz+, persistent Keep-Alive):
+```bash
+./stress-redfish.sh
+```
+
 ### 5.7 Firmware Update via Redfish (OTA)
 
 End-to-end Redfish update with dual-bank (A/B) flashing and boot fallback:
@@ -367,4 +372,6 @@ For partition architecture, manual step-by-step curl commands, anti-rollback che
 - [`test-redfish.sh`](test-redfish.sh): Automated curl test script for Redfish API regression tests.
 - [`test-redfish-update/README.md`](test-redfish-update/README.md): Redfish OTA firmware update guide, dual-bank architecture, and automated test suite.
 - [`test-power-control.md`](test-power-control.md): Host power state machine, wiring diagrams, and GPIO pinouts.
-- [`test-cpu-temp.sh`](test-cpu-temp.sh): Live SoC thermal monitoring and workload stress testing script.
+- [`test-cpu-temp.sh`](test-cpu-temp.sh): Live SoC thermal monitoring script.
+- [`stress-redfish.py`](stress-redfish.py): High-frequency (20ms / 50 Hz+) Redfish stress test tool with HTTP Keep-Alive and latency percentiles.
+- [`stress-redfish.sh`](stress-redfish.sh): Interactive launcher and presets for high-frequency stress testing.

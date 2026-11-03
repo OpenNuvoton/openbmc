@@ -1,0 +1,65 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wayne <wayne@nuvoton.com>
+Date: Tue, 3 Nov 2026 14:48:00 +0800
+Subject: [PATCH] plat: nuvoton: override por from sram when usb boot
+
+When the board boots in USB mode (e.g., via USB download tool / NuWriter),
+BL2 is executed in SRAM with por & PWRON_BOOT_MSK == PWRON_BOOT_USB.
+Read the uint32_t value at address 0x2803FFFC as the specified POR value
+so that BL2 can proceed to load the next boot image according to the
+host-specified target boot interface (SPI, NAND, SD/eMMC, etc.).
+
+Upstream-Status: Pending
+Signed-off-by: Wayne <wayne@nuvoton.com>
+---
+ plat/nuvoton/ma35d0/ma35d0_io_storage.c | 4 ++++
+ plat/nuvoton/ma35d1/ma35d1_io_storage.c | 4 ++++
+ plat/nuvoton/ma35h0/ma35h0_io_storage.c | 4 ++++
+ 3 files changed, 12 insertions(+)
+
+diff --git a/plat/nuvoton/ma35d0/ma35d0_io_storage.c b/plat/nuvoton/ma35d0/ma35d0_io_storage.c
+index a8b51c8..fbc3f6d 100755
+--- a/plat/nuvoton/ma35d0/ma35d0_io_storage.c
++++ b/plat/nuvoton/ma35d0/ma35d0_io_storage.c
+@@ -308,6 +308,10 @@ void ma35d0_io_setup(void)
+ 		por = mmio_read_32(SYS_PWRONPIN);
+ 		por = por << 8;
+ 	}
++	if ((por & PWRON_BOOT_MSK) == PWRON_BOOT_USB) {
++		printf("Boot from USB, will read SRAM-tail\n");
++		por = mmio_read_32(0x2803FFFC);
++	}
+ 	printf("POR: 0x%x\n", por);
+ 
+ 	switch (por & PWRON_BOOT_MSK) {
+diff --git a/plat/nuvoton/ma35d1/ma35d1_io_storage.c b/plat/nuvoton/ma35d1/ma35d1_io_storage.c
+index 213346d..a8570c9 100644
+--- a/plat/nuvoton/ma35d1/ma35d1_io_storage.c
++++ b/plat/nuvoton/ma35d1/ma35d1_io_storage.c
+@@ -308,6 +308,10 @@ void ma35d1_io_setup(void)
+ 		por = mmio_read_32(SYS_PWRONPIN);
+ 		por = por << 8;
+ 	}
++	if ((por & PWRON_BOOT_MSK) == PWRON_BOOT_USB) {
++		printf("Boot from USB, will read SRAM-tail\n");
++		por = mmio_read_32(0x2803FFFC);
++	}
+ 	printf("POR: 0x%x\n", por);
+ 
+ 	switch (por & PWRON_BOOT_MSK) {
+diff --git a/plat/nuvoton/ma35h0/ma35h0_io_storage.c b/plat/nuvoton/ma35h0/ma35h0_io_storage.c
+index c8706ae..2ff9d71 100755
+--- a/plat/nuvoton/ma35h0/ma35h0_io_storage.c
++++ b/plat/nuvoton/ma35h0/ma35h0_io_storage.c
+@@ -308,6 +308,10 @@ void ma35h0_io_setup(void)
+ 		por = mmio_read_32(SYS_PWRONPIN);
+ 		por = por << 8;
+ 	}
++	if ((por & PWRON_BOOT_MSK) == PWRON_BOOT_USB) {
++		printf("Boot from USB, will read SRAM-tail\n");
++		por = mmio_read_32(0x2803FFFC);
++	}
+ 	printf("POR: 0x%x\n", por);
+ 
+ 	switch (por & PWRON_BOOT_MSK) {
+-- 
