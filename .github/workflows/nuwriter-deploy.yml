@@ -1,0 +1,141 @@
+name: NuWriter deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      machine:
+        description: Target machine connected to the hardware runner
+        type: choice
+        required: true
+        default: numaker-iot-ma35d03f80
+        options:
+          - numaker-iot-ma35d03f80
+          - numaker-iot-ma35d05ki1
+          - numaker-iot-ma35d16fj87c
+      source:
+        description: Prebuilt image source
+        type: choice
+        default: artifact
+        options:
+          - artifact
+          - local
+      run_id:
+        description: OpenNuvoton/openbmc run ID; empty selects the latest approved artifact
+        type: string
+        required: false
+      list_only:
+        description: Only scan images; do not control or write hardware
+        type: boolean
+        default: true
+      boot_timeout_seconds:
+        description: Deadline for each complete OpenBMC boot and health observation
+        type: number
+        default: 600
+      observe_seconds:
+        description: Observe UART health after the login prompt
+        type: number
+        default: 10
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: hardware-flash-banana
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted]
+    environment: ma35-hardware
+    timeout-minutes: 180
+    defaults:
+      run:
+        shell: python
+    env:
+      OPENBMC_REPOSITORY: OpenNuvoton/openbmc
+      OPENBMC_BRANCH: numaker
+      OPENBMC_WORKFLOW: numaker.yml
+      OPENBMC_ARTIFACT: openbmc-${{ inputs.machine }}
+      MA35_MACHINE: ${{ inputs.machine }}
+      SOURCE_MODE: ${{ inputs.source }}
+      SOURCE_RUN_ID: ${{ inputs.run_id }}
+      LIST_ONLY: ${{ inputs.list_only }}
+      BOOT_TIMEOUT: ${{ inputs.boot_timeout_seconds }}
+      OBSERVE_SECONDS: ${{ inputs.observe_seconds }}
+      MA35_PREBUILT_ROOT: ${{ vars.MA35_PREBUILT_ROOT }}
+      MA35_SERIAL_PORT: ${{ vars.MA35_SERIAL_PORT }}
+      MA35_DOWNLOAD_HOOK: ${{ vars.MA35_DOWNLOAD_HOOK }}
+      MA35_BOOT_SCRIPT: ${{ vars.MA35_BOOT_SCRIPT }}
+      MA35_BOOT_BATCH: ${{ vars.MA35_BOOT_BATCH }}
+
+    steps:
+      - name: Checkout deployment tools
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Resolve trusted prebuilt source
+        id: source
+        env:
+          ARTIFACT_TOKEN: ${{ secrets.OPENBMC_ARTIFACT_TOKEN || github.token }}
+        run: |
+          import subprocess
+          import sys
+          subprocess.run([sys.executable, '-B', '.github/scripts/nuwriter/deploy.py', 'resolve-source'], check=True)
+
+      - name: Download OpenBMC prebuilt images
+        if: env.SOURCE_MODE == 'artifact'
+        uses: actions/download-artifact@v8
+        with:
+          repository: OpenNuvoton/openbmc
+          run-id: ${{ steps.source.outputs.run_id }}
+          artifact-ids: ${{ steps.source.outputs.artifact_id }}
+          github-token: ${{ secrets.OPENBMC_ARTIFACT_TOKEN || github.token }}
+          path: ${{ steps.source.outputs.prebuilt_root }}
+          merge-multiple: true
+
+      - name: Check hardware runner configuration
+        if: env.LIST_ONLY != 'true'
+        env:
+          PREBUILT_ROOT: ${{ steps.source.outputs.prebuilt_root }}
+        run: |
+          import os
+          import subprocess
+          import sys
+          subprocess.run([sys.executable, '-B', '.github/scripts/nuwriter/deploy.py', 'check-runner',
+                          '--prebuilt-root', os.environ['PREBUILT_ROOT']], check=True)
+
+      - name: Scan and sequentially deploy and boot-test
+        env:
+          PREBUILT_ROOT: ${{ steps.source.outputs.prebuilt_root }}
+        run: |
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+          arguments = ['deploy', '--prebuilt-root', os.environ['PREBUILT_ROOT'],
+                       '--output-directory', str(Path(os.environ['GITHUB_WORKSPACE']) / 'autodeploy-results'),
+                       '--boot-timeout-seconds', os.environ['BOOT_TIMEOUT'],
+                       '--observe-seconds', os.environ['OBSERVE_SECONDS']]
+          if os.environ.get('LIST_ONLY', '').lower() == 'true':
+              arguments.append('--list-only')
+          subprocess.run([sys.executable, '-B', '.github/scripts/nuwriter/deploy.py', *arguments], check=True)
+
+      - name: Publish deployment summary
+        if: always()
+        run: |
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+          subprocess.run([sys.executable, '-B', '.github/scripts/nuwriter/deploy.py', 'summary', '--output-directory', str(Path(os.environ['GITHUB_WORKSPACE']) / 'autodeploy-results')], check=True)
+
+      - name: Upload serial logs and test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ma35-deployment-${{ inputs.machine }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: autodeploy-results/
+          if-no-files-found: warn
+          retention-days: 14

@@ -92,6 +92,15 @@ jobs:
         run: |
           MACHINE=${{ matrix.target_machine }} source setup ${{ matrix.target_machine }} build-numaker
 
+          BACKUP_DOWNLOADS="/mnt/tank/obmc/downloads"
+          if [ -d "$BACKUP_DOWNLOADS" ]; then
+            echo "Restoring BitBake downloads from $BACKUP_DOWNLOADS"
+            mkdir -p downloads
+            cp -a "$BACKUP_DOWNLOADS/." downloads/
+          else
+            echo "No downloads backup at $BACKUP_DOWNLOADS; BitBake will fetch missing sources."
+          fi
+
           # Re-try
           MAX_RETRIES=100
           COUNT=0
@@ -127,6 +136,8 @@ jobs:
           name: openbmc-${{ matrix.target_machine }}
           path: |
             build-numaker/tmp/deploy/images/**/nuwriter-pack*.bin
+            build-numaker/tmp/deploy/images/${{ matrix.target_machine }}/bl2-*.bin
+            build-numaker/tmp/deploy/images/${{ matrix.target_machine }}/bl2-*.dtb
             build-numaker/tmp/deploy/images/**/obmc-phosphor-image-${{ matrix.target_machine }}-*.wic
             build-numaker/tmp/deploy/images/**/obmc-phosphor-image-${{ matrix.target_machine }}.mtd-ubi-tar
             build-numaker/tmp/deploy/images/**/obmc-phosphor-image-${{ matrix.target_machine }}.mmc-ext4-tar
