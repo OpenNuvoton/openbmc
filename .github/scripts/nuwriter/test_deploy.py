@@ -151,14 +151,28 @@ class MachineTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Missing regular image'):
                 deploy.discover_cases(root, 'numaker-iot-ma35d05ki1')
 
-    def test_flash_and_native_boot_use_auto_ddr_for_all_machines(self):
+    def test_wic_discovery_selects_each_machine_image(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / 'nuwriter_program_sd.bat').touch()
+            for machine in deploy.SUPPORTED_MACHINES:
+                (root / f'obmc-phosphor-image-{machine}-20261104.wic').write_bytes(b'disk image')
+            for machine in deploy.SUPPORTED_MACHINES:
+                with self.subTest(machine=machine):
+                    case = deploy.discover_cases(root, machine)[0]
+                    self.assertEqual(case.image.name, f'obmc-phosphor-image-{machine}-20261104.wic')
+                    self.assertEqual(deploy.flash_commands(root, case)[-1][2:],
+                                     ['-w', 'emmc', '0x0', str(case.image)])
+
+    def test_flash_uses_auto_ddr_and_native_boot_reuses_attached_session(self):
         root = deploy.DEFAULT_NUWRITER_ROOT
         for machine in deploy.SUPPORTED_MACHINES:
             with self.subTest(machine=machine):
                 case = deploy.DeploymentCase('case', 'sd', root / 'case.bat', root / 'pack.bin', 7, machine)
-                for commands in (deploy.flash_commands(root, case),
-                                 deploy.native_boot_commands(root, case, root / 'bl2.dtb', root / 'bl2.bin')):
-                    self.assertEqual(commands[0], [sys.executable, str(root / 'nuwriter.py'), '-a', 'ddrimg/ddr_auto.bin'])
+                self.assertEqual(deploy.flash_commands(root, case)[0],
+                                 [sys.executable, str(root / 'nuwriter.py'), '-a', 'ddrimg/ddr_auto.bin'])
+                self.assertEqual(deploy.native_boot_commands(root, case, root / 'bl2.dtb', root / 'bl2.bin')[0],
+                                 [sys.executable, str(root / 'nuwriter.py'), '-w', 'reg', '0x2803FFFC', '0x00004400'])
 
     def test_boot_requires_selected_machine_login(self):
         for machine in deploy.SUPPORTED_MACHINES:
@@ -189,6 +203,63 @@ class DiscoveryTests(unittest.TestCase):
 
     def test_missing_image_fails_discovery(self):
         (self.root / 'nuwriter-pack-sd-numaker-iot-ma35d03f80.bin').unlink()
+        with self.assertRaisesRegex(ValueError, 'Missing regular image'):
+            deploy.discover_cases(self.root)
+
+    def test_sd_uses_wic_when_no_sd_pack_exists(self):
+        (self.root / 'nuwriter-pack-sd-numaker-iot-ma35d03f80.bin').unlink()
+        image = self.root / 'obmc-phosphor-image-numaker-iot-ma35d03f80-20261104.wic'
+        image.write_bytes(b'disk image')
+        cases = deploy.discover_cases(self.root)
+        self.assertEqual(next(case.image for case in cases if case.media == 'sd'), image)
+
+    def test_sd_prefers_wic_over_legacy_pack(self):
+        image = self.root / 'obmc-phosphor-image-numaker-iot-ma35d03f80.wic'
+        image.write_bytes(b'disk image')
+        cases = deploy.discover_cases(self.root)
+        self.assertEqual(next(case.image for case in cases if case.media == 'sd'), image)
+
+    def test_sd_prefers_canonical_wic_over_versioned_images(self):
+        image = self.root / 'obmc-phosphor-image-numaker-iot-ma35d03f80.wic'
+        image.write_bytes(b'disk image')
+        (self.root / 'obmc-phosphor-image-numaker-iot-ma35d03f80-20261104.wic').write_bytes(b'versioned image')
+        cases = deploy.discover_cases(self.root)
+        self.assertEqual(next(case.image for case in cases if case.media == 'sd'), image)
+
+    def test_sd_canonical_symlink_disambiguates_versioned_wic_images(self):
+        older = self.root / 'obmc-phosphor-image-numaker-iot-ma35d03f80-20261103.wic'
+        newer = self.root / 'obmc-phosphor-image-numaker-iot-ma35d03f80-20261104.wic'
+        older.write_bytes(b'older disk image')
+        newer.write_bytes(b'newer disk image')
+        link = self.root / 'obmc-phosphor-image-numaker-iot-ma35d03f80.wic'
+        try:
+            link.symlink_to(newer.name)
+        except OSError:
+            self.skipTest('Creating symlinks is not permitted by this OS account')
+        cases = deploy.discover_cases(self.root)
+        self.assertEqual(next(case.image for case in cases if case.media == 'sd'), newer.resolve())
+
+    def test_ambiguous_sd_wic_images_are_rejected(self):
+        for version in ('20261103', '20261104'):
+            (self.root / f'obmc-phosphor-image-numaker-iot-ma35d03f80-{version}.wic').write_bytes(b'disk image')
+        with self.assertRaisesRegex(ValueError, 'Ambiguous SD WIC images'):
+            deploy.discover_cases(self.root)
+
+    def test_sd_rejects_wic_for_another_machine(self):
+        (self.root / 'nuwriter-pack-sd-numaker-iot-ma35d03f80.bin').unlink()
+        (self.root / 'obmc-phosphor-image-numaker-iot-ma35d16fj87c.wic').write_bytes(b'disk image')
+        with self.assertRaisesRegex(ValueError, 'Missing regular image'):
+            deploy.discover_cases(self.root)
+
+    def test_sd_symlink_wic_is_not_used(self):
+        (self.root / 'nuwriter-pack-sd-numaker-iot-ma35d03f80.bin').unlink()
+        target = self.root / 'disk-image.bin'
+        target.write_bytes(b'disk image')
+        link = self.root / 'obmc-phosphor-image-numaker-iot-ma35d03f80.wic'
+        try:
+            link.symlink_to(target)
+        except OSError:
+            self.skipTest('Creating symlinks is not permitted by this OS account')
         with self.assertRaisesRegex(ValueError, 'Missing regular image'):
             deploy.discover_cases(self.root)
 
@@ -235,14 +306,23 @@ class CommandTests(unittest.TestCase):
         self.root = Path(self.temporary.name)
         self.case = deploy.DeploymentCase('nuwriter_program_sd', 'sd', self.root / 'case.bat', self.root / 'pack.bin', 7)
 
-    def test_bundled_download_hook_prints_hello_for_each_medium(self):
+    def test_bundled_download_hook_triggers_ch341_reset_for_each_medium(self):
+        import download_hook
         for media, option in deploy.DEPLOY_OPTIONS.items():
             with self.subTest(media=media):
                 case = deploy.DeploymentCase('case', media, self.case.script, self.case.image, option)
-                command = deploy.download_command(deploy.DEFAULT_DOWNLOAD_HOOK, case, '/dev/ttyUSB0')
+                command = deploy.download_command(deploy.DEFAULT_DOWNLOAD_HOOK, case, '/dev/ttyACM0')
                 self.assertEqual(command[0], sys.executable)
-                output = deploy.run_process(command, self.root, self.root / f'download-{media}', 10)
-                self.assertEqual(output.strip(), 'download_hook hello')
+                self.assertEqual(Path(command[1]), deploy.DEFAULT_DOWNLOAD_HOOK)
+                fake_serial = mock.MagicMock(is_open=True)
+                with contextlib.redirect_stdout(io.StringIO()) as stdout,                         mock.patch('download_hook.serial.Serial', return_value=fake_serial) as serial_cls,                         mock.patch('download_hook.time.sleep') as sleep_mock:
+                    rc = download_hook.main(command[2:])
+                self.assertEqual(rc, 0)
+                serial_cls.assert_called_once_with(
+                    port='/dev/ttyUSB0', baudrate=9600, timeout=1, rtscts=False, dsrdtr=False
+                )
+                sleep_mock.assert_any_call(1.0)
+                self.assertIn('Reset pulse completed successfully.', stdout.getvalue())
 
     def test_native_commands_match_prebuilt_batches(self):
         for media in ('nand', 'sd', 'spinand'):
@@ -253,6 +333,14 @@ class CommandTests(unittest.TestCase):
             self.assertEqual(len(commands), 2 if media == 'sd' else 3)
             if media != 'sd':
                 self.assertEqual(commands[1][2:], ['-e', media, 'all'])
+
+    def test_raw_sd_wic_is_written_at_offset_zero(self):
+        case = deploy.DeploymentCase('sd', 'sd', self.case.script, self.root / 'disk image.wic', 7)
+        commands = deploy.flash_commands(self.root, case)
+        self.assertEqual(commands, [
+            [sys.executable, str(self.root / 'nuwriter.py'), '-a', 'ddrimg/ddr_auto.bin'],
+            [sys.executable, str(self.root / 'nuwriter.py'), '-w', 'emmc', '0x0', str(case.image)],
+        ])
 
     def test_python_hook_uses_current_interpreter_on_all_platforms(self):
         path = self.root / 'reset.py'
@@ -294,9 +382,30 @@ class CommandTests(unittest.TestCase):
             command = deploy.download_command(path, self.case, 'COM3')
         self.assertEqual(command[-6:], ['-Media', 'sd', '-DeployOption', '7', '-SerialPort', 'COM3'])
 
+    def test_post_boot_test_commands_select_media_specific_ota_tarball(self):
+        (self.root / 'obmc-phosphor-image-numaker-iot-ma35d03f80.mtd-ubi-tar').write_bytes(b'ubi-ota')
+        (self.root / 'obmc-phosphor-image-numaker-iot-ma35d03f80.mmc-ext4-tar').write_bytes(b'mmc-ota')
+        expected_suffix = {
+            'nand': 'obmc-phosphor-image-numaker-iot-ma35d03f80.mtd-ubi-tar',
+            'spinand': 'obmc-phosphor-image-numaker-iot-ma35d03f80.mtd-ubi-tar',
+            'sd': 'obmc-phosphor-image-numaker-iot-ma35d03f80.mmc-ext4-tar',
+        }
+        for media, filename in expected_suffix.items():
+            with self.subTest(media=media):
+                case = deploy.DeploymentCase(f'nuwriter_program_{media}', media,
+                                             self.root / f'nuwriter_program_{media}.bat',
+                                             self.root / 'pack.bin', deploy.DEPLOY_OPTIONS[media])
+                tests = deploy.post_boot_test_commands(case, '192.168.0.68')
+                self.assertEqual([name for name, _ in tests], ['test-01-cpu-temp', 'test-02-redfish-update'])
+                self.assertTrue(tests[0][1][1].endswith('meta-numaker/doc/numaker-iot-ma35d03f80/test-cpu-temp.sh'))
+                self.assertEqual(tests[0][1][2:], ['-H', '192.168.0.68', '-c', '5', '-i', '1'])
+                self.assertTrue(tests[1][1][1].endswith(
+                    'meta-numaker/doc/numaker-iot-ma35d03f80/test-redfish-update/test-redfish-update.sh'))
+                self.assertEqual(tests[1][1][2:], ['192.168.0.68', str(self.root / filename)])
+
     def test_native_boot_writes_selector_then_dtb_and_executes_bl2_last(self):
         commands = deploy.native_boot_commands(self.root, self.case, self.root / 'bl2.dtb', self.root / 'bl2.bin')
-        self.assertEqual(commands[1][2:], ['-w', 'reg', '0x2803FFFC', '0x00004400'])
+        self.assertEqual(commands[0][2:], ['-w', 'reg', '0x2803FFFC', '0x00004400'])
         self.assertEqual(commands[-2][2:5], ['-w', 'sram', '0x28023000'])
         self.assertEqual(commands[-1][-2:], ['-o', 'execute'])
 
@@ -326,7 +435,9 @@ class BootTests(unittest.TestCase):
 
     def test_failures_override_success(self):
         for failure in ('Kernel panic - not syncing', 'Synchronous Abort', '\nASSERT: drivers/io/io_storage.c:179',
-                        'ERROR: Boot interface 0x4f00 not supported'):
+                        'ERROR: Boot interface 0x4f00 not supported',
+                        'ERROR:   BL2: Failed to load image id 3 (-5)',
+                        '\nMA35D0> '):
             with self.assertRaisesRegex(RuntimeError, 'Boot failure'):
                 deploy.boot_complete('BL2: U-Boot Linux version numaker-iot-ma35d03f80 login:\n' + failure)
 
@@ -458,6 +569,25 @@ class SequentialTests(unittest.TestCase):
         self.assertEqual(console.close.call_count, 3)
         results = json.loads((self.root / 'reports/results.json').read_text())
         self.assertEqual([result['status'] for result in results], ['passed'] * 3)
+
+    def test_colored_storage_and_phase_banners_in_output(self):
+        console = mock.Mock(in_waiting=0)
+        stdout = io.StringIO()
+        with contextlib.redirect_stdout(stdout), \
+                mock.patch.object(deploy, 'run_process'), \
+                mock.patch.object(deploy, 'device_count', return_value=1), \
+                mock.patch.object(deploy, 'open_console', return_value=console), \
+                mock.patch.object(deploy, 'wait_for_boot'):
+            self.assertEqual(deploy.deploy_cases(self.args), 0)
+        text = stdout.getvalue()
+        for media, color in deploy.STORAGE_COLORS.items():
+            self.assertIn(f'{color}[STORAGE: {media.upper()}]{deploy.ANSI_RESET}', text)
+        for phase in ('download-mode', 'flash', 'boot', 'complete'):
+            color = deploy.PHASE_COLORS[phase]
+            self.assertIn(f'{color}[PHASE: {phase.upper()}]{deploy.ANSI_RESET}', text)
+        self.assertIn('DEPLOYMENT SUMMARY', text)
+        self.assertIn('[STORAGE: NAND]', deploy.infer_log_badges(Path('01-nuwriter_program_nand/flash-01')))
+        self.assertIn('[PHASE: FLASH]', deploy.infer_log_badges(Path('01-nuwriter_program_nand/flash-01')))
 
 
 class SourceTests(unittest.TestCase):
@@ -688,6 +818,12 @@ class ConfigurationTests(unittest.TestCase):
         with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as error:
             deploy.build_parser().parse_args(['deploy', '--boot-timeout-seconds', '0'])
         self.assertEqual(error.exception.code, 2)
+
+    def test_cli_accepts_float_formatted_integer_numbers_from_github_actions(self):
+        args = deploy.build_parser().parse_args([
+            'deploy', '--boot-timeout-seconds', '600.0', '--observe-seconds', '10.0'])
+        self.assertEqual(args.boot_timeout_seconds, 600)
+        self.assertEqual(args.observe_seconds, 10)
 
 
 if __name__ == '__main__':

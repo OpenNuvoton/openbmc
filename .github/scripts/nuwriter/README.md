@@ -141,15 +141,23 @@ python .github/scripts/nuwriter/deploy.py deploy --prebuilt-root /path/to/images
 ## Discovery and results
 
 The scanner recursively recognizes `nuwriter_program_sd.bat`,
-`nuwriter_program_nand.bat`, and `nuwriter_program_spinand.bat`. Each needs a
-sibling `nuwriter-pack-<media>-<machine>.bin` for the selected machine. All cases are
-validated before the first hardware action. Installed `MA35D1_NuWriter`
+`nuwriter_program_nand.bat`, and `nuwriter_program_spinand.bat`. NAND and
+SPI-NAND need a sibling `nuwriter-pack-<media>-<machine>.bin`. SD instead
+prefers a sibling `obmc-phosphor-image-<machine>*.wic` disk image, matching
+the SD build output. An exact `obmc-phosphor-image-<machine>.wic` takes
+precedence over versioned images; otherwise there must be exactly one
+matching regular WIC file. Multiple versioned images are rejected rather
+than selecting an arbitrary build. Legacy SD packs remain supported only
+when no regular WIC is found. Compressed `.wic.gz` images must be extracted
+before deployment. All cases are validated before the first hardware
+action. Installed `MA35D1_NuWriter`
 directories, symbolic links, junctions, and installer scripts are skipped.
 
 Batch files identify cases; they are never executed or parsed. The planner
 initializes DDR with `-a ddrimg/ddr_auto.bin`, erases NAND/SPI-NAND with
-`-e <media> all`, then writes the pack using `-w <media> <pack>` (`emmc` for
-SD). Source scripts and images are never modified.
+`-e <media> all`, then writes their packs using `-w <media> <pack>`. SD WIC
+images are written as raw disks using `-w emmc 0x0 <image.wic>`; legacy SD
+packs retain `-w emmc <pack>`. Source scripts and images are never modified.
 
 Each case enters download mode, flashes, opens a fresh UART capture, and
 requires the ordered `BL2:` -> `U-Boot` -> `Linux version` ->
@@ -184,13 +192,29 @@ option are not supported by this hardware deployment workflow.
 
 The deployment job uses `[self-hosted]` and the `ma35-hardware` environment,
 including for listing. It uses the runner's existing Python without a
-version matrix or Python installation step. Provision Python 3.10+ and
-dependencies first, and configure the hardware variables in the table
-above as repository or environment variables. The workflow uses the
+version matrix or Python installation step. Provision Python 3.10+ with
+the standard-library `venv` module and the required USB/UART device access.
+Configure the hardware variables in the table above as repository or
+environment variables. The workflow uses the
 bundled NuWriter runtime without a `MA35_NUWRITER_ROOT` variable. Use
 absolute paths outside the checkout for local images and lab hooks because
 checkout cleanup may remove untracked files within the workspace. Commit
 the bundled runtime files so they are available after checkout.
+
+For hardware runs, `Install deployment dependencies` creates
+`RUNNER_TEMP/nuwriter-venv` from the runner's current interpreter and
+installs `requirements.txt` before configuration checks. It adds that
+environment's executable directory to `GITHUB_PATH`, so subsequent Python
+steps and NuWriter use the same environment. System Python is not modified
+and no different Python version is installed. Listing-only runs skip this
+step and require only the standard library.
+
+System `pip` and `ensurepip` are not required: when the temporary
+environment has no pip, the workflow downloads the official PyPA installer
+from `https://bootstrap.pypa.io/get-pip.py`. The runner must have HTTPS
+access to this endpoint and its configured Python package index (normally
+PyPI). libusb/USB drivers and serial-device permissions must still be
+provisioned on the host; installing PyUSB does not provide those.
 
 `numaker.yml` includes the TF-A BL2 binary and DTB in each machine's
 artifact. The deployment workflow checks hardware configuration after

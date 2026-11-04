@@ -227,6 +227,9 @@ do_compile() {
         cp -f ${DEPLOY_DIR_IMAGE_MA35}/fip-${PRIMARY_BOOT}.bin ${DEPLOY_DIR_IMAGE_MA35}/fip.bin
     fi
 
+    # Remove temporary NuWriter timestamp directories and symlinks to avoid duplicate bl2-* files
+    rm -rf ${DEPLOY_DIR_IMAGE_MA35}/conv ${DEPLOY_DIR_IMAGE_MA35}/pack ${DEPLOY_DIR_IMAGE_MA35}/[0-1][0-9][0-3][0-9]-[0-9]*
+
     bbnote "NuWriter pack.bin generated successfully"
 }
 
@@ -464,6 +467,16 @@ EOF
             # Deploy composite SD bootloader for WIC disk imaging and direct dd flashing
             cp -f ${OTA_DIR_SD}/image-u-boot ${DEPLOY_DIR_IMAGE_MA35}/image-u-boot-sd.bin
             cp -f ${OTA_DIR_SD}/image-u-boot ${DEPLOYDIR}/image-u-boot-sd-${MACHINE}.bin
+
+            # Remove stale timestamped WIC images that do not match the canonical symlink target
+            if [ -L "${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}.wic" ]; then
+                CANONICAL_WIC=$(readlink -f "${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}.wic")
+                for wic_candidate in ${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}-*.wic; do
+                    if [ -f "${wic_candidate}" ] && [ ! -L "${wic_candidate}" ] && [ "$(readlink -f "${wic_candidate}")" != "${CANONICAL_WIC}" ]; then
+                        rm -f "${wic_candidate}" "${wic_candidate}.gz"
+                    fi
+                done
+            fi
 
             # Inject SD composite bootloader into generated WIC image (preserving MBR/GPT header at 0~1KB)
             for wic_target in ${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}*.wic ${DEPLOYDIR}/obmc-phosphor-image-${MACHINE}*.wic; do

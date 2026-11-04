@@ -1,4 +1,4 @@
-name: NuWriter deployment
+name: OpenBMC deployment
 
 on:
   workflow_dispatch:
@@ -26,7 +26,7 @@ on:
       list_only:
         description: Only scan images; do not control or write hardware
         type: boolean
-        default: true
+        default: false
       boot_timeout_seconds:
         description: Deadline for each complete OpenBMC boot and health observation
         type: number
@@ -46,6 +46,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.actor == 'wosayttn'
     runs-on: [self-hosted]
     environment: ma35-hardware
     timeout-minutes: 180
@@ -71,6 +72,31 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
+
+      - name: Install deployment dependencies
+        if: env.LIST_ONLY != 'true'
+        run: |
+          import os
+          import subprocess
+          import sys
+          from pathlib import Path
+          from urllib.request import urlopen
+          environment = Path(os.environ['RUNNER_TEMP']) / 'nuwriter-venv'
+          subprocess.run([sys.executable, '-m', 'venv', '--without-pip', str(environment)], check=True)
+          scripts = environment / ('Scripts' if os.name == 'nt' else 'bin')
+          python = scripts / ('python.exe' if os.name == 'nt' else 'python')
+          pip = subprocess.run([str(python), '-m', 'pip', '--version'],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+          if pip.returncode:
+              bootstrap = Path(os.environ['RUNNER_TEMP']) / 'nuwriter-get-pip.py'
+              with urlopen('https://bootstrap.pypa.io/get-pip.py', timeout=60) as response:
+                  bootstrap.write_bytes(response.read())
+              subprocess.run([str(python), str(bootstrap), '--disable-pip-version-check'], check=True)
+          requirements = Path(os.environ['GITHUB_WORKSPACE']) / '.github/scripts/nuwriter/requirements.txt'
+          subprocess.run([str(python), '-m', 'pip', 'install', '--disable-pip-version-check',
+                          '-r', str(requirements)], check=True)
+          with open(os.environ['GITHUB_PATH'], 'a', encoding='utf-8') as path:
+              path.write(f'{scripts}\n')
 
       - name: Resolve trusted prebuilt source
         id: source

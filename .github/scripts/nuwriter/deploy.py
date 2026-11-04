@@ -34,11 +34,93 @@ DEFAULT_PREBUILT_ROOT = REPO_ROOT / 'artifacts' / f'openbmc-{DEFAULT_MACHINE}'
 DEFAULT_OUTPUT_DIRECTORY = REPO_ROOT / 'autodeploy-results'
 DEPLOY_OPTIONS = {'nand': 5, 'sd': 7, 'spinand': 3}
 BOOT_SELECTORS = {'nand': '0x00000800', 'sd': '0x00004400', 'spinand': '0x00000000'}
+OTA_SUFFIXES = {'nand': '.mtd-ubi-tar', 'sd': '.mmc-ext4-tar', 'spinand': '.mtd-ubi-tar'}
 BOOT_MARKERS = ('BL2:', 'U-Boot', 'Linux version', 'numaker-iot-ma35d03f80 login:')
 BOOT_FAILURE = re.compile(
-    r'^\s*ASSERT:|Kernel panic|Synchronous Abort|ERROR:\s+Boot interface[^\r\n]*not supported',
+    r'^\s*ASSERT:|Kernel panic|Synchronous Abort|ERROR:\s+Boot interface[^\r\n]*not supported'
+    r'|ERROR:\s+BL2:\s+Failed to load image|^\s*MA35(?:D0|D1|H0)>',
     re.IGNORECASE | re.MULTILINE,
 )
+
+ANSI_RESET = '\033[0m'
+ANSI_BOLD = '\033[1m'
+ANSI_DIM = '\033[2m'
+STORAGE_COLORS = {
+    'nand': '\033[1;36m',     # Bold Cyan
+    'sd': '\033[1;35m',       # Bold Magenta
+    'spinand': '\033[1;33m',  # Bold Yellow
+}
+PHASE_COLORS = {
+    'download-mode': '\033[1;34m',  # Bold Blue
+    'flash': '\033[1;35m',          # Bold Magenta
+    'boot': '\033[1;36m',           # Bold Cyan
+    'test': '\033[1;33m',           # Bold Yellow
+    'ota-boot': '\033[1;34m',       # Bold Blue
+    'complete': '\033[1;32m',       # Bold Green
+}
+STATUS_COLORS = {
+    'passed': '\033[1;32m',  # Bold Green
+    'failed': '\033[1;31m',  # Bold Red
+}
+
+
+def storage_badge(media: str) -> str:
+    color = STORAGE_COLORS.get(media.lower(), ANSI_BOLD)
+    return f'{color}[STORAGE: {media.upper()}]{ANSI_RESET}'
+
+
+def phase_badge(phase: str, detail: str = '') -> str:
+    color = PHASE_COLORS.get(phase.lower(), ANSI_BOLD)
+    label = f'{phase.upper()}: {detail}' if detail else phase.upper()
+    return f'{color}[PHASE: {label}]{ANSI_RESET}'
+
+
+def log_case_banner(index: int, total: int, case: DeploymentCase) -> None:
+    color = STORAGE_COLORS.get(case.media.lower(), ANSI_BOLD)
+    border = f'{color}{"=" * 80}{ANSI_RESET}'
+    print(
+        f'\n{border}\n'
+        f'{color}[{index}/{total}]{ANSI_RESET} {storage_badge(case.media)} '
+        f'{ANSI_BOLD}{case.name}{ANSI_RESET} '
+        f'{ANSI_DIM}(machine={case.machine}, image={case.image.name}){ANSI_RESET}\n'
+        f'{border}',
+        flush=True,
+    )
+
+
+def log_phase_banner(media: str, phase: str, message: str, detail: str = '') -> None:
+    color = PHASE_COLORS.get(phase.lower(), ANSI_BOLD)
+    line = f'{color}{"-" * 80}{ANSI_RESET}'
+    print(
+        f'\n{line}\n'
+        f'{storage_badge(media)} {phase_badge(phase, detail)} {ANSI_BOLD}{message}{ANSI_RESET}\n'
+        f'{line}',
+        flush=True,
+    )
+
+
+def infer_log_badges(log_prefix: Path) -> str:
+    parent_match = re.search(r'_(nand|sd|spinand)$', log_prefix.parent.name, re.IGNORECASE)
+    media = parent_match.group(1).lower() if parent_match else ''
+    step = log_prefix.name.lower()
+    if step == 'reset':
+        phase = 'download-mode'
+    elif step.startswith('flash-'):
+        phase = 'flash'
+    elif step.startswith('boot-'):
+        phase = 'boot'
+    elif step.startswith('ota-boot-'):
+        phase = 'ota-boot'
+    elif step.startswith('test-'):
+        phase = 'test'
+    else:
+        phase = ''
+    badges = []
+    if media:
+        badges.append(storage_badge(media))
+    if phase:
+        badges.append(phase_badge(phase))
+    return (' '.join(badges) + ' ') if badges else ''
 
 
 def machine_name(value: str) -> str:
@@ -66,7 +148,10 @@ class DeploymentCase:
 
 
 def is_link(path: Path) -> bool:
-    attributes = getattr(path.lstat(), 'st_file_attributes', 0)
+    try:
+        attributes = getattr(path.lstat(), 'st_file_attributes', 0)
+    except OSError:
+        return False
     return path.is_symlink() or bool(attributes & getattr(stat, 'FILE_ATTRIBUTE_REPARSE_POINT', 0))
 
 
@@ -75,10 +160,12 @@ def discover_cases(root: Path, machine: str = DEFAULT_MACHINE) -> list[Deploymen
     root = root.resolve(strict=True)
     if not root.is_dir():
         raise ValueError(f'Prebuilt root is not a directory: {root}')
+    if (root / machine).is_dir() and not is_link(root / machine):
+        root = (root / machine).resolve(strict=True)
     scripts = []
     for directory, children, filenames in os.walk(root, followlinks=False):
         children[:] = [name for name in children
-                       if name not in {'MA35D1_NuWriter', '.git', '__pycache__'}
+                       if name not in {'MA35D1_NuWriter', '.git', '__pycache__'} and not re.fullmatch(r'\d{4}-\d{12}|conv(?:-[^/\\]+)?|pack(?:-[^/\\]+)?', name)
                        and not is_link(Path(directory) / name)]
         for filename in filenames:
             if re.fullmatch(r'nuwriter_program_(sd|nand|spinand)\.bat', filename, re.IGNORECASE):
@@ -91,18 +178,34 @@ def discover_cases(root: Path, machine: str = DEFAULT_MACHINE) -> list[Deploymen
     for script in sorted(scripts, key=lambda path: str(path).casefold()):
         media = script.stem.rsplit('_', 1)[1].lower()
         image = script.parent / f'nuwriter-pack-{media}-{machine}.bin'
+        if media == 'sd':
+            images = [path for path in script.parent.glob(f'obmc-phosphor-image-{machine}*.wic')
+                      if path.is_file() and not is_link(path)]
+            canonical = script.parent / f'obmc-phosphor-image-{machine}.wic'
+            if canonical in images:
+                image = canonical
+            elif is_link(canonical) and canonical.resolve() in images:
+                image = canonical.resolve()
+            elif len(images) == 1:
+                image = images[0]
+            elif len(images) > 1:
+                raise ValueError(f'Ambiguous SD WIC images for {script}: '
+                                 + ', '.join(str(path) for path in sorted(images)))
         if not image.is_file() or is_link(image):
-            raise ValueError(f'Missing regular image for {script}: {image}')
+            expected = f'obmc-phosphor-image-{machine}*.wic or {image}' if media == 'sd' else str(image)
+            raise ValueError(f'Missing regular image for {script}: {expected}')
         cases.append(DeploymentCase(script.stem, media, script, image, DEPLOY_OPTIONS[media], machine))
     return cases
 
 
-def discover_boot_images(root: Path) -> tuple[Path, Path]:
+def discover_boot_images(root: Path, machine: str | None = None) -> tuple[Path, Path]:
     root = root.resolve(strict=True)
+    if machine and (root / machine).is_dir() and not is_link(root / machine):
+        root = (root / machine).resolve(strict=True)
     pairs = []
     for directory, children, filenames in os.walk(root, followlinks=False):
         children[:] = [name for name in children
-                       if name not in {'MA35D1_NuWriter', '.git', '__pycache__'}
+                       if name not in {'MA35D1_NuWriter', '.git', '__pycache__'} and not re.fullmatch(r'\d{4}-\d{12}|conv(?:-[^/\\]+)?|pack(?:-[^/\\]+)?', name)
                        and not is_link(Path(directory) / name)]
         for filename in filenames:
             if not re.fullmatch(r'bl2(?:-[^.]+)?\.dtb', filename):
@@ -161,19 +264,55 @@ def flash_commands(root: Path, case: DeploymentCase) -> list[list[str]]:
     commands = [nuwriter_command(root, '-a', DDR_IMAGE)]
     if case.media != 'sd':
         commands.append(nuwriter_command(root, '-e', case.media, 'all'))
-    commands.append(nuwriter_command(root, '-w', 'emmc' if case.media == 'sd' else case.media, str(case.image)))
+    if case.media == 'sd' and case.image.suffix.lower() == '.wic':
+        commands.append(nuwriter_command(root, '-w', 'emmc', '0x0', str(case.image)))
+    else:
+        commands.append(nuwriter_command(root, '-w', 'emmc' if case.media == 'sd' else case.media, str(case.image)))
     return commands
 
 
 def native_boot_commands(root: Path, case: DeploymentCase, dtb: Path, bl2: Path) -> list[list[str]]:
     machine_name(case.machine)
     return [
-        nuwriter_command(root, '-a', DDR_IMAGE),
         nuwriter_command(root, '-w', 'reg', '0x2803FFFC', BOOT_SELECTORS[case.media]),
         nuwriter_command(root, '-r', 'reg', '0x2803FFFC'),
         nuwriter_command(root, '-w', 'sram', '0x28023000', str(dtb)),
         nuwriter_command(root, '-w', 'sram', '0x28000000', str(bl2), '-o', 'execute'),
     ]
+
+
+def discover_ota_image(case: DeploymentCase) -> Path | None:
+    machine_name(case.machine)
+    suffix = OTA_SUFFIXES[case.media]
+    parent = case.script.parent
+    canonical = parent / f'obmc-phosphor-image-{case.machine}{suffix}'
+    matches = [path for path in parent.glob(f'obmc-phosphor-image-{case.machine}*{suffix}')
+               if path.is_file() and not is_link(path)]
+    if canonical in matches:
+        return canonical
+    if is_link(canonical) and canonical.resolve() in matches:
+        return canonical.resolve()
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        raise ValueError(f'Ambiguous OTA images for {case.script}: '
+                         + ', '.join(str(path) for path in sorted(matches)))
+    return None
+
+
+def post_boot_test_commands(case: DeploymentCase, bmc_host: str,
+                            doc_root: Path | None = None) -> list[tuple[str, list[str]]]:
+    machine_name(case.machine)
+    base = (doc_root or (REPO_ROOT / 'meta-numaker' / 'doc')) / case.machine
+    tests: list[tuple[str, list[str]]] = []
+    cpu_temp = base / 'test-cpu-temp.sh'
+    if cpu_temp.is_file() and not is_link(cpu_temp):
+        tests.append(('test-01-cpu-temp', ['/bin/bash', str(cpu_temp), '-H', bmc_host, '-c', '5', '-i', '1']))
+    redfish_update = base / 'test-redfish-update' / 'test-redfish-update.sh'
+    ota_image = discover_ota_image(case)
+    if redfish_update.is_file() and not is_link(redfish_update) and ota_image is not None:
+        tests.append(('test-02-redfish-update', ['/bin/bash', str(redfish_update), bmc_host, str(ota_image)]))
+    return tests
 
 
 def boot_complete(text: str, machine: str = DEFAULT_MACHINE) -> bool:
@@ -191,11 +330,14 @@ def boot_complete(text: str, machine: str = DEFAULT_MACHINE) -> bool:
 
 
 class SerialCapture:
-    def __init__(self, console: Any, log_path: Path, machine: str = DEFAULT_MACHINE):
+    def __init__(self, console: Any, log_path: Path, machine: str = DEFAULT_MACHINE, echo: bool = True):
         self.console = console
         self.log_path = log_path
         self.machine = machine_name(machine)
+        self.echo = echo
         self.data = bytearray()
+        self.usb_boot_count = 0
+        self.on_usb_boot: Any = None
         log_path.write_bytes(b'')
 
     def drain(self, block: bool = False) -> None:
@@ -206,10 +348,30 @@ class SerialCapture:
                 self.data.extend(data)
                 with self.log_path.open('ab') as stream:
                     stream.write(data)
+                if self.echo:
+                    sys.stdout.write(data.decode('utf-8', errors='replace'))
+                    sys.stdout.flush()
+                if self.on_usb_boot is not None:
+                    markers = self.text.count('USBD Boot')
+                    if markers > self.usb_boot_count:
+                        self.usb_boot_count = markers
+                        callback = self.on_usb_boot
+                        self.on_usb_boot = None
+                        try:
+                            callback()
+                        finally:
+                            self.on_usb_boot = callback
 
     @property
     def text(self) -> str:
         return self.data.decode('utf-8', errors='replace')
+
+
+def flush_log_stream(reader: Any, destination: Any) -> None:
+    chunk = reader.read()
+    if chunk:
+        destination.write(chunk.decode('utf-8', errors='replace'))
+        destination.flush()
 
 
 def terminate_process_tree(process: subprocess.Popen) -> None:
@@ -228,7 +390,7 @@ def terminate_process_tree(process: subprocess.Popen) -> None:
 
 
 def run_process(command: list[str], cwd: Path, log_prefix: Path, timeout: float,
-                capture: SerialCapture | None = None) -> str:
+                capture: SerialCapture | None = None, echo: bool = True) -> str:
     if timeout <= 0:
         raise TimeoutError('Process deadline already expired')
     stdout_path = log_prefix.with_name(log_prefix.name + '.stdout.log')
@@ -236,7 +398,11 @@ def run_process(command: list[str], cwd: Path, log_prefix: Path, timeout: float,
     process_command: list[str] | str = command
     if os.name == 'nt' and Path(command[0]).name.lower() == 'cmd.exe' and command[-2].lower() == '/c':
         process_command = subprocess.list2cmdline(command[:-1]) + ' ' + command[-1]
-    with stdout_path.open('wb') as stdout, stderr_path.open('wb') as stderr:
+    if echo:
+        badges = infer_log_badges(log_prefix)
+        print(f'\n{ANSI_BOLD}==>{ANSI_RESET} {badges}{ANSI_BOLD}[{log_prefix.name}]{ANSI_RESET} {" ".join(command)}', flush=True)
+    with stdout_path.open('wb') as stdout, stderr_path.open('wb') as stderr, \
+            stdout_path.open('rb') as stdout_reader, stderr_path.open('rb') as stderr_reader:
         process = subprocess.Popen(
             process_command, cwd=cwd, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr,
             start_new_session=os.name != 'nt',
@@ -245,6 +411,9 @@ def run_process(command: list[str], cwd: Path, log_prefix: Path, timeout: float,
         deadline = time.monotonic() + timeout
         try:
             while True:
+                if echo:
+                    flush_log_stream(stdout_reader, sys.stdout)
+                    flush_log_stream(stderr_reader, sys.stderr)
                 if capture:
                     capture.drain()
                     boot_complete(capture.text, capture.machine)
@@ -265,6 +434,10 @@ def run_process(command: list[str], cwd: Path, log_prefix: Path, timeout: float,
             if process.poll() is None:
                 terminate_process_tree(process)
             raise
+        finally:
+            if echo:
+                flush_log_stream(stdout_reader, sys.stdout)
+                flush_log_stream(stderr_reader, sys.stderr)
     return stdout_path.read_text(encoding='utf-8', errors='replace')
 
 
@@ -325,7 +498,7 @@ def validate_configuration(args: argparse.Namespace) -> None:
         script_command(args.boot_script, [])
     else:
         if not args.boot_dtb and not args.boot_bl2:
-            args.boot_dtb, args.boot_bl2 = discover_boot_images(prebuilt_directory(args))
+            args.boot_dtb, args.boot_bl2 = discover_boot_images(prebuilt_directory(args), args.machine)
         elif not args.boot_dtb or not args.boot_bl2:
             raise ValueError('Configure --boot-script or both --boot-dtb and --boot-bl2')
         args.boot_dtb = Path(args.boot_dtb).resolve(strict=True)
@@ -358,13 +531,15 @@ def deploy_cases(args: argparse.Namespace) -> int:
     output.mkdir(parents=True, exist_ok=True)
     results = []
     for index, case in enumerate(cases, start=1):
-        print(f'[{index}/{len(cases)}] {case.name}', flush=True)
+        log_case_banner(index, len(cases), case)
         directory = output / f'{index:02d}-{case.name}'
         directory.mkdir(parents=True, exist_ok=True)
         result = {**case.to_dict(), 'status': 'failed', 'phase': 'download-mode', 'seconds': 0.0, 'error': ''}
         started = time.monotonic()
         console = None
         try:
+            log_phase_banner(case.media, 'download-mode',
+                             f'Switching {case.machine} into USB download mode ({args.serial_port})')
             run_process(download_command(args.download_hook, case, args.serial_port), case.script.parent,
                         directory / 'reset', args.hook_timeout_seconds)
             count = device_count()
@@ -372,10 +547,14 @@ def deploy_cases(args: argparse.Namespace) -> int:
             if count != 1:
                 raise RuntimeError(f'Expected exactly one NuWriter DUT; detected {count}. Isolate the other board before flashing.')
             result['phase'] = 'flash'
+            log_phase_banner(case.media, 'flash',
+                             f'Programming {case.image.name} to {case.media.upper()}')
             flash_deadline = time.monotonic() + args.flash_timeout_seconds
             for step, command in enumerate(flash_commands(args.nuwriter_root, case), start=1):
                 run_process(command, args.nuwriter_root, directory / f'flash-{step:02d}', flash_deadline - time.monotonic())
             result['phase'] = 'boot'
+            log_phase_banner(case.media, 'boot',
+                             f'Booting from {case.media.upper()} (option={case.deploy_option}, selector={BOOT_SELECTORS[case.media]})')
             console = open_console(args.serial_port, args.baud_rate)
             console.reset_input_buffer()
             capture = SerialCapture(console, directory / 'uart.log', args.machine)
@@ -389,10 +568,67 @@ def deploy_cases(args: argparse.Namespace) -> int:
             for step, command in enumerate(commands, start=1):
                 run_process(command, cwd, directory / f'boot-{step:02d}', deadline - time.monotonic(), capture)
             wait_for_boot(capture, deadline, args.observe_seconds, machine=args.machine)
+            bmc_host = getattr(args, 'bmc_host', None) or f'{args.machine}.local'
+            tests = post_boot_test_commands(case, bmc_host)
+            if tests:
+                result['phase'] = 'test'
+                test_deadline = time.monotonic() + getattr(args, 'test_timeout_seconds', 900)
+                ota_boot_round = 0
+
+                def assist_usb_reboot() -> None:
+                    nonlocal ota_boot_round
+                    ota_boot_round += 1
+                    log_phase_banner(case.media, 'ota-boot',
+                                     f'Detected USBD Boot during OTA reboot (round {ota_boot_round}); assisting {case.media.upper()} boot',
+                                     detail=f'round-{ota_boot_round}')
+                    time.sleep(1.5)
+                    if args.boot_script:
+                        reboot_commands = [script_command(args.boot_script, [str(case.deploy_option)])]
+                        reboot_cwd = args.boot_script.parent
+                    else:
+                        reboot_commands = [
+                            nuwriter_command(args.nuwriter_root, '-a', DDR_IMAGE),
+                            *native_boot_commands(args.nuwriter_root, case, args.boot_dtb, args.boot_bl2),
+                        ]
+                        reboot_cwd = args.nuwriter_root
+                    for idx, cmd in enumerate(reboot_commands, start=1):
+                        run_process(cmd, reboot_cwd, directory / f'ota-boot-{ota_boot_round:02d}-{idx:02d}',
+                                    test_deadline - time.monotonic())
+
+                for test_name, test_command in tests:
+                    log_phase_banner(case.media, 'test',
+                                     f'Running post-boot verification: {test_name}', detail=test_name)
+                    capture.usb_boot_count = capture.text.count('USBD Boot')
+                    capture.on_usb_boot = assist_usb_reboot if 'redfish-update' in test_name else None
+                    try:
+                        run_process(test_command, REPO_ROOT, directory / test_name,
+                                    test_deadline - time.monotonic(), capture)
+                    finally:
+                        capture.on_usb_boot = None
             result.update(status='passed', phase='complete')
+            elapsed = round(time.monotonic() - started, 3)
+            pass_color = STATUS_COLORS['passed']
+            border = f'{pass_color}{"=" * 80}{ANSI_RESET}'
+            print(
+                f'\n{border}\n'
+                f'{pass_color}[PASS]{ANSI_RESET} [{index}/{len(cases)}] {storage_badge(case.media)} '
+                f'{phase_badge("complete")} {pass_color}PASSED: {case.name} ({elapsed}s){ANSI_RESET}\n'
+                f'{border}',
+                flush=True,
+            )
         except Exception as error:
             result['error'] = str(error)
-            print(f'FAILED: {case.name}: {error}', file=sys.stderr, flush=True)
+            elapsed = round(time.monotonic() - started, 3)
+            fail_color = STATUS_COLORS['failed']
+            border = f'{fail_color}{"=" * 80}{ANSI_RESET}'
+            print(
+                f'\n{border}\n'
+                f'{fail_color}[FAIL]{ANSI_RESET} [{index}/{len(cases)}] {storage_badge(case.media)} '
+                f'{phase_badge(result["phase"])} {fail_color}FAILED: {case.name} ({elapsed}s): {error}{ANSI_RESET}\n'
+                f'{border}',
+                file=sys.stderr,
+                flush=True,
+            )
         finally:
             if console is not None:
                 try:
@@ -403,12 +639,34 @@ def deploy_cases(args: argparse.Namespace) -> int:
             result['seconds'] = round(time.monotonic() - started, 3)
             results.append(result)
             write_results(results, output)
+    all_passed = all(result['status'] == 'passed' for result in results)
+    summary_color = STATUS_COLORS['passed'] if all_passed else STATUS_COLORS['failed']
+    border = f'{summary_color}{"=" * 80}{ANSI_RESET}'
+    summary_lines = [
+        f'\n{border}',
+        f'{summary_color}DEPLOYMENT SUMMARY ({args.machine}){ANSI_RESET}',
+        f'{summary_color}{"-" * 80}{ANSI_RESET}',
+    ]
+    for idx, res in enumerate(results, start=1):
+        st_color = STATUS_COLORS.get(res['status'], ANSI_BOLD)
+        st_label = 'PASS' if res['status'] == 'passed' else 'FAIL'
+        err_suffix = f' -> {STATUS_COLORS["failed"]}{res["error"]}{ANSI_RESET}' if res.get('error') else ''
+        summary_lines.append(
+            f'  {st_color}[{st_label}]{ANSI_RESET} [{idx}/{len(results)}] '
+            f'{storage_badge(res["media"])} {phase_badge(res["phase"])} '
+            f'{ANSI_BOLD}{res["name"]}{ANSI_RESET} ({res["seconds"]}s){err_suffix}'
+        )
+    summary_lines.append(border)
+    print('\n'.join(summary_lines), flush=True)
     return int(any(result['status'] == 'failed' for result in results))
 
 
 def bounded_number(minimum: int, maximum: int):
     def parse(value: str) -> int:
-        number = int(value)
+        number_float = float(value)
+        if not number_float.is_integer():
+            raise argparse.ArgumentTypeError(f'Expected an integer in [{minimum}, {maximum}]')
+        number = int(number_float)
         if not minimum <= number <= maximum:
             raise argparse.ArgumentTypeError(f'Expected a number in [{minimum}, {maximum}]')
         return number
@@ -449,6 +707,8 @@ def resolve_source(workspace: Path, environment=None, request_json=None,
         root = Path(configured).resolve(strict=True)
         if not root.is_dir():
             raise ValueError('MA35_PREBUILT_ROOT must be a directory')
+        if (root / machine).is_dir() and not is_link(root / machine):
+            root = (root / machine).resolve(strict=True)
         values = {'prebuilt_root': str(root)}
         provenance = {'source': 'local', 'directory': str(root), 'machine': machine}
     elif mode == 'artifact':
@@ -542,6 +802,8 @@ def build_parser() -> argparse.ArgumentParser:
         child.add_argument('--hook-timeout-seconds', type=bounded_number(5, 600), default=120)
         child.add_argument('--observe-seconds', type=bounded_number(0, 300), default=10)
         child.add_argument('--baud-rate', type=bounded_number(1200, 4000000), default=115200)
+        child.add_argument('--bmc-host', default=os.environ.get('MA35_BMC_HOST'))
+        child.add_argument('--test-timeout-seconds', type=bounded_number(30, 7200), default=900)
     source = commands.add_parser('resolve-source')
     source.add_argument('--machine', type=machine_name, choices=SUPPORTED_MACHINES,
                         default=os.environ.get('MA35_MACHINE') or DEFAULT_MACHINE)
@@ -574,4 +836,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(main())

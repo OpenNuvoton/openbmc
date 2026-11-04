@@ -40,6 +40,65 @@ do_compile:prepend() {
     if echo ${TFA_DTB} | grep -q "custom"; then
         cp ${UNPACKDIR}/${TFA_DDR_HEADER} ${S}/plat/nuvoton/${PLATFORM}/include/custom_ddr.h
     fi
+    python3 - "${S}" << 'EOF'
+import glob, os, sys
+s_dir = sys.argv[1]
+target = """\t/* Set clock : initial clock 200KHz */
+\t/* SDH_CLOCK_CONTROL */
+\tsdh_set_clock(mmc, 200000);
+
+\t/* reset SD bus */
+\tcmd.cmdidx = MMC_CMD_GO_IDLE_STATE;
+\tcmd.cmdarg = 0;
+\tcmd.resp_type = MMC_RSP_NONE;
+\tsdh_send_command(mmc, &cmd, 0);
+
+\t/* timer delay */
+\tudelay(0x1000);
+
+\tmmc->rca = 0;
+\t// initial SDHC
+\t/* Test for SD version 2 */
+\tcmd.cmdidx = SD_CMD_SEND_IF_COND;
+\t/* We set the bit if the host supports voltages between 2.7 and 3.6 V */
+\tcmd.cmdarg = 0x100 | 0xaa;
+\tcmd.resp_type = MMC_RSP_R7;
+\tsdh_send_command(mmc, &cmd, 0);"""
+
+replacement = """\t/* Set clock : initial clock 200KHz */
+\t/* SDH_CLOCK_CONTROL */
+\tsdh_set_clock(mmc, 200000);
+\tudelay(0x1000);
+
+\tfor (int retry = 0; retry < 3; retry++) {
+\t\t/* reset SD bus */
+\t\tmemset(&cmd, 0, sizeof(cmd));
+\t\tcmd.cmdidx = MMC_CMD_GO_IDLE_STATE;
+\t\tcmd.cmdarg = 0;
+\t\tcmd.resp_type = MMC_RSP_NONE;
+\t\tsdh_send_command(mmc, &cmd, 0);
+\t\tudelay(0x1000);
+\t\tsdh_send_command(mmc, &cmd, 0);
+\t\tudelay(0x1000);
+
+\t\tmmc->rca = 0;
+\t\t/* Test for SD version 2 */
+\t\tmemset(&cmd, 0, sizeof(cmd));
+\t\tcmd.cmdidx = SD_CMD_SEND_IF_COND;
+\t\tcmd.cmdarg = 0x100 | 0xaa;
+\t\tcmd.resp_type = MMC_RSP_R7;
+\t\tsdh_send_command(mmc, &cmd, 0);
+\t\tif ((cmd.response[0] & 0xff) == 0xaa)
+\t\t\tbreak;
+\t}"""
+
+for path in glob.glob(os.path.join(s_dir, "drivers/nuvoton/sdhc/ma35*_sdhc.c")):
+    with open(path, "r") as f:
+        c = f.read()
+    if target in c:
+        with open(path, "w") as f:
+            f.write(c.replace(target, replacement))
+EOF
 }
 
 do_compile() {

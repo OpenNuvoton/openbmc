@@ -440,15 +440,18 @@ case "${ACTION}" in
         NEXT_ROFS="rofs-${NEXT_SIDE}"
 
         if [ -n "${MMC_BASE}" ]; then
-            log "Configuring MMC bootside to '${NEXT_SIDE}'..."
-            fw_setenv bootside "${NEXT_SIDE}" 2>/dev/null || log "Notice: bootside set to ${NEXT_SIDE}."
             CURRENT_MMCBOOT=$(fw_printenv mmcboot 2>/dev/null | cut -d'=' -f2- || true)
             if echo "${CURRENT_MMCBOOT}" | grep -q 'rofspart 4'; then
                 NEW_MMCBOOT=$(echo "${CURRENT_MMCBOOT}" | sed 's/if test -e mmc \${mmcdev}:5 \/; then setenv rofspart 5; else setenv rofspart 4; fi;/setenv rofspart 5;/g; s/setenv rofspart 4;/setenv rofspart 5;/g')
                 fw_setenv mmcboot "${NEW_MMCBOOT}" 2>/dev/null || true
             fi
+            fw_setenv boot_targets "mmc0 mmc1 legacy_mmc0" 2>/dev/null || true
+            fw_setenv bootcmd_mmc0 "devnum=0; run mmc_boot" 2>/dev/null || true
+            fw_setenv bootcmd_mmc1 "devnum=1; run mmc_boot" 2>/dev/null || true
+            fw_setenv bootcmd_legacy_mmc0 "run mmcboot" 2>/dev/null || true
         fi
 
+        fw_setenv bootside "${NEXT_SIDE}" 2>/dev/null || log "Notice: bootside set to ${NEXT_SIDE}."
         fw_setenv kernelname "${NEXT_KERNEL}" 2>/dev/null || log "Notice: kernelname set to ${NEXT_KERNEL}."
         fw_setenv dtbname "${NEXT_DTB}" 2>/dev/null || log "Notice: dtbname set to ${NEXT_DTB}."
         fw_setenv bootubivol "${NEXT_ROFS}" 2>/dev/null || log "Notice: bootubivol set to ${NEXT_ROFS}."
@@ -490,8 +493,9 @@ case "${ACTION}" in
                 echo 1 > /sys/block/${MMC_BASE}boot1/force_ro 2>/dev/null || true
                 log "Secondary eMMC boot partition updated successfully."
             elif [ -f "${IMAGE_DIR}/image-u-boot" ] && [ -b "/dev/${MMC_BASE}" ]; then
-                log "Updating SD bootloader on /dev/${MMC_BASE} (offset 0x400 - 4MB)..."
-                dd if="${IMAGE_DIR}/image-u-boot" of="/dev/${MMC_BASE}" bs=1k seek=1 skip=1 count=4095
+                log "Updating SD bootloader on /dev/${MMC_BASE} (offset 0x400 - 4MB, preserving env at 0x50000)..."
+                dd if="${IMAGE_DIR}/image-u-boot" of="/dev/${MMC_BASE}" bs=1k seek=1 skip=1 count=319
+                dd if="${IMAGE_DIR}/image-u-boot" of="/dev/${MMC_BASE}" bs=1k seek=384 skip=384 count=3712
                 sync
                 log "SD bootloader updated successfully."
             fi

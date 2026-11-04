@@ -61,8 +61,13 @@ nand_ubiblock=nand-rootfs
 mtdids=spi-nand0=spi-nand0
 nandboot=if test ${mtdids} = 'nand0=nand0' ; then if test -z "${bootubivol}"; then setenv bootubivol rofs-a; fi; if test -z "${kernelname}"; then setenv kernelname kernel-a; fi; if test -z "${dtbname}"; then setenv dtbname dtb-a; fi; if test -z "${bootubipart}"; then setenv bootubipart rootfs; fi; echo "Booting from nand (${kernelname}, ${dtbname}, ${bootubivol}) ..."; setenv bootargs noinitrd ubi.mtd=${nand_ubiblock} root=ubi0:${bootubivol} rootfstype=ubifs rw rootwait=1 console=ttyS0,115200n8 init=/sbin/init mem=${kernelmem}; if ubi read ${kernel_addr_r} ${kernelname} && ubi read ${fdt_addr_r} ${dtbname}; then echo "Booting kernel from UBI volume..."; elif ubi part ${bootubipart} && ubi read ${kernel_addr_r} ${kernelname} && ubi read ${fdt_addr_r} ${dtbname}; then echo "Booting kernel from UBI volume..."; else echo "UBI read kernel/dtb failed!"; fi; booti ${kernel_addr_r} - ${fdt_addr_r}; fi
 spinandboot=if test ${mtdids} = 'spi-nand0=spi-nand0' ; then if test -z "${bootubivol}"; then setenv bootubivol rofs-a; fi; if test -z "${kernelname}"; then setenv kernelname kernel-a; fi; if test -z "${dtbname}"; then setenv dtbname dtb-a; fi; if test -z "${bootubipart}"; then setenv bootubipart rootfs; fi; echo "Booting from spinand (${kernelname}, ${dtbname}, ${bootubivol}) ..."; setenv bootargs noinitrd ubi.mtd=${spinand_ubiblock} root=ubi0:${bootubivol} rootfstype=ubifs rw rootwait=1 console=ttyS0,115200n8 init=/sbin/init mem=${kernelmem}; if ubi read ${kernel_addr_r} ${kernelname} && ubi read ${fdt_addr_r} ${dtbname}; then echo "Booting kernel from UBI volume..."; elif ubi part ${bootubipart} && ubi read ${kernel_addr_r} ${kernelname} && ubi read ${fdt_addr_r} ${dtbname}; then echo "Booting kernel from UBI volume..."; else echo "UBI read kernel/dtb failed!"; fi; booti ${kernel_addr_r} - ${fdt_addr_r}; fi
-boot_targets=mmc0 mmc1 legacy_mmc0 mtd0 spinor0
+boot_targets=mtd0
+bootcmd_mmc0=devnum=0; run mmc_boot
+bootcmd_mmc1=devnum=1; run mmc_boot
+bootcmd_legacy_mmc0=run mmcboot
+bootcmd_nand0=run nandboot
 bootcmd_mtd0=run spinandboot
+bootcmd_spinor0=run spinorboot
 distro_bootcmd=for target in ${boot_targets}; do run bootcmd_${target}; done
 EOF
     fi

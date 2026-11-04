@@ -104,6 +104,12 @@ def patch_configs(s_dir):
         "if test ${boot_target} = mmc; then run mmcboot; "
         "elif test ${mtdids} = 'nand0=nand0'; then run nandboot; "
         "else run spinandboot; fi;\\0\" \\\n\t"
+        "\"bootcmd_mmc0=devnum=0; run mmc_boot\\0\" \\\n\t"
+        "\"bootcmd_mmc1=devnum=1; run mmc_boot\\0\" \\\n\t"
+        "\"bootcmd_legacy_mmc0=run mmcboot\\0\" \\\n\t"
+        "\"bootcmd_nand0=run nandboot\\0\" \\\n\t"
+        "\"bootcmd_mtd0=run spinandboot\\0\" \\\n\t"
+        "\"bootcmd_spinor0=run spinorboot\\0\" \\\n\t"
     )
 
     configs = [
@@ -147,6 +153,39 @@ def patch_configs(s_dir):
         content = re.sub(r"CONFIG_SYS_BOOTM_LEN\s+SZ_64M", "CONFIG_SYS_BOOTM_LEN\t\t\tSZ_16M", content)
         content = re.sub(r"#define BOOT_TARGET_UBIFS\(func\).*", "#define BOOT_TARGET_UBIFS(func)", content)
 
+        # Restrict BOOT_TARGET_DEVICES strictly to the configured boot storage medium
+        new_boot_targets = (
+            "#if defined(CONFIG_ENV_IS_IN_MMC)\n"
+            "#define BOOT_TARGET_DEVICES(func) \\\n"
+            "\t\tBOOT_TARGET_MMC0(func) \\\n"
+            "\t\tBOOT_TARGET_MMC1(func) \\\n"
+            "\t\tBOOT_TARGET_LEGACY_MMC(func)\n"
+            "#elif defined(CONFIG_ENV_IS_IN_UBI) && defined(CONFIG_MTD_RAW_NAND)\n"
+            "#define BOOT_TARGET_DEVICES(func) \\\n"
+            "\t\tBOOT_TARGET_NAND(func)\n"
+            "#elif defined(CONFIG_ENV_IS_IN_UBI)\n"
+            "#define BOOT_TARGET_DEVICES(func) \\\n"
+            "\t\tBOOT_TARGET_SPINAND(func)\n"
+            "#elif defined(CONFIG_ENV_IS_IN_SPI_FLASH)\n"
+            "#define BOOT_TARGET_DEVICES(func) \\\n"
+            "\t\tBOOT_TARGET_SPINOR(func)\n"
+            "#else\n"
+            "#define BOOT_TARGET_DEVICES(func) \\\n"
+            "\t\tBOOT_TARGET_MMC0(func) \\\n"
+            "\t\tBOOT_TARGET_MMC1(func) \\\n"
+            "\t\tBOOT_TARGET_UBIFS(func) \\\n"
+            "\t\tBOOT_TARGET_LEGACY_MMC(func) \\\n"
+            "\t\tBOOT_TARGET_NAND(func) \\\n"
+            "\t\tBOOT_TARGET_SPINAND(func) \\\n"
+            "\t\tBOOT_TARGET_SPINOR(func)\n"
+            "#endif\n"
+        )
+        content = re.sub(
+            r"(?:#if defined\(CONFIG_ENV_IS_IN_MMC\)[\s\S]*?#endif|#define BOOT_TARGET_DEVICES\(func\)[\s\S]*?)(?=\n#include <config_distro_bootcmd\.h>)",
+            lambda m: new_boot_targets,
+            content,
+        )
+
         # Adjust kernel memory using string replace (avoids regex escape evaluation of \0)
         if "ma35d1" in cfg_path:
             content = content.replace("kernelmem=256M\\0", "kernelmem=512M swiotlb=1\\0")
@@ -159,6 +198,60 @@ def patch_configs(s_dir):
         with open(cfg_path, "w") as f:
             f.write(content)
         print(f"Successfully patched {cfg_path}")
+
+    board_files = [
+        os.path.join(s_dir, "board/nuvoton/ma35d0/ma35d0.c"),
+        os.path.join(s_dir, "board/nuvoton/ma35d1/ma35d1.c"),
+        os.path.join(s_dir, "board/nuvoton/ma35h0/ma35h0.c"),
+    ]
+    new_setup_mtdparts = (
+        "static void setup_linux_mtdparts(void)\n"
+        "{\n"
+        "\tconst char *mtdparts = CONFIG_MTDPARTS_DEFAULT;\n"
+        "\tchar buf[512];\n"
+        "\n"
+        "\tif (!*mtdparts) {\n"
+        "\t\tenv_set(\"boot_targets\", \"mmc0 mmc1 legacy_mmc0\");\n"
+        "\t\tif (!env_get(\"bootcmd_mmc0\"))\n"
+        "\t\t\tenv_set(\"bootcmd_mmc0\", \"devnum=0; run mmc_boot\");\n"
+        "\t\tif (!env_get(\"bootcmd_mmc1\"))\n"
+        "\t\t\tenv_set(\"bootcmd_mmc1\", \"devnum=1; run mmc_boot\");\n"
+        "\t\tif (!env_get(\"bootcmd_legacy_mmc0\"))\n"
+        "\t\t\tenv_set(\"bootcmd_legacy_mmc0\", \"run mmcboot\");\n"
+        "\t\treturn;\n"
+        "\t}\n"
+        "\n"
+        "\tif (!strncmp(mtdparts, \"mtdparts=\", 9))\n"
+        "\t\tmtdparts += 9;\n"
+        "\n"
+        "\tif (!strncmp(mtdparts, \"spi-nand0:\", 10)) {\n"
+        "\t\tsnprintf(buf, sizeof(buf), \"mtdparts=spi0.0:%s\", mtdparts + 10);\n"
+        "\t\tenv_set(\"linux_mtdparts\", buf);\n"
+        "\t\tenv_set(\"boot_targets\", \"mtd0\");\n"
+        "\t\tif (!env_get(\"bootcmd_mtd0\"))\n"
+        "\t\t\tenv_set(\"bootcmd_mtd0\", \"run spinandboot\");\n"
+        "\t} else if (!strncmp(mtdparts, \"nand0:\", 6)) {\n"
+        "\t\tsnprintf(buf, sizeof(buf), \"mtdparts=%s\", mtdparts);\n"
+        "\t\tenv_set(\"linux_mtdparts\", buf);\n"
+        "\t\tenv_set(\"boot_targets\", \"nand0\");\n"
+        "\t\tif (!env_get(\"bootcmd_nand0\"))\n"
+        "\t\t\tenv_set(\"bootcmd_nand0\", \"run nandboot\");\n"
+        "\t}\n"
+        "}"
+    )
+    for board_path in board_files:
+        if not os.path.exists(board_path):
+            continue
+        with open(board_path, "r") as f:
+            bcontent = f.read()
+        bcontent = re.sub(
+            r"static void setup_linux_mtdparts\(void\)\s*\{[\s\S]*?\n\}",
+            lambda m: new_setup_mtdparts,
+            bcontent,
+        )
+        with open(board_path, "w") as f:
+            f.write(bcontent)
+        print(f"Successfully patched {board_path}")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
