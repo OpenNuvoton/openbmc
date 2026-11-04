@@ -27,6 +27,7 @@ class RepositoryLayoutTests(unittest.TestCase):
             self.assertEqual(deploy.prebuilt_directory(args), root / 'artifacts/openbmc-numaker-iot-ma35d03f80')
             self.assertEqual(args.output_directory, root / 'autodeploy-results')
             self.assertEqual(args.nuwriter_root, Path(deploy.__file__).resolve().parent)
+            self.assertEqual(args.download_hook, Path(deploy.__file__).resolve().with_name('download_hook.py'))
         self.assertEqual(deploy.build_parser().parse_args(['resolve-source']).workspace, root)
         self.assertEqual(deploy.build_parser().parse_args(['summary']).output_directory, root / 'autodeploy-results')
 
@@ -45,14 +46,29 @@ class RepositoryLayoutTests(unittest.TestCase):
         self.assertEqual(args.nuwriter_root, Path('cli-tools'))
         self.assertEqual(args.prebuilt_root, Path('cli-images'))
 
-    def test_default_runtime_reaches_hook_validation_without_hardware(self):
-        error = io.StringIO()
-        with contextlib.redirect_stderr(error), mock.patch.object(deploy, 'check_dependencies') as dependencies, \
-                mock.patch.object(deploy, 'run_process') as process:
-            self.assertEqual(deploy.main(['check-runner']), 1)
-        self.assertIn('MA35_DOWNLOAD_HOOK or --download-hook', error.getvalue())
+    def test_default_runtime_and_hook_validate_without_hardware(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / 'bl2.dtb').write_bytes(b'fixture')
+            (root / 'bl2.bin').write_bytes(b'fixture')
+            with contextlib.redirect_stdout(io.StringIO()), \
+                    mock.patch.object(deploy, 'check_dependencies') as dependencies, \
+                    mock.patch.object(deploy, 'available_serial_ports', return_value=['fixture-uart']), \
+                    mock.patch.object(deploy, 'run_process') as process, \
+                    mock.patch.object(deploy, 'open_console') as console:
+                self.assertEqual(deploy.main([
+                    'check-runner', '--prebuilt-root', str(root), '--serial-port', 'fixture-uart']), 0)
         dependencies.assert_called_once()
         process.assert_not_called()
+        console.assert_not_called()
+
+    def test_hook_environment_variables_are_not_used(self):
+        with mock.patch.dict(os.environ, {'MA35_DOWNLOAD_HOOK': 'unused.py',
+                                          'MA35_BOOT_SCRIPT': 'unused.py', 'MA35_BOOT_BATCH': 'unused.bat'}):
+            for command in ('deploy', 'check-runner'):
+                args = deploy.build_parser().parse_args([command])
+                self.assertEqual(args.download_hook, deploy.DEFAULT_DOWNLOAD_HOOK)
+                self.assertIsNone(args.boot_script)
 
     def test_defaults_do_not_depend_on_current_working_directory(self):
         with tempfile.TemporaryDirectory() as temporary, mock.patch.object(Path, 'cwd', return_value=Path(temporary)):
@@ -60,6 +76,7 @@ class RepositoryLayoutTests(unittest.TestCase):
         self.assertEqual(deploy.prebuilt_directory(args), deploy.DEFAULT_PREBUILT_ROOT)
         self.assertEqual(args.output_directory, deploy.DEFAULT_OUTPUT_DIRECTORY)
         self.assertEqual(args.nuwriter_root, Path(deploy.__file__).resolve().parent)
+        self.assertEqual(args.download_hook, Path(deploy.__file__).resolve().with_name('download_hook.py'))
 
     def test_github_workspace_overrides_source_default(self):
         with mock.patch.dict(os.environ, {'GITHUB_WORKSPACE': 'action workspace'}):
@@ -217,6 +234,15 @@ class CommandTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.case = deploy.DeploymentCase('nuwriter_program_sd', 'sd', self.root / 'case.bat', self.root / 'pack.bin', 7)
+
+    def test_bundled_download_hook_prints_hello_for_each_medium(self):
+        for media, option in deploy.DEPLOY_OPTIONS.items():
+            with self.subTest(media=media):
+                case = deploy.DeploymentCase('case', media, self.case.script, self.case.image, option)
+                command = deploy.download_command(deploy.DEFAULT_DOWNLOAD_HOOK, case, '/dev/ttyUSB0')
+                self.assertEqual(command[0], sys.executable)
+                output = deploy.run_process(command, self.root, self.root / f'download-{media}', 10)
+                self.assertEqual(output.strip(), 'download_hook hello')
 
     def test_native_commands_match_prebuilt_batches(self):
         for media in ('nand', 'sd', 'spinand'):
@@ -580,7 +606,7 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_missing_download_hook_is_rejected(self):
         self.args.download_hook = None
-        with self.assertRaisesRegex(ValueError, 'MA35_DOWNLOAD_HOOK'):
+        with self.assertRaisesRegex(ValueError, '--download-hook'):
             deploy.validate_configuration(self.args)
 
     def test_unavailable_uart_is_rejected(self):

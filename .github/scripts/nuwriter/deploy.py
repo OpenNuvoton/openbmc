@@ -22,6 +22,7 @@ import xml.etree.ElementTree as ET
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_NUWRITER_ROOT = Path(__file__).resolve().parent
+DEFAULT_DOWNLOAD_HOOK = Path(__file__).resolve().with_name('download_hook.py')
 DEFAULT_MACHINE = 'numaker-iot-ma35d03f80'
 SUPPORTED_MACHINES = (
     'numaker-iot-ma35d03f80',
@@ -312,7 +313,7 @@ def validate_configuration(args: argparse.Namespace) -> None:
         if not (args.nuwriter_root / filename).is_file():
             raise ValueError(f'Missing NuWriter runtime file: {filename}')
     if not args.download_hook:
-        raise ValueError('Configure MA35_DOWNLOAD_HOOK or --download-hook before deployment')
+        raise ValueError('Configure --download-hook before deployment')
     args.download_hook = Path(args.download_hook).resolve(strict=True)
     if not args.download_hook.is_file():
         raise ValueError('Download hook must be a file')
@@ -531,8 +532,8 @@ def build_parser() -> argparse.ArgumentParser:
         child.add_argument('--list-only', action='store_true')
         child.add_argument('--nuwriter-root', type=Path, default=os.environ.get('MA35_NUWRITER_ROOT') or DEFAULT_NUWRITER_ROOT)
         child.add_argument('--serial-port', default=os.environ.get('MA35_SERIAL_PORT'))
-        child.add_argument('--download-hook', default=os.environ.get('MA35_DOWNLOAD_HOOK'))
-        child.add_argument('--boot-script', '--boot-batch', default=os.environ.get('MA35_BOOT_SCRIPT') or os.environ.get('MA35_BOOT_BATCH'))
+        child.add_argument('--download-hook', type=Path, default=DEFAULT_DOWNLOAD_HOOK)
+        child.add_argument('--boot-script', '--boot-batch')
         child.add_argument('--boot-dtb', default=os.environ.get('MA35_BOOT_DTB'))
         child.add_argument('--boot-bl2', default=os.environ.get('MA35_BOOT_BL2'))
         child.add_argument('--output-directory', type=Path, default=DEFAULT_OUTPUT_DIRECTORY)

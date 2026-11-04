@@ -65,9 +65,6 @@ jobs:
       OBSERVE_SECONDS: ${{ inputs.observe_seconds }}
       MA35_PREBUILT_ROOT: ${{ vars.MA35_PREBUILT_ROOT }}
       MA35_SERIAL_PORT: ${{ vars.MA35_SERIAL_PORT }}
-      MA35_DOWNLOAD_HOOK: ${{ vars.MA35_DOWNLOAD_HOOK }}
-      MA35_BOOT_SCRIPT: ${{ vars.MA35_BOOT_SCRIPT }}
-      MA35_BOOT_BATCH: ${{ vars.MA35_BOOT_BATCH }}
 
     steps:
       - name: Checkout deployment tools

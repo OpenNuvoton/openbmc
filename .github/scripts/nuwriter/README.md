@@ -65,14 +65,14 @@ Provision PyUSB's libusb backend and device access for the selected OS:
 | `MA35_NUWRITER_ROOT` | `--nuwriter-root` | Optional runtime override; defaults to the directory containing `deploy.py` |
 | `MA35_PREBUILT_ROOT` | `--prebuilt-root` | Trusted extracted image directory |
 | `MA35_SERIAL_PORT` | `--serial-port` | DUT UART, e.g. `COM3` or `/dev/ttyUSB0` |
-| `MA35_DOWNLOAD_HOOK` | `--download-hook` | Existing jig's download-mode/reset entry point |
-| `MA35_BOOT_SCRIPT` | `--boot-script` | Optional noninteractive boot entry point |
+| - | `--download-hook` | Optional CLI override; defaults to the bundled `download_hook.py` |
+| - | `--boot-script` | Optional CLI-only noninteractive boot override |
 | `MA35_BOOT_DTB` | `--boot-dtb` | Optional DTB override; defaults to the matching BL2/DTB pair in the prebuilt directory |
 | `MA35_BOOT_BL2` | `--boot-bl2` | Optional matching custom BL2 override; specify both overrides together |
 
-`MA35_BOOT_BATCH` and `--boot-batch` remain legacy aliases.
-`MA35_BOOT_SCRIPT` takes precedence over `MA35_BOOT_BATCH`; a boot script
-takes precedence over the native boot images.
+No download or boot hook environment variables are required or read.
+For manual CLI use, `--boot-batch` remains an alias of `--boot-script`;
+an explicit boot script takes precedence over the native boot images.
 
 Validate configuration without opening UART, resetting, or flashing:
 
@@ -82,25 +82,30 @@ python .github/scripts/nuwriter/deploy.py check-runner
 
 ### Download-mode hook
 
-The hook is lab-specific and must already exist. Prefer a Python hook:
+Deployment automatically calls `download_hook.py` beside `deploy.py`
+using the runner's current Python, before every case and after failures.
+It passes the medium, deploy option, and serial port, for example:
 
 ```console
-python /opt/lab/enter_download.py --media sd --deploy-option 7 --serial-port /dev/ttyUSB0
+python .github/scripts/nuwriter/download_hook.py --media sd --deploy-option 7 --serial-port /dev/ttyUSB0
 ```
 
-It must select the medium's download pins, reset or power-cycle the isolated
-DUT, wait for USB enumeration, and exit zero only on success. It runs before
-every case, including after a prior failure. Do not prompt or detach reset
-operations into the background. No reset wiring is guessed by this port.
+The bundled hook is a placeholder: it prints `download_hook hello` and
+returns successfully. It does not change pins, reset or power-cycle the
+DUT, or wait for USB enumeration. Implement the lab-specific controls in
+this file before unattended hardware deployment. A real hook must enter
+download mode and return zero only on success; do not prompt or detach
+reset operations into the background. No reset wiring is guessed.
 
-Python hooks use the current interpreter. Native executables use the same
+For optional CLI hook overrides, Python hooks use the current interpreter.
+Native executables use the same
 long options. POSIX `.sh` hooks are supported on Linux/macOS, and `.bat` or
 `.cmd` hooks on Windows. `.ps1` hooks require PowerShell and receive legacy
 parameters `-Media sd -DeployOption 7 -SerialPort COM3`.
 
 ### Boot configuration
 
-Choose one method:
+The workflow uses native boot by default. For manual CLI use, choose one method:
 
 1. Provide a boot hook that receives one numeric positional argument
    (`3`, `5`, or `7`), boots the flashed medium, and exits nonzero on failure.
@@ -127,7 +132,7 @@ overlap but cannot verify runtime stack/BSS placement. Read-only power-on
 setting registers are not written. A physical-boot-pin jig may instead
 provide a boot hook.
 
-After configuring the download hook and UART:
+After implementing the download hook and configuring UART:
 
 ```console
 python .github/scripts/nuwriter/deploy.py deploy --prebuilt-root /path/to/images
