@@ -2,7 +2,7 @@
 
 Ported from `NuWriter/tools/autodeploy` into this OpenBMC repository.
 All deployment Python, tests, and dependency declarations live here. The
-Actions entry point is `../../workflows/nuwriter-deploy.yml`; GitHub requires workflow
+Actions entry point is `../../workflows/deploy-ma35.yml`; GitHub requires workflow
 YAML files directly under `.github/workflows`.
 
 Python 3.10+ is supported on Windows, Linux, and macOS. Run the following
@@ -11,9 +11,9 @@ commands from the OpenBMC repository root, using `python3` if necessary.
 ## Install and inspect
 
 ```console
-python -m pip install -r .github/scripts/nuwriter/requirements.txt
-python -B -m unittest discover -s .github/scripts/nuwriter -p test_deploy.py -v
-python .github/scripts/nuwriter/deploy.py deploy --prebuilt-root /path/to/images --list-only
+python -m pip install -r .github/scripts/nuwriter-ma35/requirements.txt
+python -B -m unittest discover -s .github/scripts/nuwriter-ma35 -p test_deploy.py -v
+python .github/scripts/nuwriter-ma35/deploy.py deploy --prebuilt-root /path/to/images --list-only
 ```
 
 Tests and `--list-only` require only the standard library. They do not
@@ -37,7 +37,7 @@ use `ddrimg/ddr_auto.bin` for DDR initialization during flashing and
 native boot. For example:
 
 ```console
-python .github/scripts/nuwriter/deploy.py deploy --machine numaker-iot-ma35d16fj87c --list-only
+python .github/scripts/nuwriter-ma35/deploy.py deploy --machine numaker-iot-ma35d16fj87c --list-only
 ```
 
 Reports default to `autodeploy-results` under that root, independently of
@@ -77,7 +77,7 @@ an explicit boot script takes precedence over the native boot images.
 Validate configuration without opening UART, resetting, or flashing:
 
 ```console
-python .github/scripts/nuwriter/deploy.py check-runner
+python .github/scripts/nuwriter-ma35/deploy.py check-runner
 ```
 
 ### Download-mode hook
@@ -87,7 +87,7 @@ using the runner's current Python, before every case and after failures.
 It passes the medium, deploy option, and serial port, for example:
 
 ```console
-python .github/scripts/nuwriter/download_hook.py --media sd --deploy-option 7 --serial-port /dev/ttyUSB0
+python .github/scripts/nuwriter-ma35/download_hook.py --media sd --deploy-option 7 --serial-port /dev/ttyUSB0
 ```
 
 The bundled hook is a placeholder: it prints `download_hook hello` and
@@ -135,7 +135,7 @@ provide a boot hook.
 After implementing the download hook and configuring UART:
 
 ```console
-python .github/scripts/nuwriter/deploy.py deploy --prebuilt-root /path/to/images
+python .github/scripts/nuwriter-ma35/deploy.py deploy --prebuilt-root /path/to/images
 ```
 
 ## Discovery and results

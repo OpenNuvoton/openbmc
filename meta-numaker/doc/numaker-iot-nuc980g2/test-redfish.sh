@@ -3,9 +3,9 @@
 # NOTE: Run this script on the Host Linux PC (NOT on the BMC).
 #
 # --- Configuration Area ---
-BMC_IP="numaker-iot-nuc980g2.local"  # mDNS hostname (avahi)
-USER="root"
-PASS="0penBmc"
+BMC_IP="${BMC_IP:-${1:-numaker-iot-nuc980g2.local}}"  # mDNS hostname (avahi)
+USER="${BMC_USER:-root}"
+PASS="${BMC_PASS:-0penBmc}"
 REPORT_FILE="$(dirname "$0")/test-redfish.md"
 # -------------------------
 

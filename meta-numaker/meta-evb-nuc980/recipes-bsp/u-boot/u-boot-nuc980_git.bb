@@ -6,19 +6,45 @@ SECTION = "bootloaders"
 LICENSE = "GPL-2.0-or-later"
 LIC_FILES_CHKSUM = "file://Licenses/README;md5=a2c678cfd4a4d97135585cad908541c6"
 
-DEPENDS += "flex-native bison-native"
+DEPENDS += "flex-native bison-native python3-native"
 
-SRC_URI = "git://github.com/OpenNuvoton/NUC970_U-Boot_v2016.11.git;protocol=https;branch=master"
+FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
+
+SRC_URI = " \
+    git://github.com/OpenNuvoton/NUC970_U-Boot_v2016.11.git;protocol=https;branch=master \
+    file://patch-uboot-sd.py \
+"
 SRCREV = "${AUTOREV}"
 
-EXTRA_OEMAKE += ' KCFLAGS="-Wno-error=int-conversion"'
+EXTRA_OEMAKE += ' KCFLAGS="-Wno-error=int-conversion -Wno-error=implicit-function-declaration"'
 UBOOT_MACHINE = "nuc980_iot_defconfig"
 SPL_BINARY = "spl/u-boot-spl.bin"
 PROVIDES += "u-boot"
 UBOOT_INITIAL_ENV = ""
 
 do_configure:prepend() {
-    # Set QSPI0 SPI-NAND clock to 75MHz for SPL and U-Boot proper (PCLK0 is 150MHz, divider 1 = 75MHz)
-    sed -i 's/writel([0-9]*, SPI_CLKDIV);/writel(1, SPI_CLKDIV);/' ${S}/board/nuvoton/nuc980/wb_spinand.c
-    sed -i 's/spi_flash_probe(0, 0, [0-9]*, 3)/spi_flash_probe(0, 0, 75000000, 3)/' ${S}/drivers/mtd/spi/spi_nand.c
+    # Enable SD1 (Port F, sdh@b0018000) support, fix SDH timeout, and setup default boot environment
+    python3 ${UNPACKDIR}/patch-uboot-sd.py "${S}"
+}
+
+do_compile:append() {
+    # Build SD1 boot U-Boot binary (CONFIG_ENV_IS_IN_MMC at offset 0x80000, size 0x10000)
+    mkdir -p ${B}/sd
+    cp -f ${B}/.config ${B}/sd/.config
+    sed -i 's/^CONFIG_SYS_EXTRA_OPTIONS=.*/CONFIG_SYS_EXTRA_OPTIONS="ENV_IS_IN_MMC"/' ${B}/sd/.config
+    sed -i 's/^CONFIG_SPL=y/# CONFIG_SPL is not set/' ${B}/sd/.config
+    oe_runmake -C ${S} O=${B}/sd olddefconfig
+    oe_runmake -C ${S} O=${B}/sd u-boot.bin
+}
+
+do_deploy:append() {
+    if [ -f ${B}/sd/u-boot.bin ]; then
+        install -m 0644 ${B}/sd/u-boot.bin ${DEPLOYDIR}/u-boot-sd-${MACHINE}-${PV}-${PR}.bin
+        ln -sf u-boot-sd-${MACHINE}-${PV}-${PR}.bin ${DEPLOYDIR}/u-boot-sd-${MACHINE}.bin
+        ln -sf u-boot-sd-${MACHINE}-${PV}-${PR}.bin ${DEPLOYDIR}/u-boot-sd.bin
+    fi
+    if [ -f ${DEPLOYDIR}/u-boot-${MACHINE}-${PV}-${PR}.bin ]; then
+        ln -sf u-boot-${MACHINE}-${PV}-${PR}.bin ${DEPLOYDIR}/u-boot-spinand-${MACHINE}.bin
+        ln -sf u-boot-${MACHINE}-${PV}-${PR}.bin ${DEPLOYDIR}/u-boot-spinand.bin
+    fi
 }

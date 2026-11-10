@@ -1,0 +1,58 @@
+From 7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b Mon Sep 17 00:00:00 2001
+From: Wayne Lin <wayne@nuvoton.com>
+Date: Wed, 11 Nov 2026 14:00:00 +0800
+Subject: [PATCH] mtd: spinand: keep on-die ECC enabled at probe and resume
+
+By default, core.c disables on-die ECC at probe (spinand_ecc_enable(..., false))
+and leaves it disabled in idle state. Since NUC980 development boards lack a
+dedicated hardware reset for SPI-NAND during SoC-only reset pulses (e.g. CH341A
+RTS), the volatile ECC-E bit in the flash chip's configuration register (0xB0)
+persists as 0 across warm resets. Subsequent programming operations (such as
+NuWriter) write data without ECC parity in the spare area.
+
+Keep on-die ECC enabled at probe and resume so the chip stays in its power-on
+default state (ECC-E = 1) across system resets.
+
+Upstream-Status: Inappropriate [Configuration]
+Signed-off-by: Wayne Lin <wayne@nuvoton.com>
+---
+ drivers/mtd/nand/spi/core.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/mtd/nand/spi/core.c b/drivers/mtd/nand/spi/core.c
+index 28df52825..ee7fa2a13 100644
+--- a/drivers/mtd/nand/spi/core.c
++++ b/drivers/mtd/nand/spi/core.c
+@@ -303,8 +303,10 @@ static int spinand_ondie_ecc_finish_io_req(struct nand_device *nand,
+ 	struct mtd_info *mtd = spinand_to_mtd(spinand);
+ 	int ret;
+ 
+-	if (req->mode == MTD_OPS_RAW)
++	if (req->mode == MTD_OPS_RAW) {
++		spinand_ecc_enable(spinand, true);
+ 		return 0;
++	}
+ 
+ 	/* Nothing to do when finishing a page write */
+ 	if (req->type == NAND_PAGE_WRITE)
+@@ -1208,7 +1210,7 @@ static void spinand_mtd_resume(struct mtd_info *mtd)
+ 	if (ret)
+ 		return;
+ 
+-	spinand_ecc_enable(spinand, false);
++	spinand_ecc_enable(spinand, true);
+ }
+ 
+ static int spinand_init(struct spinand_device *spinand)
+@@ -1261,7 +1263,7 @@ static int spinand_init(struct spinand_device *spinand)
+ 	nand->ecc.defaults.engine_type = NAND_ECC_ENGINE_TYPE_ON_DIE;
+ 	nand->ecc.ondie_engine = &spinand_ondie_ecc_engine;
+ 
+-	spinand_ecc_enable(spinand, false);
++	spinand_ecc_enable(spinand, true);
+ 	ret = nanddev_ecc_engine_init(nand);
+ 	if (ret)
+ 		goto err_cleanup_nanddev;
+-- 
+2.43.0
+

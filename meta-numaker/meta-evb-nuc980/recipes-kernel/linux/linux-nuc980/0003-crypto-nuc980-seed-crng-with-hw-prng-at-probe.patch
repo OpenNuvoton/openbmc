@@ -1,0 +1,58 @@
+From c6884ea81e22fecb3962664769d00a91f4899e6b Mon Sep 17 00:00:00 2001
+From: Wayne <wclin@nuvoton.com>
+Date: Mon, 9 Nov 2026 19:43:22 +0800
+Subject: [PATCH] crypto: nuc980: seed kernel CRNG using hardware PRNG at probe
+
+Use the NUC980 cryptographic accelerator's built-in 256-bit PRNG engine
+(CRPT_PRNG_CTL / CRPT_PRNG_KEY[0..7]) during nuc980_crypto_probe() to
+feed 256 bits of initial entropy via add_hwgenerator_randomness(). This
+allows the kernel CRNG ("random: crng init done") to initialize
+immediately during boot without waiting for 16,384 interrupts or burning
+CPU cycles in userspace jitter entropy daemons.
+
+Upstream-Status: Pending
+Signed-off-by: Wayne <wayne@nuvoton.com>
+---
+ drivers/crypto/nuc980-crypto.c | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/drivers/crypto/nuc980-crypto.c b/drivers/crypto/nuc980-crypto.c
+index 6b3982769..932a2d2e7 100644
+--- a/drivers/crypto/nuc980-crypto.c
++++ b/drivers/crypto/nuc980-crypto.c
+@@ -28,6 +28,8 @@
+ #include <linux/io.h>
+ #include <linux/delay.h>
+ #include <linux/clk.h>
++#include <linux/ktime.h>
++#include <linux/random.h>
+ #include <linux/dma-mapping.h>
+ 
+ #include <mach/map.h>
+@@ -1080,6 +1082,23 @@ static int nuc980_crypto_probe(struct platform_device *pdev)
+ 	mutex_init(&(nuc980_crdev.sha_lock));
+ 	nuc980_crypto_raw_probe(pdev);
+ 
++	{
++		volatile struct nuc980_crypto_regs *cregs = nuc980_crdev.regs;
++		u32 prng_key[8];
++		int timeout = 10000;
++
++		cregs->CRPT_PRNG_SEED = (u32)random_get_entropy() ^
++					(u32)jiffies ^ (u32)ktime_get_ns();
++		cregs->CRPT_PRNG_CTL = PRNG_KEYSZ_256 | SEEDRLD | PRNG_START;
++		while ((cregs->CRPT_PRNG_CTL & PRNG_BUSY) && --timeout > 0)
++			cpu_relax();
++		for (i = 0; i < 8; i++)
++			prng_key[i] = cregs->CRPT_PRNG_KEY[i];
++		add_hwgenerator_randomness(prng_key, sizeof(prng_key),
++					   sizeof(prng_key) * 8, false);
++		memzero_explicit(prng_key, sizeof(prng_key));
++	}
++
+ 	printk(KERN_NOTICE "NUC980 Crypto engine enabled.\n");
+ 	return 0;
+ 
+-- 
+2.43.0
+

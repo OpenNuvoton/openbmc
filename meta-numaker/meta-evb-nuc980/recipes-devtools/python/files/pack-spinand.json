@@ -1,0 +1,45 @@
+{
+    "mode": "spinand",
+    "image": [
+        {
+            "file": "@DEPLOY_DIR_IMAGE@/u-boot-spl.bin",
+            "offset": "0x000000",
+            "type": "loader",
+            "exec_addr": "0x200",
+            "ddr_ini": "NUC980DK71YC.ini",
+            "page_size": "0x800",
+            "spare_area": "0x40",
+            "quad_read_cmd": "0x6b",
+            "read_status_cmd": "0x0f",
+            "write_status_cmd": "0x1f",
+            "status_value": "0x18",
+            "dummy_byte": "0x1"
+        },
+        {
+            "file": "@UNPACKDIR@/uboot-env.txt",
+            "offset": "0x080000",
+            "type": "env"
+        },
+        {
+            "file": "@DEPLOY_DIR_IMAGE@/u-boot.bin",
+            "offset": "0x100000",
+            "type": "data"
+        },
+        {
+            "file": "@DEPLOY_DIR_IMAGE@/@DTB_FILE@",
+            "offset": "0x180000",
+            "type": "data"
+        },
+        {
+            "file": "@DEPLOY_DIR_IMAGE@/uImage",
+            "offset": "0x200000",
+            "type": "linux"
+        },
+        {
+            "file": "@DEPLOY_DIR_IMAGE@/obmc-phosphor-image-@MACHINE@.ubi",
+            "offset": "0x800000",
+            "type": "data"
+        }
+    ]
+}
+

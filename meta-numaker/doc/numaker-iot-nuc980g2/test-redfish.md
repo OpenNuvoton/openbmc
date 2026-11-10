@@ -1,6 +1,6 @@
 # NUC980 OpenBMC Functions Integration Test Report
 
-**Date**: 2026-11-02 15:35:17
+**Date**: 2026-11-11 14:32:14
 **BMC IP**: numaker-iot-nuc980g2.local
 **Platform**: NuMaker-IoT-NUC980G2
 
@@ -63,5 +63,5 @@
 
 ## Summary
 
-- Test completed at: 2026-11-02 15:37:09
-- Report file: ./test-redfish.md
+- Test completed at: 2026-11-11 14:34:27
+- Report file: /mnt/tank/openbmc_numaker/meta-numaker/doc/numaker-iot-nuc980g2/test-redfish.md

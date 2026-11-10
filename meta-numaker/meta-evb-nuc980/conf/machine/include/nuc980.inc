@@ -10,7 +10,10 @@ ARM_INSTRUCTION_SET = "thumb"
 ARM_INSTRUCTION_SET:pn-openssh = "arm"
 FULL_OPTIMIZATION:nuc980 = "-Os ${DEBUG_LEVELFLAG}"
 
-IMAGE_FSTYPES += "ubi ubifs"
+IMAGE_FSTYPES += "ubi ubifs ext4"
+
+# Reserve 16MB extra free space in ext4 rootfs for writable SD1 root
+IMAGE_ROOTFS_EXTRA_SPACE ?= "16384"
 
 # UBI/UBIFS parameters for 128MB SPI NAND (2048 page, 128KB PEB)
 MKUBIFS_ARGS = "-m 2048 -e 126976 -c 920 -x zstd -F"

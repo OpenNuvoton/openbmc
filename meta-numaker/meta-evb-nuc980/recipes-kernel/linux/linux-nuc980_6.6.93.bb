@@ -10,6 +10,9 @@ SRC_URI = "git://github.com/OpenNuvoton/NUC980-linux-6.6.y.git;protocol=https;br
     file://defconfig \
     file://nuc980-iot-128m-bmc.dts \
     file://0001-spi-nuc980-qspi-calculate-clock-divider-using-actual.patch \
+    file://0002-mmc-nuc980-sd-fix-double-mmc_request_done-and-race.patch \
+    file://0003-crypto-nuc980-seed-crng-with-hw-prng-at-probe.patch \
+    file://0004-mtd-spinand-keep-ecc-enabled-at-probe.patch \
 "
 SRCREV = "${AUTOREV}"
 

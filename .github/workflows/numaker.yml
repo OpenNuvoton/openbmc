@@ -1,4 +1,4 @@
-name: OpenBMC building
+name: OpenBMC Build for NuMaker
 
 on:
   # Manual dispatch with target machine selection
@@ -136,6 +136,7 @@ jobs:
           name: openbmc-${{ matrix.target_machine }}
           path: |
             build-numaker/tmp/deploy/images/**/nuwriter-pack*.bin
+            build-numaker/tmp/deploy/images/**/u-boot*.bin
             build-numaker/tmp/deploy/images/${{ matrix.target_machine }}/bl2-*.bin
             build-numaker/tmp/deploy/images/${{ matrix.target_machine }}/bl2-*.dtb
             build-numaker/tmp/deploy/images/**/obmc-phosphor-image-${{ matrix.target_machine }}-*.wic

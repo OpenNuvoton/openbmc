@@ -1,4 +1,4 @@
-name: OpenBMC deployment
+name: Deploy OBMC on MA35
 
 on:
   workflow_dispatch:
@@ -92,7 +92,7 @@ jobs:
               with urlopen('https://bootstrap.pypa.io/get-pip.py', timeout=60) as response:
                   bootstrap.write_bytes(response.read())
               subprocess.run([str(python), str(bootstrap), '--disable-pip-version-check'], check=True)
-          requirements = Path(os.environ['GITHUB_WORKSPACE']) / '.github/scripts/nuwriter/requirements.txt'
+          requirements = Path(os.environ['GITHUB_WORKSPACE']) / '.github/scripts/nuwriter-ma35/requirements.txt'
           subprocess.run([str(python), '-m', 'pip', 'install', '--disable-pip-version-check',
                           '-r', str(requirements)], check=True)
           with open(os.environ['GITHUB_PATH'], 'a', encoding='utf-8') as path:
@@ -105,7 +105,7 @@ jobs:
         run: |
           import subprocess
           import sys
-          subprocess.run([sys.executable, '-B', '.github/scripts/nuwriter/deploy.py', 'resolve-source'], check=True)
+          subprocess.run([sys.executable, '-B', '.github/scripts/nuwriter-ma35/deploy.py', 'resolve-source'], check=True)
 
       - name: Download OpenBMC prebuilt images
         if: env.SOURCE_MODE == 'artifact'
@@ -126,7 +126,7 @@ jobs:
           import os
           import subprocess
           import sys
-          subprocess.run([sys.executable, '-B', '.github/scripts/nuwriter/deploy.py', 'check-runner',
+          subprocess.run([sys.executable, '-B', '.github/scripts/nuwriter-ma35/deploy.py', 'check-runner',
                           '--prebuilt-root', os.environ['PREBUILT_ROOT']], check=True)
 
       - name: Scan and sequentially deploy and boot-test
@@ -143,7 +143,7 @@ jobs:
                        '--observe-seconds', os.environ['OBSERVE_SECONDS']]
           if os.environ.get('LIST_ONLY', '').lower() == 'true':
               arguments.append('--list-only')
-          subprocess.run([sys.executable, '-B', '.github/scripts/nuwriter/deploy.py', *arguments], check=True)
+          subprocess.run([sys.executable, '-B', '.github/scripts/nuwriter-ma35/deploy.py', *arguments], check=True)
 
       - name: Publish deployment summary
         if: always()
@@ -152,7 +152,7 @@ jobs:
           import subprocess
           import sys
           from pathlib import Path
-          subprocess.run([sys.executable, '-B', '.github/scripts/nuwriter/deploy.py', 'summary', '--output-directory', str(Path(os.environ['GITHUB_WORKSPACE']) / 'autodeploy-results')], check=True)
+          subprocess.run([sys.executable, '-B', '.github/scripts/nuwriter-ma35/deploy.py', 'summary', '--output-directory', str(Path(os.environ['GITHUB_WORKSPACE']) / 'autodeploy-results')], check=True)
 
       - name: Upload serial logs and test reports
         if: always()

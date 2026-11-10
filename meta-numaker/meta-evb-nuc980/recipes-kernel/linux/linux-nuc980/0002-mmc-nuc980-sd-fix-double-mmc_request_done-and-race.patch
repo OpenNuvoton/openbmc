@@ -1,0 +1,160 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Wayne <wayne@nuvoton.com>
+Date: Mon, 9 Nov 2026 19:00:00 +0800
+Subject: [PATCH] mmc: nuc980_sd: fix double mmc_request_done and set SD1 f_max
+ to 50MHz
+
+In nuc980_sd.c and nuc980_fmi.c, multi-block read/write requests with
+mrq->stop (CMD18/CMD25 + CMD12) called nuc980_sd_send_stop() inside
+nuc980_sd_completed_command(), which called mmc_request_done(), and then
+nuc980_sd_send_command() called mmc_request_done() a second time on the
+same mrq. Under Linux 6.6 blk-mq, completing the same request twice
+triggers WARN_ON in mmc_retune_release() (drivers/mmc/core/host.c:174)
+and blk_mq_free_request() (block/blk.h:508).
+
+Fix this by:
+1. Moving the mrq->stop handling to nuc980_sd_send_command() /
+   nuc980_fmi_send_command() after the data transfer has completed and
+   removing the duplicate mmc_request_done() inside nuc980_sd_send_stop() /
+   nuc980_fmi_send_stop().
+2. Removing the premature reset of data->bytes_xfered in
+   nuc980_sd_completed_command() / nuc980_fmi_completed_command() so it
+   does not race with DMA completion.
+3. Restoring mmc->f_max to 50000000 (50 MHz) in nuc980_sd.c to match
+   MMC_CAP_SD_HIGHSPEED capability and nuc980_fmi.c.
+
+Upstream-Status: Pending
+Signed-off-by: Wayne <wayne@nuvoton.com>
+---
+ drivers/mmc/host/nuc980_fmi.c | 19 +++++++++++--------
+ drivers/mmc/host/nuc980_sd.c  | 22 ++++++++++++----------
+ 2 files changed, 23 insertions(+), 18 deletions(-)
+
+diff --git a/drivers/mmc/host/nuc980_fmi.c b/drivers/mmc/host/nuc980_fmi.c
+index 2ccb72813..67587c372 100644
+--- a/drivers/mmc/host/nuc980_fmi.c
++++ b/drivers/mmc/host/nuc980_fmi.c
+@@ -110,6 +110,7 @@ struct nuc980_fmi_host {
+ static volatile int fmi_event=0, fmi_state_xfer=0, fmi_ri_timeout=0;
+ static DECLARE_WAIT_QUEUE_HEAD(fmi_wq_xfer);
+ static int nuc980_fmi_event_thread(struct nuc980_fmi_host *fmi_host);
++static void nuc980_fmi_send_stop(struct nuc980_fmi_host *host, struct mmc_command *cmd);
+ 
+ /*
+  * Reset the controller and restore most of the state
+@@ -415,6 +416,16 @@ static void nuc980_fmi_send_command(struct nuc980_fmi_host *host, struct mmc_com
+ 			nuc980_fmi_update_bytes_xfered(host);
+ 		}
+ 	}
++	if ((!(host->flags & FL_SENT_STOP)) && host->request->stop) {
++		host->flags |= FL_SENT_STOP;
++		nuc980_fmi_send_stop(host, host->request->stop);
++		if (data && (data->flags & MMC_DATA_WRITE)) {
++			while (!(nuc980_fmi_read(REG_EMMCISR) & EMMCISR_SDDAT0)) {
++				nuc980_fmi_write(REG_EMMCCSR, nuc980_fmi_read(REG_EMMCCSR) | 0x40);   /* clk8_oe */
++				while (nuc980_fmi_read(REG_EMMCCSR) & 0x40);
++			}
++		}
++	}
+ 	if (clock_free_run_status) {
+ 		nuc980_fmi_write(REG_EMMCCSR, nuc980_fmi_read(REG_EMMCCSR) | 0x80);   /* clock keep */
+ 	}
+@@ -466,7 +477,6 @@ static void nuc980_fmi_send_stop(struct nuc980_fmi_host *host, struct mmc_comman
+ 	nuc980_fmi_write(REG_EMMCARG, cmd->arg);
+ 	nuc980_fmi_write(REG_EMMCCSR, csr);
+ 	nuc980_fmi_event_thread(host);
+-	mmc_request_done(host->mmc, host->request);
+ 	LEAVE();
+ }
+ 
+@@ -536,9 +546,6 @@ static void nuc980_fmi_completed_command(struct nuc980_fmi_host *host, unsigned
+ 		} else
+ 			cmd->error = 0;
+ 		if (data) {
+-			data->bytes_xfered = 0;
+-			host->transfer_index = 0;
+-			host->in_use_index = 0;
+ 			if(host->request->cmd->data->flags ==MMC_DATA_WRITE &&
+ 			    host->request->cmd->opcode == 53 &&
+ 			    host->request->cmd->data->blksz  <=64) {
+@@ -561,10 +568,6 @@ static void nuc980_fmi_completed_command(struct nuc980_fmi_host *host, unsigned
+ 		}
+ 	}
+ 
+-	if ((!(host->flags & FL_SENT_STOP)) && host->request->stop) {
+-		host->flags |= FL_SENT_STOP;
+-		nuc980_fmi_send_stop(host, host->request->stop);
+-	}
+ 	LEAVE();
+ }
+ 
+diff --git a/drivers/mmc/host/nuc980_sd.c b/drivers/mmc/host/nuc980_sd.c
+index 403965613..cb47c8e50 100644
+--- a/drivers/mmc/host/nuc980_sd.c
++++ b/drivers/mmc/host/nuc980_sd.c
+@@ -113,6 +113,7 @@ struct nuc980_sd_host {
+ static volatile int sd_event=0, sd_state_xfer=0, sd_ri_timeout=0;
+ static DECLARE_WAIT_QUEUE_HEAD(sd_wq_xfer);
+ static int nuc980_sd_event_thread(struct nuc980_sd_host *sd_host);
++static void nuc980_sd_send_stop(struct nuc980_sd_host *host, struct mmc_command *cmd);
+ 
+ //--- Define semaphore for SDH controller
+ struct semaphore sdh_fmi_sem;
+@@ -451,6 +452,16 @@ static void nuc980_sd_send_command(struct nuc980_sd_host *host, struct mmc_comma
+ 			nuc980_sd_update_bytes_xfered(host);
+ 		}
+ 	}
++	if ((!(host->flags & FL_SENT_STOP)) && host->request->stop) {
++		host->flags |= FL_SENT_STOP;
++		nuc980_sd_send_stop(host, host->request->stop);
++		if (data && (data->flags & MMC_DATA_WRITE)) {
++			while (!(nuc980_sd_read(REG_SDISR) & SDISR_SDDAT0)) {
++				nuc980_sd_write(REG_SDCSR, nuc980_sd_read(REG_SDCSR) | 0x40);   /* clk8_oe */
++				while (nuc980_sd_read(REG_SDCSR) & 0x40);
++			}
++		}
++	}
+ 	if (clock_free_run_status) {
+ 		nuc980_sd_write(REG_SDCSR, nuc980_sd_read(REG_SDCSR) | 0x80);   /* clock keep */
+ 	}
+@@ -503,7 +514,6 @@ static void nuc980_sd_send_stop(struct nuc980_sd_host *host, struct mmc_command
+ 	nuc980_sd_write(REG_SDARG, cmd->arg);
+ 	nuc980_sd_write(REG_SDCSR, csr);
+ 	nuc980_sd_event_thread(host);
+-	mmc_request_done(host->mmc, host->request);
+ 	LEAVE();
+ }
+ 
+@@ -573,9 +583,6 @@ static void nuc980_sd_completed_command(struct nuc980_sd_host *host, unsigned in
+ 		} else
+ 			cmd->error = 0;
+ 		if (data) {
+-			data->bytes_xfered = 0;
+-			host->transfer_index = 0;
+-			host->in_use_index = 0;
+ 
+ 			if(host->request->cmd->data->flags ==MMC_DATA_WRITE &&
+ 			    host->request->cmd->opcode == 53 &&
+@@ -612,10 +619,6 @@ static void nuc980_sd_completed_command(struct nuc980_sd_host *host, unsigned in
+ 		printk("cmd->resp[3]=0x%08x\n",cmd->resp[3]);
+ 	}
+ 
+-	if ((!(host->flags & FL_SENT_STOP)) && host->request->stop) {
+-		host->flags |= FL_SENT_STOP;
+-		nuc980_sd_send_stop(host, host->request->stop);
+-	}
+ 	LEAVE();
+ }
+ 
+@@ -980,8 +983,7 @@ static int nuc980_sd_probe(struct platform_device *pdev)
+ 
+ 	mmc->ops = &nuc980_sd_ops;
+ 	mmc->f_min = 300000;
+-	//mmc->f_max = 50000000;
+-	mmc->f_max = 25000000; //for SDIO WIFI RTL8821AS
++	mmc->f_max = 50000000;
+ 	mmc->ocr_avail = MMC_VDD_27_28|MMC_VDD_28_29|MMC_VDD_29_30|MMC_VDD_30_31|MMC_VDD_31_32|MMC_VDD_32_33 | MMC_VDD_33_34;
+ 	mmc->caps = 0;
+ 	mmc->max_blk_size  = MCI_MAXBLKSIZE;
+-- 
+2.43.0
