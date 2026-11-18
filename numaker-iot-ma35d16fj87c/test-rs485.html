@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NuMaker-IoT-MA35D16FJ87C RS-485 Serial Interface (UART12 AUD) Guide - NuMaker OpenBMC</title>
+  <style>
+:root {
+  color-scheme: light;
+  --ink: #243430;
+  --muted: #64736d;
+  --line: #dce5df;
+  --green: #08745f;
+  --green-soft: #e5f3ec;
+  --amber-soft: #fff4ca;
+  --red: #b23d38;
+  --bg: #f7faf8;
+}
+* { box-sizing: border-box; letter-spacing: 0; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font: 14px/1.6 "Bahnschrift", "Segoe UI", sans-serif;
+}
+a { color: var(--green); text-decoration: none; border-bottom: 1px solid currentColor; padding: 1px 0; }
+a:hover { color: var(--red); }
+a:focus-visible, button:focus-visible { outline: 3px solid #359782; outline-offset: 3px; }
+code, pre, .mono { font-family: "Cascadia Code", "Consolas", monospace; }
+.site-header {
+  border-top: 4px solid var(--green);
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+.header-inner {
+  max-width: 1120px;
+  margin: auto;
+  padding: 18px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.header-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.3;
+  font-weight: 650;
+}
+.header-sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.breadcrumbs {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.breadcrumbs a { color: var(--muted); border-bottom-color: transparent; }
+.breadcrumbs a:hover { color: var(--green); border-bottom-color: currentColor; }
+.header-nav {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.header-nav a.active { font-weight: 650; }
+.container {
+  max-width: 1120px;
+  margin: auto;
+  padding: 24px 24px 44px;
+}
+.doc-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 34px;
+  align-items: start;
+}
+.sidebar {
+  position: sticky;
+  top: 18px;
+  border-left: 1px solid var(--line);
+  padding-left: 16px;
+  font-size: 12.5px;
+}
+.side-group { margin-bottom: 20px; }
+.side-group h3 {
+  margin: 0 0 8px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.side-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.side-list a { border-bottom: 0; color: var(--ink); padding: 1px 0; }
+.side-list a:hover, .side-list a.active { color: var(--green); }
+.side-list a.active { font-weight: 650; }
+.side-list li.toc-h3 { padding-left: 10px; }
+.side-list.toc a { color: var(--muted); font-size: 12px; }
+.side-list.toc a:hover { color: var(--green); }
+.doc-body > h1:first-child { display: none; }
+.doc-body h2 {
+  margin: 28px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+.doc-body h2:first-child { margin-top: 0; }
+.doc-body h3 { margin: 18px 0 6px; font-size: 15px; font-weight: 650; }
+.doc-body h4 { margin: 14px 0 4px; font-size: 13.5px; font-weight: 650; }
+.doc-body p { margin: 9px 0; }
+.doc-body ul, .doc-body ol { margin: 9px 0; padding-left: 20px; }
+.doc-body li { margin: 4px 0; }
+.doc-body hr { border: 0; border-top: 1px solid var(--line); margin: 22px 0; }
+.doc-body code {
+  background: #eaf0ed;
+  padding: 1px 4px;
+  font-size: 12.5px;
+}
+.code-wrap { position: relative; margin: 10px 0; }
+.doc-body pre {
+  background: #1d2624;
+  color: #e7f0ed;
+  padding: 12px 15px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+.doc-body pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.copy-btn {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  border: 1px solid #3c4d49;
+  background: #283532;
+  color: #cfe0db;
+  font: 11px "Consolas", monospace;
+  padding: 2px 7px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.copy-btn:hover { background: var(--green); color: #fff; border-color: var(--green); }
+.table-scroll { overflow-x: auto; margin: 12px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 11.5px;
+  color: var(--muted);
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--line);
+}
+td {
+  padding: 8px;
+  border-bottom: 1px solid #e7ece9;
+  vertical-align: top;
+}
+.callout {
+  background: #fff;
+  border-left: 3px solid var(--green);
+  padding: 9px 12px;
+  margin: 12px 0;
+  font-size: 12.5px;
+}
+.callout-warning, .callout-caution { background: var(--amber-soft); border-left-color: #caa538; }
+.callout-title { font-weight: 650; margin-bottom: 2px; }
+.callout p { margin: 4px 0; }
+.flow-diagram {
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 12px 0 14px;
+}
+.flow-diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+footer.site-footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11.5px;
+  padding: 16px 24px;
+  text-align: center;
+  background: #fff;
+}
+@media (max-width: 880px) {
+  .doc-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .sidebar { position: static; border-left: 0; border-top: 1px solid var(--line); padding: 16px 0 0; }
+}
+</style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div>
+        <div class="breadcrumbs"><a href="../index.html">NuMaker Guides</a> / <a href="quickstart.html">NuMaker-IoT-MA35D16FJ87C</a> / <span>NuMaker-IoT-MA35D16FJ87C RS-485 Serial Interface (UART12 AUD) Guide</span></div>
+        <h1 class="header-title">NuMaker-IoT-MA35D16FJ87C RS-485 Serial Interface (UART12 AUD) Guide</h1>
+        
+      </div>
+      <nav class="header-nav" aria-label="Site navigation"><a href="../index.html" class="active">Boards</a><a href="../openbmc.html" class="">Setup Guide</a><a href="../docker/index.html" class="">Docker Setup</a><a href="../meta-numaker/index.html" class="">BSP Layers</a></nav>
+    </div>
+  </header>
+  <main class="container"><div class="doc-layout"><div class="doc-body"><h1 id="numaker-iot-ma35d16fj87c-rs-485-serial-interface-uart12-aud-guide">NuMaker-IoT-MA35D16FJ87C RS-485 Serial Interface (UART12 AUD) Guide</h1>
+<h2 id="1-overview">1. Overview</h2>
+<p>On the NuMaker-IoT-MA35D16FJ87C platform, <strong>UART12</strong> (<code>/dev/ttyS12</code>) operates as an independent RS-485 serial communication interface with hardware <strong>Auto-Direction (AUD)</strong> control.</p>
+<p>UART Role Assignments:</p>
+<ul>
+<li><strong><code>UART0</code> (<code>/dev/ttyS0</code>, <code>PE14</code>/<code>PE15</code>)</strong>: BMC Linux Debug Console.</li>
+<li><strong><code>UART10</code> (<code>/dev/ttyS10</code>, <code>PH6</code>/<code>PH7</code>)</strong>: Host Serial-Over-LAN (SOL) console link connected to <code>obmc-console</code>.</li>
+<li><strong><code>UART12</code> (<code>/dev/ttyS12</code>, <code>PC13</code>~<code>PC15</code>)</strong>: Independent RS-485 interface with hardware transceiver direction control.</li>
+</ul>
+<hr />
+<h2 id="2-hardware-signal-definitions">2. Hardware Signal Definitions</h2>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th style="text-align:left">Signal Name</th>
+<th style="text-align:left">Direction</th>
+<th style="text-align:left">Function</th>
+<th style="text-align:left">Pin</th>
+<th style="text-align:left">Electrical</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong><code>UART12_nRTS</code></strong></td>
+<td style="text-align:left">Output</td>
+<td style="text-align:left">Auto-Direction (AUD) Direction Control</td>
+<td style="text-align:left"><strong><code>PC13</code></strong></td>
+<td style="text-align:left">3.3V TTL to Transceiver DE / /RE</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>UART12_RXD</code></strong></td>
+<td style="text-align:left">Input</td>
+<td style="text-align:left">RS-485 Receiver Data</td>
+<td style="text-align:left"><strong><code>PC14</code></strong></td>
+<td style="text-align:left">3.3V TTL from Transceiver RO</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>UART12_TXD</code></strong></td>
+<td style="text-align:left">Output</td>
+<td style="text-align:left">RS-485 Transmitter Data</td>
+<td style="text-align:left"><strong><code>PC15</code></strong></td>
+<td style="text-align:left">3.3V TTL to Transceiver DI</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>GND</code></strong></td>
+<td style="text-align:left">-</td>
+<td style="text-align:left">Common Reference Ground</td>
+<td style="text-align:left"><strong><code>GND</code></strong></td>
+<td style="text-align:left">Common ground reference</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="3-hardware-auto-direction-aud-operation-principle">3. Hardware Auto-Direction (AUD) Operation Principle</h2>
+<p>Software-driven GPIO direction control introduces scheduler latency and risk of truncating stop bits.
+On the MA35D1:</p>
+<ul>
+<li>The UART controller's built-in <strong>AUD mode</strong> drives <code>UART12_nRTS</code> (<code>PC13</code>) high automatically when data enters the TX FIFO.</li>
+<li>As soon as the final stop bit finishes transmitting on <code>UART12_TXD</code> (<code>PC15</code>), the controller pulls <code>UART12_nRTS</code> low, immediately releasing the bus for reception.</li>
+<li>This turnaround is handled at wire speed without userspace or kernel interrupt latency.</li>
+</ul>
+<hr />
+<h2 id="4-verification-commands">4. Verification Commands</h2>
+<h3 id="41-device-node-check">4.1 Device Node Check</h3>
+<pre><code class="language-bash">ls -l /dev/ttyS12
+</code></pre>
+<h3 id="42-port-configuration">4.2 Port Configuration</h3>
+<pre><code class="language-bash">stty -F /dev/ttyS12 115200 cs8 -cstopb -parenb raw -echo
+</code></pre>
+<h3 id="43-send--receive-test">4.3 Send &amp; Receive Test</h3>
+<p>Terminal 1 (Receiver):</p>
+<pre><code class="language-bash">cat /dev/ttyS12
+</code></pre>
+<p>Terminal 2 (Transmitter):</p>
+<pre><code class="language-bash">echo &quot;Hello from NuMaker MA35D16FJ87C RS485&quot; &gt; /dev/ttyS12
+</code></pre>
+</div><aside class="sidebar"><div class="side-group"><h3>MA35D16FJ87C</h3><ul class="side-list"><li><a class="" href="quickstart.html">Quickstart Guide</a></li><li><a class="" href="index.html">Power &amp; Boot Settings</a></li><li><a class="" href="bom.html">Interactive BOM</a></li><li><a class="" href="test-redfish.html">Redfish API</a></li><li><a class="" href="test-redfish-update/index.html">Redfish OTA</a></li><li><a class="" href="test-sol.html">SOL</a></li><li><a class="" href="test-can.html">CAN-FD</a></li><li><a class="active" href="test-rs485.html">RS-485</a></li><li><a class="" href="test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#1-overview">1. Overview</a></li><li class="toc-h2"><a href="#2-hardware-signal-definitions">2. Hardware Signal Definitions</a></li><li class="toc-h2"><a href="#3-hardware-auto-direction-aud-operation-principle">3. Hardware Auto-Direction (AUD) Operation Principle</a></li><li class="toc-h2"><a href="#4-verification-commands">4. Verification Commands</a></li><li class="toc-h3"><a href="#41-device-node-check">4.1 Device Node Check</a></li><li class="toc-h3"><a href="#42-port-configuration">4.2 Port Configuration</a></li><li class="toc-h3"><a href="#43-send--receive-test">4.3 Send &amp; Receive Test</a></li></ul></div></aside></div></main>
+  <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
+  <script>
+document.querySelectorAll('pre').forEach(function (pre) {
+  var wrap = document.createElement('div');
+  wrap.className = 'code-wrap';
+  pre.parentNode.insertBefore(wrap, pre);
+  wrap.appendChild(pre);
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.addEventListener('click', function () {
+    navigator.clipboard.writeText(pre.innerText).then(function () {
+      btn.textContent = 'Copied';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1200);
+    });
+  });
+  wrap.appendChild(btn);
+});
+</script>
+</body>
+</html>

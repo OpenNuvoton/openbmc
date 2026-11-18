@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NUC980 OpenBMC Functions Integration Test Report - NuMaker OpenBMC</title>
+  <style>
+:root {
+  color-scheme: light;
+  --ink: #243430;
+  --muted: #64736d;
+  --line: #dce5df;
+  --green: #08745f;
+  --green-soft: #e5f3ec;
+  --amber-soft: #fff4ca;
+  --red: #b23d38;
+  --bg: #f7faf8;
+}
+* { box-sizing: border-box; letter-spacing: 0; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font: 14px/1.6 "Bahnschrift", "Segoe UI", sans-serif;
+}
+a { color: var(--green); text-decoration: none; border-bottom: 1px solid currentColor; padding: 1px 0; }
+a:hover { color: var(--red); }
+a:focus-visible, button:focus-visible { outline: 3px solid #359782; outline-offset: 3px; }
+code, pre, .mono { font-family: "Cascadia Code", "Consolas", monospace; }
+.site-header {
+  border-top: 4px solid var(--green);
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+.header-inner {
+  max-width: 1120px;
+  margin: auto;
+  padding: 18px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.header-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.3;
+  font-weight: 650;
+}
+.header-sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.breadcrumbs {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.breadcrumbs a { color: var(--muted); border-bottom-color: transparent; }
+.breadcrumbs a:hover { color: var(--green); border-bottom-color: currentColor; }
+.header-nav {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.header-nav a.active { font-weight: 650; }
+.container {
+  max-width: 1120px;
+  margin: auto;
+  padding: 24px 24px 44px;
+}
+.doc-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 34px;
+  align-items: start;
+}
+.sidebar {
+  position: sticky;
+  top: 18px;
+  border-left: 1px solid var(--line);
+  padding-left: 16px;
+  font-size: 12.5px;
+}
+.side-group { margin-bottom: 20px; }
+.side-group h3 {
+  margin: 0 0 8px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.side-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.side-list a { border-bottom: 0; color: var(--ink); padding: 1px 0; }
+.side-list a:hover, .side-list a.active { color: var(--green); }
+.side-list a.active { font-weight: 650; }
+.side-list li.toc-h3 { padding-left: 10px; }
+.side-list.toc a { color: var(--muted); font-size: 12px; }
+.side-list.toc a:hover { color: var(--green); }
+.doc-body > h1:first-child { display: none; }
+.doc-body h2 {
+  margin: 28px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+.doc-body h2:first-child { margin-top: 0; }
+.doc-body h3 { margin: 18px 0 6px; font-size: 15px; font-weight: 650; }
+.doc-body h4 { margin: 14px 0 4px; font-size: 13.5px; font-weight: 650; }
+.doc-body p { margin: 9px 0; }
+.doc-body ul, .doc-body ol { margin: 9px 0; padding-left: 20px; }
+.doc-body li { margin: 4px 0; }
+.doc-body hr { border: 0; border-top: 1px solid var(--line); margin: 22px 0; }
+.doc-body code {
+  background: #eaf0ed;
+  padding: 1px 4px;
+  font-size: 12.5px;
+}
+.code-wrap { position: relative; margin: 10px 0; }
+.doc-body pre {
+  background: #1d2624;
+  color: #e7f0ed;
+  padding: 12px 15px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+.doc-body pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.copy-btn {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  border: 1px solid #3c4d49;
+  background: #283532;
+  color: #cfe0db;
+  font: 11px "Consolas", monospace;
+  padding: 2px 7px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.copy-btn:hover { background: var(--green); color: #fff; border-color: var(--green); }
+.table-scroll { overflow-x: auto; margin: 12px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 11.5px;
+  color: var(--muted);
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--line);
+}
+td {
+  padding: 8px;
+  border-bottom: 1px solid #e7ece9;
+  vertical-align: top;
+}
+.callout {
+  background: #fff;
+  border-left: 3px solid var(--green);
+  padding: 9px 12px;
+  margin: 12px 0;
+  font-size: 12.5px;
+}
+.callout-warning, .callout-caution { background: var(--amber-soft); border-left-color: #caa538; }
+.callout-title { font-weight: 650; margin-bottom: 2px; }
+.callout p { margin: 4px 0; }
+.flow-diagram {
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 12px 0 14px;
+}
+.flow-diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+footer.site-footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11.5px;
+  padding: 16px 24px;
+  text-align: center;
+  background: #fff;
+}
+@media (max-width: 880px) {
+  .doc-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .sidebar { position: static; border-left: 0; border-top: 1px solid var(--line); padding: 16px 0 0; }
+}
+</style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div>
+        <div class="breadcrumbs"><a href="../index.html">NuMaker Guides</a> / <a href="quickstart.html">NuMaker-IIoT-NUC980G2</a> / <span>NUC980 OpenBMC Functions Integration Test Report</span></div>
+        <h1 class="header-title">NUC980 OpenBMC Functions Integration Test Report</h1>
+        
+      </div>
+      <nav class="header-nav" aria-label="Site navigation"><a href="../index.html" class="active">Boards</a><a href="../openbmc.html" class="">Setup Guide</a><a href="../docker/index.html" class="">Docker Setup</a><a href="../meta-numaker/index.html" class="">BSP Layers</a></nav>
+    </div>
+  </header>
+  <main class="container"><div class="doc-layout"><div class="doc-body"><h1 id="nuc980-openbmc-functions-integration-test-report">NUC980 OpenBMC Functions Integration Test Report</h1>
+<p><strong>Date</strong>: 2026-11-11 14:32:14
+<strong>BMC IP</strong>: numaker-iot-nuc980g2.local
+<strong>Platform</strong>: NuMaker-IoT-NUC980G2</p>
+<hr />
+<h2 id="test-results">Test Results</h2>
+<ul>
+<li><strong>GET Service Root</strong>: ✓ HTTP 200</li>
+<li><strong>GET Chassis Collection</strong>: ✓ HTTP 200</li>
+<li><strong>GET Chassis Details (system)</strong>: ✓ HTTP 200</li>
+<li><strong>GET System details</strong>: ✓ HTTP 200</li>
+<li><strong>PATCH Set LocationIndicatorActive=true</strong>: ✓ HTTP 204</li>
+<li><strong>GET Verify LocationIndicatorActive state</strong>: ✓ HTTP 200</li>
+<li><strong>PATCH Set LocationIndicatorActive=false</strong>: ✓ HTTP 204</li>
+<li><strong>GET BMC Manager Status</strong>: ✓ HTTP 200</li>
+<li><strong>GET System/Host Status (PowerState, Health)</strong>: ✓ HTTP 200</li>
+<li><strong>GET Chassis ThermalSubsystem</strong>: ✓ HTTP 200</li>
+<li><strong>GET Chassis PowerSubsystem</strong>: ✓ HTTP 200</li>
+<li><strong>GET Chassis Sensor Collection</strong>: ✓ HTTP 200</li>
+<li><strong>GET BMC Log Services Collection</strong>: ✓ HTTP 200</li>
+<li><strong>GET BMC Journal Entries (latest 5)</strong>: ✓ HTTP 200</li>
+<li><strong>GET System Log Services Collection</strong>: ✓ HTTP 200</li>
+<li><strong>GET System EventLog Entries (latest 5)</strong>: ✓ HTTP 200</li>
+<li><strong>GET Event Service Status</strong>: ✓ HTTP 200</li>
+</ul>
+<h3 id="user-management-accountservice">User Management (AccountService)</h3>
+<ul>
+<li><strong>GET AccountService Root</strong>: ✓ HTTP 200</li>
+<li><strong>GET Accounts Collection</strong>: ✓ HTTP 200</li>
+<li><strong>POST Create Test Account (rftestuser)</strong>: ✓ HTTP 201</li>
+<li><strong>GET Verify New Account (rftestuser)</strong>: ✓ HTTP 200</li>
+<li><strong>Login as rftestuser</strong>: ✓ HTTP 200</li>
+<li><strong>PATCH Change Role to ReadOnly</strong>: ✓ HTTP 204</li>
+<li><strong>PATCH Disable Account</strong>: ✓ HTTP 204</li>
+<li><strong>Verify Disabled Account Rejected</strong>: ✓ HTTP 401</li>
+<li><strong>DELETE Delete Test Account (rftestuser)</strong>: ✓ HTTP 200</li>
+<li><strong>Verify Account Removed</strong>: ✓ HTTP 404</li>
+<li><strong>LDAP Functionally Configured</strong>: false (expected: false)</li>
+</ul>
+<h3 id="power-controls">Power Controls</h3>
+<ul>
+<li><strong>GET Chassis Power State (before action)</strong>: ✓ HTTP 200</li>
+</ul>
+<h3 id="power-control-tests">Power Control Tests</h3>
+<ul>
+<li><strong>Power On</strong>: Operator prompted to connect PF9 to HIGH</li>
+<li><strong>POST Host Power On</strong>: ✓ HTTP 204</li>
+<li><strong>GET Verify Host PowerState after Power On</strong>: ✓ HTTP 200</li>
+<li><strong>Verify Power On</strong>: PowerState=On</li>
+<li><strong>Force Off</strong>: Operator prompted to disconnect PF9 to LOW</li>
+<li><strong>POST Host ForceOff</strong>: ✓ HTTP 204</li>
+<li><strong>GET Verify Host PowerState after ForceOff</strong>: ✓ HTTP 200</li>
+<li><strong>Verify Force Off</strong>: PowerState=Off</li>
+<li><strong>Force Restart</strong>: Confirmed PF9=HIGH</li>
+<li><strong>POST Host ForceRestart</strong>: ✓ HTTP 204</li>
+<li><strong>GET Verify Host PowerState after ForceRestart</strong>: ✓ HTTP 200</li>
+<li><strong>Verify Force Restart</strong>: PowerState=Off</li>
+</ul>
+<hr />
+<h2 id="summary">Summary</h2>
+<ul>
+<li>Test completed at: 2026-11-11 14:34:27</li>
+<li>Report file: /mnt/tank/openbmc_numaker/meta-numaker/doc/numaker-iot-nuc980g2/test-redfish.md</li>
+</ul>
+</div><aside class="sidebar"><div class="side-group"><h3>NUC980G2</h3><ul class="side-list"><li><a class="" href="quickstart.html">Quickstart Guide</a></li><li><a class="" href="index.html">Power &amp; Boot Settings</a></li><li><a class="" href="bom.html">Interactive BOM</a></li><li><a class="active" href="test-redfish.html">Redfish API</a></li><li><a class="" href="test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#test-results">Test Results</a></li><li class="toc-h3"><a href="#user-management-accountservice">User Management (AccountService)</a></li><li class="toc-h3"><a href="#power-controls">Power Controls</a></li><li class="toc-h3"><a href="#power-control-tests">Power Control Tests</a></li><li class="toc-h2"><a href="#summary">Summary</a></li></ul></div></aside></div></main>
+  <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
+  <script>
+document.querySelectorAll('pre').forEach(function (pre) {
+  var wrap = document.createElement('div');
+  wrap.className = 'code-wrap';
+  pre.parentNode.insertBefore(wrap, pre);
+  wrap.appendChild(pre);
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.addEventListener('click', function () {
+    navigator.clipboard.writeText(pre.innerText).then(function () {
+      btn.textContent = 'Copied';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1200);
+    });
+  });
+  wrap.appendChild(btn);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenBMC for Nuvoton NuMaker Platforms - NuMaker OpenBMC</title>
+  <style>
+:root {
+  color-scheme: light;
+  --ink: #243430;
+  --muted: #64736d;
+  --line: #dce5df;
+  --green: #08745f;
+  --green-soft: #e5f3ec;
+  --amber-soft: #fff4ca;
+  --red: #b23d38;
+  --bg: #f7faf8;
+}
+* { box-sizing: border-box; letter-spacing: 0; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font: 14px/1.6 "Bahnschrift", "Segoe UI", sans-serif;
+}
+a { color: var(--green); text-decoration: none; border-bottom: 1px solid currentColor; padding: 1px 0; }
+a:hover { color: var(--red); }
+a:focus-visible, button:focus-visible { outline: 3px solid #359782; outline-offset: 3px; }
+code, pre, .mono { font-family: "Cascadia Code", "Consolas", monospace; }
+.site-header {
+  border-top: 4px solid var(--green);
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+.header-inner {
+  max-width: 1120px;
+  margin: auto;
+  padding: 18px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.header-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.3;
+  font-weight: 650;
+}
+.header-sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.breadcrumbs {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.breadcrumbs a { color: var(--muted); border-bottom-color: transparent; }
+.breadcrumbs a:hover { color: var(--green); border-bottom-color: currentColor; }
+.header-nav {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.header-nav a.active { font-weight: 650; }
+.container {
+  max-width: 1120px;
+  margin: auto;
+  padding: 24px 24px 44px;
+}
+.doc-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 34px;
+  align-items: start;
+}
+.sidebar {
+  position: sticky;
+  top: 18px;
+  border-left: 1px solid var(--line);
+  padding-left: 16px;
+  font-size: 12.5px;
+}
+.side-group { margin-bottom: 20px; }
+.side-group h3 {
+  margin: 0 0 8px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.side-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.side-list a { border-bottom: 0; color: var(--ink); padding: 1px 0; }
+.side-list a:hover, .side-list a.active { color: var(--green); }
+.side-list a.active { font-weight: 650; }
+.side-list li.toc-h3 { padding-left: 10px; }
+.side-list.toc a { color: var(--muted); font-size: 12px; }
+.side-list.toc a:hover { color: var(--green); }
+.doc-body > h1:first-child { display: none; }
+.doc-body h2 {
+  margin: 28px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+.doc-body h2:first-child { margin-top: 0; }
+.doc-body h3 { margin: 18px 0 6px; font-size: 15px; font-weight: 650; }
+.doc-body h4 { margin: 14px 0 4px; font-size: 13.5px; font-weight: 650; }
+.doc-body p { margin: 9px 0; }
+.doc-body ul, .doc-body ol { margin: 9px 0; padding-left: 20px; }
+.doc-body li { margin: 4px 0; }
+.doc-body hr { border: 0; border-top: 1px solid var(--line); margin: 22px 0; }
+.doc-body code {
+  background: #eaf0ed;
+  padding: 1px 4px;
+  font-size: 12.5px;
+}
+.code-wrap { position: relative; margin: 10px 0; }
+.doc-body pre {
+  background: #1d2624;
+  color: #e7f0ed;
+  padding: 12px 15px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+.doc-body pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.copy-btn {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  border: 1px solid #3c4d49;
+  background: #283532;
+  color: #cfe0db;
+  font: 11px "Consolas", monospace;
+  padding: 2px 7px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.copy-btn:hover { background: var(--green); color: #fff; border-color: var(--green); }
+.table-scroll { overflow-x: auto; margin: 12px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 11.5px;
+  color: var(--muted);
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--line);
+}
+td {
+  padding: 8px;
+  border-bottom: 1px solid #e7ece9;
+  vertical-align: top;
+}
+.callout {
+  background: #fff;
+  border-left: 3px solid var(--green);
+  padding: 9px 12px;
+  margin: 12px 0;
+  font-size: 12.5px;
+}
+.callout-warning, .callout-caution { background: var(--amber-soft); border-left-color: #caa538; }
+.callout-title { font-weight: 650; margin-bottom: 2px; }
+.callout p { margin: 4px 0; }
+.flow-diagram {
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 12px 0 14px;
+}
+.flow-diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+footer.site-footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11.5px;
+  padding: 16px 24px;
+  text-align: center;
+  background: #fff;
+}
+@media (max-width: 880px) {
+  .doc-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .sidebar { position: static; border-left: 0; border-top: 1px solid var(--line); padding: 16px 0 0; }
+}
+</style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div>
+        <div class="breadcrumbs"><a href="index.html">NuMaker Guides</a> / <span>Setup &amp; Flashing Guide</span></div>
+        <h1 class="header-title">OpenBMC for Nuvoton NuMaker Platforms</h1>
+        <p class="header-sub">Repository setup, Path A (Ubuntu 24.04 / Docker build), Path B (CI artifacts), and Windows NuWriter procedure</p>
+      </div>
+      <nav class="header-nav" aria-label="Site navigation"><a href="index.html" class="">Boards</a><a href="openbmc.html" class="active">Setup Guide</a><a href="docker/index.html" class="">Docker Setup</a><a href="meta-numaker/index.html" class="">BSP Layers</a></nav>
+    </div>
+  </header>
+  <main class="container"><div class="doc-layout"><div class="doc-body">
+<p>Nuvoton OpenBMC distribution for <strong>NuMaker</strong> evaluation boards, providing Yocto/OpenEmbedded BSP layers, the Phosphor stack, Redfish, WebUI, Serial-Over-LAN (SOL), and GPIO host power control. For the visual top-view workflow diagram, see <a href="index.html#workflow">Workflow Overview</a>.</p>
+
+<h2 id="host-setup">1. Path A: Build from Source (Ubuntu 24.04 &amp; Docker)</h2>
+<p>Environment flow: <code>Ubuntu 24.04 &rarr; Docker &rarr; BitBake &rarr; Image &rarr; Windows &rarr; NuWriter &rarr; Board</code></p>
+
+<h3>1.1 Clone Repository (Ubuntu 24.04 Host)</h3>
+<p>Clone the OpenBMC repository:</p>
+<pre><code class="language-bash">git clone https://github.com/OpenNuvoton/openbmc.git</code></pre>
+<p>Enter the repository directory:</p>
+<pre><code class="language-bash">cd openbmc</code></pre>
+
+<h3>1.2 Build &amp; Enter Docker Container (Ubuntu 24.04 Host)</h3>
+<p>Switch to the Docker directory, build the image/container, and enter it:</p>
+<pre><code class="language-bash">cd meta-numaker/doc/docker/</code></pre>
+<pre><code class="language-bash">./build.sh</code></pre>
+<pre><code class="language-bash">./join.sh</code></pre>
+<p>See the <a href="docker/index.html">Docker Environment Guide</a> for host prerequisites, UID mapping, and container lifecycle scripts.</p>
+
+<h3>1.3 Compile Firmware Image (Inside Docker Container)</h3>
+<p>Inside the container, switch to <code>~/openbmc</code>, initialize your target board (replace <code>&lt;machine&gt;</code> and <code>&lt;build-dir&gt;</code> per <a href="#supported-boards">Section 4</a>), and start compilation:</p>
+<pre><code class="language-bash">cd ~/openbmc</code></pre>
+<pre><code class="language-bash">MACHINE=&lt;machine&gt; source setup &lt;machine&gt; &lt;build-dir&gt;</code></pre>
+<pre><code class="language-bash">bitbake nuwriter-pack</code></pre>
+<p>Generated images (<code>.bin</code> / <code>.wic</code>) and Windows flashing scripts (<code>.bat</code>) are output to <code>&lt;build-dir&gt;/tmp/deploy/images/&lt;machine&gt;/</code> on the shared host directory.</p>
+
+<h2 id="prebuilt">2. Path B: Use Pre-built Image (GitHub Actions)</h2>
+<p>Environment flow: <code>GitHub Pre-built Image &rarr; Windows &rarr; NuWriter &rarr; Board</code></p>
+<ol>
+  <li>Open the <a href="https://github.com/OpenNuvoton/openbmc/actions/workflows/numaker.yml" target="_blank" rel="noopener">OpenBMC NuMaker CI Workflow (numaker.yml)</a> and select the latest successful run.</li>
+  <li>Download <code>openbmc-&lt;machine&gt;.zip</code> from the <strong>Artifacts</strong> section.</li>
+  <li>Extract the archive to a local folder on your Windows PC and proceed directly to <a href="#post-image">Section 3</a>.</li>
+</ol>
+
+<h2 id="post-image">3. Windows Flashing &amp; Board Boot (Shared by Path A &amp; B)</h2>
+<ol>
+  <li><strong>Prepare files on Windows:</strong> Place the deploy directory contents (Path A) or extracted <code>openbmc-&lt;machine&gt;.zip</code> contents (Path B) in a local Windows folder.</li>
+  <li><strong>Connect cables:</strong> Connect <strong>USB0 (Device)</strong> to the Windows PC for NuWriter and <strong>VCOM</strong> for the <code>UART0</code> serial console (<code>115200 8N1</code>). Do not connect NuWriter to VCOM.</li>
+  <li><strong>Enter USB Download Mode:</strong> Power off the board first, set the boot DIP switch to <strong>USB Download</strong> (check your board's interactive <em>Power &amp; Boot Settings</em> in <a href="#supported-boards">Section 4</a>), then power on.</li>
+  <li><strong>Flash firmware on Windows:</strong> Run <code>install_nuwriter.bat</code> once to download NuWriter dependencies, then run <code>nuwriter_program_spinand.bat</code>, <code>nuwriter_program_nand.bat</code>, or <code>nuwriter_program_sd.bat</code> (for <code>numaker-iot-nuc980g2</code>, flash <code>nuwriter-pack.bin</code> via <code>NuWriter.exe</code>).</li>
+  <li><strong>Normal Boot &amp; Verification:</strong> Power off first, switch the DIP switch to <strong>Normal Boot</strong>, and power on. Verify boot progress on <code>UART0</code> and access BMC via SSH, WebUI, or Redfish (default login: <code>root</code> / <code>0penBmc</code>).</li>
+</ol>
+
+<h2 id="supported-boards">4. Supported Boards &amp; Machine Matrix</h2>
+<div class="table-scroll">
+<table>
+  <thead>
+    <tr><th>Evaluation Board</th><th>Order No.</th><th>Target Machine</th><th>CI Artifact</th><th>Documentation</th></tr>
+  </thead>
+  <tbody><tr><td><strong>NuMaker-IoT-MA35D16FJ87C</strong></td><td class="mono">NK-IMA35D1A3</td><td><code>numaker-iot-ma35d16fj87c</code></td><td><code>openbmc-numaker-iot-ma35d16fj87c.zip</code></td><td><a href="numaker-iot-ma35d16fj87c/quickstart.html">Quickstart</a> &middot; <a href="numaker-iot-ma35d16fj87c/index.html">Power &amp; Boot</a> &middot; <a href="numaker-iot-ma35d16fj87c/bom.html">BOM</a></td></tr><tr><td><strong>NuMaker-IoT-MA35D03F80</strong></td><td class="mono">NK-IMA35D0A1</td><td><code>numaker-iot-ma35d03f80</code></td><td><code>openbmc-numaker-iot-ma35d03f80.zip</code></td><td><a href="numaker-iot-ma35d03f80/quickstart.html">Quickstart</a> &middot; <a href="numaker-iot-ma35d03f80/index.html">Power &amp; Boot</a> &middot; <a href="numaker-iot-ma35d03f80/bom.html">BOM</a></td></tr><tr><td><strong>NuMaker-IoT-MA35D05KI1</strong></td><td class="mono">NK-IMA35D0A2 (Chili Pro)</td><td><code>numaker-iot-ma35d05ki1</code></td><td><code>openbmc-numaker-iot-ma35d05ki1.zip</code></td><td><a href="numaker-iot-ma35d05ki1/quickstart.html">Quickstart</a> &middot; <a href="numaker-iot-ma35d05ki1/index.html">Power &amp; Boot</a> &middot; <a href="numaker-iot-ma35d05ki1/bom.html">BOM</a></td></tr><tr><td><strong>NuMaker-IIoT-NUC980G2</strong></td><td class="mono">NK-980IOTG2</td><td><code>numaker-iot-nuc980g2</code></td><td><code>openbmc-numaker-iot-nuc980g2.zip</code></td><td><a href="numaker-iot-nuc980g2/quickstart.html">Quickstart</a> &middot; <a href="numaker-iot-nuc980g2/index.html">Power &amp; Boot</a> &middot; <a href="numaker-iot-nuc980g2/bom.html">BOM</a></td></tr></tbody>
+</table>
+</div>
+</div><aside class="sidebar"><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#host-setup">1. Path A: Build from Source</a></li><li class="toc-h2"><a href="#prebuilt">2. Path B: Pre-built Image</a></li><li class="toc-h2"><a href="#post-image">3. Windows Flashing &amp; Boot</a></li><li class="toc-h2"><a href="#supported-boards">4. Supported Boards</a></li></ul></div></aside></div></main>
+  <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
+  <script>
+document.querySelectorAll('pre').forEach(function (pre) {
+  var wrap = document.createElement('div');
+  wrap.className = 'code-wrap';
+  pre.parentNode.insertBefore(wrap, pre);
+  wrap.appendChild(pre);
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.addEventListener('click', function () {
+    navigator.clipboard.writeText(pre.innerText).then(function () {
+      btn.textContent = 'Copied';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1200);
+    });
+  });
+  wrap.appendChild(btn);
+});
+</script>
+</body>
+</html>

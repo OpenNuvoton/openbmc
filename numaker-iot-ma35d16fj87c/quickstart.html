@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NuMaker-IoT-MA35D16FJ87C OpenBMC Quickstart &amp; Reference - NuMaker OpenBMC</title>
+  <style>
+:root {
+  color-scheme: light;
+  --ink: #243430;
+  --muted: #64736d;
+  --line: #dce5df;
+  --green: #08745f;
+  --green-soft: #e5f3ec;
+  --amber-soft: #fff4ca;
+  --red: #b23d38;
+  --bg: #f7faf8;
+}
+* { box-sizing: border-box; letter-spacing: 0; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font: 14px/1.6 "Bahnschrift", "Segoe UI", sans-serif;
+}
+a { color: var(--green); text-decoration: none; border-bottom: 1px solid currentColor; padding: 1px 0; }
+a:hover { color: var(--red); }
+a:focus-visible, button:focus-visible { outline: 3px solid #359782; outline-offset: 3px; }
+code, pre, .mono { font-family: "Cascadia Code", "Consolas", monospace; }
+.site-header {
+  border-top: 4px solid var(--green);
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+.header-inner {
+  max-width: 1120px;
+  margin: auto;
+  padding: 18px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.header-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.3;
+  font-weight: 650;
+}
+.header-sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.breadcrumbs {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.breadcrumbs a { color: var(--muted); border-bottom-color: transparent; }
+.breadcrumbs a:hover { color: var(--green); border-bottom-color: currentColor; }
+.header-nav {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.header-nav a.active { font-weight: 650; }
+.container {
+  max-width: 1120px;
+  margin: auto;
+  padding: 24px 24px 44px;
+}
+.doc-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 34px;
+  align-items: start;
+}
+.sidebar {
+  position: sticky;
+  top: 18px;
+  border-left: 1px solid var(--line);
+  padding-left: 16px;
+  font-size: 12.5px;
+}
+.side-group { margin-bottom: 20px; }
+.side-group h3 {
+  margin: 0 0 8px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.side-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.side-list a { border-bottom: 0; color: var(--ink); padding: 1px 0; }
+.side-list a:hover, .side-list a.active { color: var(--green); }
+.side-list a.active { font-weight: 650; }
+.side-list li.toc-h3 { padding-left: 10px; }
+.side-list.toc a { color: var(--muted); font-size: 12px; }
+.side-list.toc a:hover { color: var(--green); }
+.doc-body > h1:first-child { display: none; }
+.doc-body h2 {
+  margin: 28px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+.doc-body h2:first-child { margin-top: 0; }
+.doc-body h3 { margin: 18px 0 6px; font-size: 15px; font-weight: 650; }
+.doc-body h4 { margin: 14px 0 4px; font-size: 13.5px; font-weight: 650; }
+.doc-body p { margin: 9px 0; }
+.doc-body ul, .doc-body ol { margin: 9px 0; padding-left: 20px; }
+.doc-body li { margin: 4px 0; }
+.doc-body hr { border: 0; border-top: 1px solid var(--line); margin: 22px 0; }
+.doc-body code {
+  background: #eaf0ed;
+  padding: 1px 4px;
+  font-size: 12.5px;
+}
+.code-wrap { position: relative; margin: 10px 0; }
+.doc-body pre {
+  background: #1d2624;
+  color: #e7f0ed;
+  padding: 12px 15px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+.doc-body pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.copy-btn {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  border: 1px solid #3c4d49;
+  background: #283532;
+  color: #cfe0db;
+  font: 11px "Consolas", monospace;
+  padding: 2px 7px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.copy-btn:hover { background: var(--green); color: #fff; border-color: var(--green); }
+.table-scroll { overflow-x: auto; margin: 12px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 11.5px;
+  color: var(--muted);
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--line);
+}
+td {
+  padding: 8px;
+  border-bottom: 1px solid #e7ece9;
+  vertical-align: top;
+}
+.callout {
+  background: #fff;
+  border-left: 3px solid var(--green);
+  padding: 9px 12px;
+  margin: 12px 0;
+  font-size: 12.5px;
+}
+.callout-warning, .callout-caution { background: var(--amber-soft); border-left-color: #caa538; }
+.callout-title { font-weight: 650; margin-bottom: 2px; }
+.callout p { margin: 4px 0; }
+.flow-diagram {
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 12px 0 14px;
+}
+.flow-diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+footer.site-footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11.5px;
+  padding: 16px 24px;
+  text-align: center;
+  background: #fff;
+}
+@media (max-width: 880px) {
+  .doc-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .sidebar { position: static; border-left: 0; border-top: 1px solid var(--line); padding: 16px 0 0; }
+}
+</style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div>
+        <div class="breadcrumbs"><a href="../index.html">NuMaker Guides</a> / <span>NuMaker-IoT-MA35D16FJ87C</span></div>
+        <h1 class="header-title">NuMaker-IoT-MA35D16FJ87C OpenBMC Quickstart &amp; Reference</h1>
+        <p class="header-sub">MA35D16FJ87C &middot; Dual Cortex-A35 800 MHz &middot; 512 MB DDR3L &middot; NK-IMA35D1A3</p>
+      </div>
+      <nav class="header-nav" aria-label="Site navigation"><a href="../index.html" class="active">Boards</a><a href="../openbmc.html" class="">Setup Guide</a><a href="../docker/index.html" class="">Docker Setup</a><a href="../meta-numaker/index.html" class="">BSP Layers</a></nav>
+    </div>
+  </header>
+  <main class="container"><div class="doc-layout"><div class="doc-body"><h1 id="numaker-iot-ma35d16fj87c-openbmc-quickstart--reference">NuMaker-IoT-MA35D16FJ87C OpenBMC Quickstart &amp; Reference</h1>
+<p>Operational guide for building, flashing, and verifying OpenBMC on the <strong>Nuvoton NuMaker-IoT-MA35D16FJ87C</strong> evaluation board. The board acts as an out-of-band BMC controlling an external host via Redfish, WebUI, Serial-Over-LAN (SOL), and GPIO power signals (<code>POWER_OUT</code>, <code>RESET_OUT</code>, <code>PS_PWROK</code>).</p>
+<hr />
+<h2 id="1-hardware-specifications--setup">1. Hardware Specifications &amp; Setup</h2>
+<h3 id="11-specifications">1.1 Specifications</h3>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th style="text-align:left">Item</th>
+<th style="text-align:left">Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>Board</strong></td>
+<td style="text-align:left">NuMaker-IoT-MA35D16FJ87C</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>SoC</strong></td>
+<td style="text-align:left">Nuvoton MA35D16FJ87C (Dual Cortex-A35 @ 800 MHz)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>RAM</strong></td>
+<td style="text-align:left">512 MB DDR3L (stacked in MCP)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Storage Support</strong></td>
+<td style="text-align:left"><strong>SPI NAND</strong> (512MB), <strong>Raw NAND</strong> (NFI), <strong>MicroSD / SD</strong> (SDHCI1)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Debug Console</strong></td>
+<td style="text-align:left">UART0 (<code>/dev/ttyS0</code>), 115200 8N1</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Host SOL Console</strong></td>
+<td style="text-align:left">UART10 (<code>/dev/ttyS10</code>), Pins <code>PH6</code> (RX) / <code>PH7</code> (TX)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>RS-485 Interface</strong></td>
+<td style="text-align:left">UART12 (<code>/dev/ttyS12</code>), Pins <code>PC13</code> (AUD / nRTS), <code>PC14</code> (RXD), <code>PC15</code> (TXD)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>CAN Bus</strong></td>
+<td style="text-align:left">3× Bosch M_CAN: CAN0 (<code>PN2</code>/<code>PN3</code>), CAN1 (<code>PN6</code>/<code>PN7</code>), CAN3 (<code>PM2</code>/<code>PM3</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Power Control</strong></td>
+<td style="text-align:left">GPIO: <code>POWER_OUT</code> (<code>PN1</code>), <code>RESET_OUT</code> (<code>PN0</code>), <code>PS_PWROK</code> (<code>PK12</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Network</strong></td>
+<td style="text-align:left">10/100M / 10/100/1000M Ethernet (RMII / RGMII)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Default IP / mDNS</strong></td>
+<td style="text-align:left">DHCP or <code>numaker-iot-ma35d16fj87c.local</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Default Credentials</strong></td>
+<td style="text-align:left"><code>root</code> / <code>0penBmc</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="12-connectors">1.2 Connectors</h3>
+<ul>
+<li><strong>Debug Serial Console (UART0)</strong>: Micro-USB to board <strong>VCOM</strong> port (115200 8N1).</li>
+<li><strong>NuWriter Programming Port (USB0 Device)</strong>: Micro-USB to board <strong>USB0 (Device)</strong> port. <em>(Do not connect NuWriter to VCOM or Host USB ports).</em></li>
+<li><strong>Ethernet (LAN)</strong>: RJ45 cable to local network (DHCP).</li>
+<li><strong>Power</strong>: 5V via USB.</li>
+</ul>
+<h3 id="13-boot-mode-dip-switch-settings-sw7">1.3 Boot Mode DIP Switch Settings (SW7)</h3>
+<p>SW7 defines boot source and bus configuration at power-on.</p>
+<ul>
+<li><strong>ON (H)</strong>: Switch ON (3.3V)</li>
+<li><strong>OFF (L)</strong>: Switch OFF (Pulled down to Low)</li>
+</ul>
+<p><strong>Switch Pin Assignments:</strong></p>
+<ul>
+<li><code>SW1 (PG0)</code>: Secure Boot (<code>ON</code>: Disable, <code>OFF</code>: Enable)</li>
+<li><code>SW2 (PG1)</code>: QSPI0 / SD I/O Voltage (<code>OFF</code>: 3.3V, <code>ON</code>: 1.8V)</li>
+<li><code>SW3 (PG2)</code> / <code>SW4 (PG3)</code>: Boot Source (<code>LL</code>: QSPI0 Flash, <code>LH</code>: SD/eMMC, <code>HL</code>: NAND Flash, <code>HH</code>: USB)</li>
+<li><code>SW5 (PG4)</code>: USB Boot (<code>OFF</code>: USBD Device, <code>ON</code>: USBH Host) / NAND Page Size bit 0</li>
+<li><code>SW6 (PG5)</code>: USBH Port (<code>OFF</code>: Port 0, <code>ON</code>: Port 1) / NAND Page Size bit 1</li>
+<li><code>SW7 (PG6)</code>: QSPI0: SPI-NAND 1-bit / SD: <code>OFF</code>=SD0, <code>ON</code>=SD1 / NAND BCH bit 0</li>
+<li><code>SW8 (PG7)</code>: QSPI0: <code>OFF</code>=SPI-NAND, <code>ON</code>=SPI-NOR / SD: <code>OFF</code>=4-bit / NAND BCH bit 1</li>
+</ul>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th style="text-align:left">Target Storage</th>
+<th style="text-align:left">USB Download (NuWriter)</th>
+<th style="text-align:left">Normal Boot (Run Mode)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>SPI NAND</strong></td>
+<td style="text-align:left"><strong>1, 3, 4 ON</strong>; others OFF</td>
+<td style="text-align:left"><strong>1 ON</strong>; others OFF</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>SD Card (SD1)</strong></td>
+<td style="text-align:left"><strong>1, 3, 4, 7 ON</strong>; others OFF</td>
+<td style="text-align:left"><strong>1, 3, 7 ON</strong>; others OFF</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Raw NAND</strong></td>
+<td style="text-align:left"><strong>1, 3, 4 ON</strong>; others OFF</td>
+<td style="text-align:left"><strong>1, 4 ON</strong>; others OFF</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="2-build-environment--compilation">2. Build Environment &amp; Compilation</h2>
+<div class="callout callout-note"><div class="callout-title">Note</div><p>All build commands below are executed <strong>inside the Docker container</strong>.
+If you have not set up the Docker build environment yet, please refer to <a href="../docker/index.html">Docker Build Environment Guide</a> to build and enter the container first.</p></div>
+<p>Ensure at least <strong>60 GB</strong> of free disk space for toolchain builds and sstate cache.</p>
+<h3 id="21-build-steps">2.1 Build Steps</h3>
+<ol>
+<li>Inside the Docker container, switch to the OpenBMC repository:</li>
+</ol>
+<pre><code class="language-bash">cd ~/openbmc
+</code></pre>
+<ol start="2">
+<li>Initialize the build directory:</li>
+</ol>
+<pre><code class="language-bash">MACHINE=numaker-iot-ma35d16fj87c source setup numaker-iot-ma35d16fj87c build-ma35
+</code></pre>
+<ol start="3">
+<li>Start compilation:</li>
+</ol>
+<pre><code class="language-bash">bitbake nuwriter-pack
+</code></pre>
+<div class="callout callout-note"><div class="callout-title">Note</div><p>For subsequent sessions in a new shell:</p>
+<pre><code class="language-bash">cd ~/openbmc
+</code></pre>
+<pre><code class="language-bash">source oe-init-build-env build-ma35
+</code></pre>
+<pre><code class="language-bash">bitbake nuwriter-pack
+</code></pre></div>
+<h3 id="22-build-outputs">2.2 Build Outputs</h3>
+<p>Deploy directory: <code>build-ma35/tmp/deploy/images/numaker-iot-ma35d16fj87c/</code></p>
+<pre><code class="language-text">├── nuwriter-pack-spinand-numaker-iot-ma35d16fj87c.bin   (SPI NAND image)
+├── nuwriter-pack-nand-numaker-iot-ma35d16fj87c.bin      (Raw NAND image)
+├── obmc-phosphor-image-numaker-iot-ma35d16fj87c.wic     (SD card full disk WIC image)
+├── install_nuwriter.bat                                 (NuWriter environment installer)
+├── nuwriter_program_spinand.bat                         (SPI NAND one-click flasher)
+├── nuwriter_program_nand.bat                            (Raw NAND one-click flasher)
+└── nuwriter_program_sd.bat                              (SD card one-click flasher via WIC)
+</code></pre>
+<h3 id="23-prebuilt-artifacts-from-github-actions">2.3 Prebuilt Artifacts from GitHub Actions</h3>
+<p>Precompiled zip packages are available from the CI pipeline:</p>
+<ol>
+<li>Go to: <a href="https://github.com/OpenNuvoton/openbmc/actions/workflows/numaker.yml" target="_blank" rel="noopener">OpenBMC GitHub Actions Workflow</a>.</li>
+<li>Select the latest successful build.</li>
+<li>Download <code>openbmc-numaker-iot-ma35d16fj87c.zip</code> from <strong>Artifacts</strong> and extract it on Windows.</li>
+</ol>
+<hr />
+<h2 id="3-firmware-flashing-nuwriter">3. Firmware Flashing (NuWriter)</h2>
+<p>Flashing uses Nuvoton's Python-based <strong>NuWriter</strong> tool via Windows batch scripts.</p>
+<div class="callout callout-tip"><div class="callout-title">Tip</div><p>If NuWriter fails to detect the board:</p>
+<ul>
+<li>Confirm SW7 is set to <strong>USB Download Mode</strong> (<code>1, 3, 4 ON</code>, or <code>1, 3, 4, 7 ON</code> for SD1).</li>
+<li>Verify the cable is connected to <strong>USB0 (Device)</strong>, not VCOM.</li>
+<li>Check Windows Device Manager for Nuvoton USB / WinUSB driver.</li>
+</ul></div>
+<h3 id="31-initial-setup-first-time-only">3.1 Initial Setup (First Time Only)</h3>
+<ol>
+<li>Connect <strong>USB0 (Device)</strong> to Windows PC.</li>
+<li>Run <code>install_nuwriter.bat</code> in the extracted artifact directory to fetch <code>MA35D1_NuWriter</code> and DDR configs.</li>
+</ol>
+<h3 id="32-flashing-spi-nand">3.2 Flashing SPI NAND</h3>
+<ol>
+<li>Set SW7 to <strong>USB Download Mode</strong> (<code>1, 3, 4 ON</code>; others OFF) → power on.</li>
+<li>Run <code>nuwriter_program_spinand.bat</code>.</li>
+<li>Wait for <code>Programming completed successfully!</code>.</li>
+<li>Power off → set SW7 to <strong>SPI NAND Boot</strong> (<code>1 ON</code>; others OFF) → power on.</li>
+</ol>
+<h3 id="33-flashing-raw-nand">3.3 Flashing Raw NAND</h3>
+<ol>
+<li>Set SW7 to <strong>USB Download Mode</strong> (<code>1, 3, 4 ON</code>; others OFF) → power on.</li>
+<li>Run <code>nuwriter_program_nand.bat</code>.</li>
+<li>Wait for completion.</li>
+<li>Power off → set SW7 to <strong>Raw NAND Boot</strong> (<code>1, 4 ON</code>; others OFF) → power on.</li>
+</ol>
+<h3 id="34-flashing-microsd-card">3.4 Flashing MicroSD Card</h3>
+<ol>
+<li>Insert MicroSD card into the slot.</li>
+<li>Set SW7 to <strong>USB Download Mode for SD1</strong> (<code>1, 3, 4, 7 ON</code>; others OFF) → power on.</li>
+<li>Run <code>nuwriter_program_sd.bat</code>.</li>
+<li>Power off → set SW7 to <strong>SD Boot</strong> (<code>1, 3, 7 ON</code>; others OFF) → power on.</li>
+</ol>
+<hr />
+<h2 id="4-boot-verification--sanity-checks">4. Boot Verification &amp; Sanity Checks</h2>
+<h3 id="41-expected-serial-boot-log-uart0-115200-8n1">4.1 Expected Serial Boot Log (UART0, 115200 8N1)</h3>
+<pre><code class="language-text">NOTICE:  BL2: v2.8(release):
+NOTICE:  BL31: v2.8(release):
+
+U-Boot 2020.07 (Oct 12 2026 - 15:30:00 +0800)
+CPU: MA35D16FJ87C (Cortex-A35 dual core @ 800 MHz)
+DRAM:  512 MiB
+NAND:  512 MiB
+Loading Kernel from storage...
+Starting kernel ...
+
+[    0.000000] Booting Linux on physical CPU 0x0000000000 [0x410fd041]
+[    0.000000] Linux version 6.6.93-ma35 (oe-user@oe-host) ...
+...
+[  OK  ] Started Phosphor Web Server (bmcweb).
+[  OK  ] Started MA35 SoC Temperature Monitor (ma35-soc-temp).
+[  OK  ] Started Serial-Over-LAN Console Server (obmc-console-server).
+[  OK  ] Started Dropbear SSH daemon.
+
+OpenBMC Release 2.14.0-dev
+numaker-iot-ma35d16fj87c login:
+</code></pre>
+<h3 id="42-network--access">4.2 Network &amp; Access</h3>
+<ul>
+<li>
+<p><strong>mDNS Hostname Resolution</strong>:</p>
+<pre><code class="language-bash">ping -c 3 numaker-iot-ma35d16fj87c.local
+</code></pre>
+<p><em>(If mDNS is blocked on your router, log into UART0 and check <code>ip addr show eth0</code>).</em></p>
+</li>
+<li>
+<p><strong>SSH Access</strong>:</p>
+<pre><code class="language-bash">ssh root@numaker-iot-ma35d16fj87c.local
+# Password: 0penBmc
+</code></pre>
+</li>
+<li>
+<p><strong>WebUI Browser Access</strong>:
+Navigate to <code>https://numaker-iot-ma35d16fj87c.local/</code> (or <code>https://&lt;BMC-IP&gt;/</code>).
+Accept the default self-signed SSL certificate in your browser and log in with <code>root</code> / <code>0penBmc</code>.</p>
+</li>
+</ul>
+<hr />
+<h2 id="5-subsystem-verification">5. Subsystem Verification</h2>
+<h3 id="51-redfish-regression-test-suite">5.1 Redfish Regression Test Suite</h3>
+<p>Requires <code>curl</code> and <code>jq</code> on the test host:</p>
+<pre><code class="language-bash">cd doc/numaker-iot-ma35d16fj87c/
+</code></pre>
+<pre><code class="language-bash">chmod +x test-redfish.sh
+</code></pre>
+<pre><code class="language-bash">./test-redfish.sh
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code class="language-text">====================================================
+     MA35D16FJ87C OpenBMC Functions Integration Test    
+====================================================
+[Test] GET Service Root...
+✓ Passed (HTTP 200)
+[Test] GET Chassis Details (system)...
+✓ Passed (HTTP 200)
+[Test] User Management (AccountService)...
+POST Create Test Account: ✓ Passed (HTTP 201)
+PATCH Change Role: ✓ Passed (HTTP 204)
+DELETE Delete Test Account: ✓ Passed (HTTP 200)
+====================================================
+Test Summary: All Tests Passed!
+Report generated: test-redfish.md
+====================================================
+</code></pre>
+<p>See <a href="test-redfish.html"><code>test-redfish.md</code></a> for full compliance results.</p>
+<h3 id="52-host-serial-over-lan-sol-console">5.2 Host Serial-Over-LAN (SOL) Console</h3>
+<p>On <code>numaker-iot-ma35d16fj87c</code>, <strong><code>UART10</code></strong> (<code>/dev/ttyS10</code>, <code>PH6</code>/<code>PH7</code>) is assigned as the Host SOL link.</p>
+<ol>
+<li><strong>Interactive CLI Access via SSH (Direct)</strong>:<pre><code class="language-bash">ssh -t root@numaker-iot-ma35d16fj87c.local obmc-console-client
+</code></pre>
+<em>Connects directly to the serial console server regardless of host power state.</em></li>
+<li><strong>WebUI Terminal</strong>:
+Open <strong>Operations → Serial-over-LAN console</strong>.
+<div class="callout callout-note"><div class="callout-title">Note</div><p>WebUI terminal checks host power status (<code>PS_PWROK</code> on <code>PK12</code>). If evaluating standalone without a host motherboard, tie <code>PK12</code> to <code>3.3V</code> and set Host Power to On via Redfish, or use direct CLI access via <code>obmc-console-client</code>.</p></div>
+</li>
+</ol>
+<p>Refer to <a href="test-sol.html"><code>test-sol.md</code></a> for loopback tests and wiring details.</p>
+<h3 id="53-independent-rs-485-interface-hardware-aud">5.3 Independent RS-485 Interface (Hardware AUD)</h3>
+<p>On <code>numaker-iot-ma35d16fj87c</code>, <strong><code>UART12</code></strong> (<code>/dev/ttyS12</code>, <code>PC13</code>~<code>PC15</code>) provides hardware Auto-Direction (AUD) control.</p>
+<ol>
+<li>Configure baudrate:<pre><code class="language-bash">stty -F /dev/ttyS12 115200 cs8 -cstopb -parenb -echo
+</code></pre>
+</li>
+<li>Transmit test packet:<pre><code class="language-bash">echo &quot;RS-485 AUD Test Packet&quot; &gt; /dev/ttyS12
+</code></pre>
+</li>
+<li>Receive test packet:<pre><code class="language-bash">cat /dev/ttyS12
+</code></pre>
+</li>
+</ol>
+<p>Refer to <a href="test-rs485.html"><code>test-rs485.md</code></a> for hardware AUD principles and pin connections.</p>
+<h3 id="54-can--can-fd-bus">5.4 CAN / CAN-FD Bus</h3>
+<p>MA35D16FJ87C provides 3 CAN controllers: <code>can0</code> (<code>PN2</code>/<code>PN3</code>), <code>can1</code> (<code>PN6</code>/<code>PN7</code>), <code>can2</code> (<code>PM2</code>/<code>PM3</code>).</p>
+<div class="callout callout-warning"><div class="callout-title">Warning</div><p>SoC CAN pins output 3.3V TTL levels. Connect via an external <strong>3.3V CAN transceiver</strong> (e.g. SN65HVD230 / TJA1051T) with <strong>120Ω termination resistors</strong> on both bus ends. Do NOT connect TTL pins directly to a 12V/24V CAN bus.</p></div>
+<p>Configure <code>can0</code> and <code>can1</code> for CAN-FD in BMC SSH:</p>
+<pre><code class="language-bash">ip link set can0 type can bitrate 500000 dbitrate 2000000 fd on
+</code></pre>
+<pre><code class="language-bash">ip link set can0 up
+</code></pre>
+<pre><code class="language-bash">ip link set can1 type can bitrate 500000 dbitrate 2000000 fd on
+</code></pre>
+<pre><code class="language-bash">ip link set can1 up
+</code></pre>
+<p>Receiver:</p>
+<pre><code class="language-bash">candump can1
+</code></pre>
+<p>Transmitter:</p>
+<pre><code class="language-bash">cansend can0 123##3112233445566778899AABBCCDDEEFF
+</code></pre>
+<p>See <a href="test-can.html"><code>test-can.md</code></a> for transceiver pin connections and packet formats.</p>
+<h3 id="55-host-power-control-gpio">5.5 Host Power Control (GPIO)</h3>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th style="text-align:left">Signal</th>
+<th style="text-align:left">Direction</th>
+<th style="text-align:left">Pin</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong><code>POWER_OUT</code></strong></td>
+<td style="text-align:left">Output</td>
+<td style="text-align:left"><strong><code>PN1</code></strong></td>
+<td style="text-align:left">Emulates power button (Active Low, 200ms on, 4s force off)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>RESET_OUT</code></strong></td>
+<td style="text-align:left">Output</td>
+<td style="text-align:left"><strong><code>PN0</code></strong></td>
+<td style="text-align:left">Emulates reset button (Active Low, 200ms)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>PS_PWROK</code></strong></td>
+<td style="text-align:left">Input</td>
+<td style="text-align:left"><strong><code>PK12</code></strong></td>
+<td style="text-align:left">Host PSU Power Good status (Active High 3.3V)</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-bash"># Power On Host:
+curl -k -s -u root:0penBmc -X POST \
+  https://numaker-iot-ma35d16fj87c.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;ResetType&quot;: &quot;On&quot;}' -i
+# Expected: HTTP/1.1 204 No Content
+</code></pre>
+<p>See <a href="test-power-control.html"><code>test-power-control.md</code></a> for GPIO timing and control guides.</p>
+<h3 id="56-soc-temperature-monitoring">5.6 SoC Temperature Monitoring</h3>
+<p>Via D-Bus (on BMC):</p>
+<pre><code class="language-bash">busctl get-property xyz.openbmc_project.MA35_Thermal /xyz/openbmc_project/sensors/temperature/cpu_thermal xyz.openbmc_project.Sensor.Value Value
+</code></pre>
+<p>Via Redfish:</p>
+<pre><code class="language-bash">curl -k -s -u root:0penBmc https://numaker-iot-ma35d16fj87c.local/redfish/v1/Chassis/system/ThermalSubsystem/ThermalMetrics | jq .
+</code></pre>
+<p>Stress and polling test script:</p>
+<pre><code class="language-bash">./test-cpu-temp.sh
+</code></pre>
+<p>High-frequency stress testing (20ms / 50 Hz+, persistent Keep-Alive):</p>
+<pre><code class="language-bash">./stress-redfish.sh
+</code></pre>
+<h3 id="57-firmware-update-via-redfish-ota">5.7 Firmware Update via Redfish (OTA)</h3>
+<p>End-to-end Redfish update with dual-bank (A/B) flashing and boot fallback:</p>
+<pre><code class="language-bash"># Automated end-to-end OTA verification (from repo root):
+./meta-numaker/doc/numaker-iot-ma35d16fj87c/test-redfish-update/test-redfish-update.sh numaker-iot-ma35d16fj87c.local \
+  build-ma35/tmp/deploy/images/numaker-iot-ma35d16fj87c/obmc-phosphor-image-numaker-iot-ma35d16fj87c.mtd-ubi-tar
+</code></pre>
+<p>For partition architecture, manual step-by-step curl commands, anti-rollback checks, and boot fallback testing, refer to <a href="test-redfish-update/index.html"><code>test-redfish-update/README.md</code></a>.</p>
+<hr />
+<h2 id="6-document-index">6. Document Index</h2>
+<ul>
+<li><a href="test-can.html"><code>test-can.md</code></a>: CAN / CAN-FD bus setup, transceiver wiring, and socketCAN commands.</li>
+<li><a href="test-sol.html"><code>test-sol.md</code></a>: Host SOL console guide and WebUI integration.</li>
+<li><a href="test-rs485.html"><code>test-rs485.md</code></a>: Independent RS-485 serial communication guide with Hardware AUD.</li>
+<li><a href="test-redfish.html"><code>test-redfish.md</code></a>: Redfish integration test report and schema compliance results.</li>
+<li><a href="https://github.com/OpenNuvoton/openbmc/blob/numaker/meta-numaker/doc/numaker-iot-ma35d16fj87c/test-redfish.sh" target="_blank" rel="noopener"><code>test-redfish.sh</code></a>: Automated curl test script for Redfish API regression tests.</li>
+<li><a href="test-redfish-update/index.html"><code>test-redfish-update/README.md</code></a>: Redfish OTA firmware update guide, dual-bank architecture, and automated test suite.</li>
+<li><a href="test-power-control.html"><code>test-power-control.md</code></a>: Host power state machine, wiring diagrams, and GPIO pinouts.</li>
+<li><a href="https://github.com/OpenNuvoton/openbmc/blob/numaker/meta-numaker/doc/numaker-iot-ma35d16fj87c/test-cpu-temp.sh" target="_blank" rel="noopener"><code>test-cpu-temp.sh</code></a>: Live SoC thermal monitoring script.</li>
+<li><code>stress-redfish.py</code>: High-frequency (20ms / 50 Hz+) Redfish stress test tool with HTTP Keep-Alive and latency percentiles.</li>
+<li><code>stress-redfish.sh</code>: Interactive launcher and presets for high-frequency stress testing.</li>
+</ul>
+</div><aside class="sidebar"><div class="side-group"><h3>MA35D16FJ87C</h3><ul class="side-list"><li><a class="active" href="quickstart.html">Quickstart Guide</a></li><li><a class="" href="index.html">Power &amp; Boot Settings</a></li><li><a class="" href="bom.html">Interactive BOM</a></li><li><a class="" href="test-redfish.html">Redfish API</a></li><li><a class="" href="test-redfish-update/index.html">Redfish OTA</a></li><li><a class="" href="test-sol.html">SOL</a></li><li><a class="" href="test-can.html">CAN-FD</a></li><li><a class="" href="test-rs485.html">RS-485</a></li><li><a class="" href="test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#1-hardware-specifications--setup">1. Hardware Specifications &amp; Setup</a></li><li class="toc-h3"><a href="#11-specifications">1.1 Specifications</a></li><li class="toc-h3"><a href="#12-connectors">1.2 Connectors</a></li><li class="toc-h3"><a href="#13-boot-mode-dip-switch-settings-sw7">1.3 Boot Mode DIP Switch Settings (SW7)</a></li><li class="toc-h2"><a href="#2-build-environment--compilation">2. Build Environment &amp; Compilation</a></li><li class="toc-h3"><a href="#21-build-steps">2.1 Build Steps</a></li><li class="toc-h3"><a href="#22-build-outputs">2.2 Build Outputs</a></li><li class="toc-h3"><a href="#23-prebuilt-artifacts-from-github-actions">2.3 Prebuilt Artifacts from GitHub Actions</a></li><li class="toc-h2"><a href="#3-firmware-flashing-nuwriter">3. Firmware Flashing (NuWriter)</a></li><li class="toc-h3"><a href="#31-initial-setup-first-time-only">3.1 Initial Setup (First Time Only)</a></li><li class="toc-h3"><a href="#32-flashing-spi-nand">3.2 Flashing SPI NAND</a></li><li class="toc-h3"><a href="#33-flashing-raw-nand">3.3 Flashing Raw NAND</a></li><li class="toc-h3"><a href="#34-flashing-microsd-card">3.4 Flashing MicroSD Card</a></li><li class="toc-h2"><a href="#4-boot-verification--sanity-checks">4. Boot Verification &amp; Sanity Checks</a></li><li class="toc-h3"><a href="#41-expected-serial-boot-log-uart0-115200-8n1">4.1 Expected Serial Boot Log (UART0, 115200 8N1)</a></li><li class="toc-h3"><a href="#42-network--access">4.2 Network &amp; Access</a></li><li class="toc-h2"><a href="#5-subsystem-verification">5. Subsystem Verification</a></li><li class="toc-h3"><a href="#51-redfish-regression-test-suite">5.1 Redfish Regression Test Suite</a></li><li class="toc-h3"><a href="#52-host-serial-over-lan-sol-console">5.2 Host Serial-Over-LAN (SOL) Console</a></li><li class="toc-h3"><a href="#53-independent-rs-485-interface-hardware-aud">5.3 Independent RS-485 Interface (Hardware AUD)</a></li><li class="toc-h3"><a href="#54-can--can-fd-bus">5.4 CAN / CAN-FD Bus</a></li><li class="toc-h3"><a href="#55-host-power-control-gpio">5.5 Host Power Control (GPIO)</a></li><li class="toc-h3"><a href="#56-soc-temperature-monitoring">5.6 SoC Temperature Monitoring</a></li><li class="toc-h3"><a href="#57-firmware-update-via-redfish-ota">5.7 Firmware Update via Redfish (OTA)</a></li><li class="toc-h2"><a href="#6-document-index">6. Document Index</a></li></ul></div></aside></div></main>
+  <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
+  <script>
+document.querySelectorAll('pre').forEach(function (pre) {
+  var wrap = document.createElement('div');
+  wrap.className = 'code-wrap';
+  pre.parentNode.insertBefore(wrap, pre);
+  wrap.appendChild(pre);
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.addEventListener('click', function () {
+    navigator.clipboard.writeText(pre.innerText).then(function () {
+      btn.textContent = 'Copied';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1200);
+    });
+  });
+  wrap.appendChild(btn);
+});
+</script>
+</body>
+</html>

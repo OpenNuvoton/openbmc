@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NuMaker-IoT-NUC980G2 OpenBMC Quickstart &amp; Reference - NuMaker OpenBMC</title>
+  <style>
+:root {
+  color-scheme: light;
+  --ink: #243430;
+  --muted: #64736d;
+  --line: #dce5df;
+  --green: #08745f;
+  --green-soft: #e5f3ec;
+  --amber-soft: #fff4ca;
+  --red: #b23d38;
+  --bg: #f7faf8;
+}
+* { box-sizing: border-box; letter-spacing: 0; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font: 14px/1.6 "Bahnschrift", "Segoe UI", sans-serif;
+}
+a { color: var(--green); text-decoration: none; border-bottom: 1px solid currentColor; padding: 1px 0; }
+a:hover { color: var(--red); }
+a:focus-visible, button:focus-visible { outline: 3px solid #359782; outline-offset: 3px; }
+code, pre, .mono { font-family: "Cascadia Code", "Consolas", monospace; }
+.site-header {
+  border-top: 4px solid var(--green);
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+.header-inner {
+  max-width: 1120px;
+  margin: auto;
+  padding: 18px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.header-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.3;
+  font-weight: 650;
+}
+.header-sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.breadcrumbs {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.breadcrumbs a { color: var(--muted); border-bottom-color: transparent; }
+.breadcrumbs a:hover { color: var(--green); border-bottom-color: currentColor; }
+.header-nav {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.header-nav a.active { font-weight: 650; }
+.container {
+  max-width: 1120px;
+  margin: auto;
+  padding: 24px 24px 44px;
+}
+.doc-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 34px;
+  align-items: start;
+}
+.sidebar {
+  position: sticky;
+  top: 18px;
+  border-left: 1px solid var(--line);
+  padding-left: 16px;
+  font-size: 12.5px;
+}
+.side-group { margin-bottom: 20px; }
+.side-group h3 {
+  margin: 0 0 8px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.side-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.side-list a { border-bottom: 0; color: var(--ink); padding: 1px 0; }
+.side-list a:hover, .side-list a.active { color: var(--green); }
+.side-list a.active { font-weight: 650; }
+.side-list li.toc-h3 { padding-left: 10px; }
+.side-list.toc a { color: var(--muted); font-size: 12px; }
+.side-list.toc a:hover { color: var(--green); }
+.doc-body > h1:first-child { display: none; }
+.doc-body h2 {
+  margin: 28px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+.doc-body h2:first-child { margin-top: 0; }
+.doc-body h3 { margin: 18px 0 6px; font-size: 15px; font-weight: 650; }
+.doc-body h4 { margin: 14px 0 4px; font-size: 13.5px; font-weight: 650; }
+.doc-body p { margin: 9px 0; }
+.doc-body ul, .doc-body ol { margin: 9px 0; padding-left: 20px; }
+.doc-body li { margin: 4px 0; }
+.doc-body hr { border: 0; border-top: 1px solid var(--line); margin: 22px 0; }
+.doc-body code {
+  background: #eaf0ed;
+  padding: 1px 4px;
+  font-size: 12.5px;
+}
+.code-wrap { position: relative; margin: 10px 0; }
+.doc-body pre {
+  background: #1d2624;
+  color: #e7f0ed;
+  padding: 12px 15px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+.doc-body pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.copy-btn {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  border: 1px solid #3c4d49;
+  background: #283532;
+  color: #cfe0db;
+  font: 11px "Consolas", monospace;
+  padding: 2px 7px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.copy-btn:hover { background: var(--green); color: #fff; border-color: var(--green); }
+.table-scroll { overflow-x: auto; margin: 12px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 11.5px;
+  color: var(--muted);
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--line);
+}
+td {
+  padding: 8px;
+  border-bottom: 1px solid #e7ece9;
+  vertical-align: top;
+}
+.callout {
+  background: #fff;
+  border-left: 3px solid var(--green);
+  padding: 9px 12px;
+  margin: 12px 0;
+  font-size: 12.5px;
+}
+.callout-warning, .callout-caution { background: var(--amber-soft); border-left-color: #caa538; }
+.callout-title { font-weight: 650; margin-bottom: 2px; }
+.callout p { margin: 4px 0; }
+.flow-diagram {
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 12px 0 14px;
+}
+.flow-diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+footer.site-footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11.5px;
+  padding: 16px 24px;
+  text-align: center;
+  background: #fff;
+}
+@media (max-width: 880px) {
+  .doc-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .sidebar { position: static; border-left: 0; border-top: 1px solid var(--line); padding: 16px 0 0; }
+}
+</style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div>
+        <div class="breadcrumbs"><a href="../index.html">NuMaker Guides</a> / <span>NuMaker-IIoT-NUC980G2</span></div>
+        <h1 class="header-title">NuMaker-IoT-NUC980G2 OpenBMC Quickstart &amp; Reference</h1>
+        <p class="header-sub">NUC980DK71YC &middot; ARM926EJ-S 300 MHz &middot; 128 MB DDR2 &middot; NK-980IOTG2</p>
+      </div>
+      <nav class="header-nav" aria-label="Site navigation"><a href="../index.html" class="active">Boards</a><a href="../openbmc.html" class="">Setup Guide</a><a href="../docker/index.html" class="">Docker Setup</a><a href="../meta-numaker/index.html" class="">BSP Layers</a></nav>
+    </div>
+  </header>
+  <main class="container"><div class="doc-layout"><div class="doc-body"><h1 id="numaker-iot-nuc980g2-openbmc-quickstart--reference">NuMaker-IoT-NUC980G2 OpenBMC Quickstart &amp; Reference</h1>
+<p>Operational guide for building, flashing, and verifying OpenBMC on the <strong>Nuvoton NuMaker-IoT-NUC980G2</strong> evaluation board. The board acts as an out-of-band BMC controlling an external host via Redfish, SSH CLI, and GPIO power signals (<code>POWER_OUT</code>, <code>RESET_OUT</code>, <code>PS_PWROK</code>).</p>
+<hr />
+<h2 id="1-hardware-specifications--setup">1. Hardware Specifications &amp; Setup</h2>
+<h3 id="11-specifications">1.1 Specifications</h3>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th style="text-align:left">Item</th>
+<th style="text-align:left">Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>Board</strong></td>
+<td style="text-align:left">NuMaker-IoT-NUC980G2</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>SoC</strong></td>
+<td style="text-align:left">Nuvoton NUC980DK71YC (ARM926EJ-S @ 300 MHz)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>RAM</strong></td>
+<td style="text-align:left">128 MB DDR2 (stacked in MCP)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Flash</strong></td>
+<td style="text-align:left">128 MB SPI NAND (Winbond W25N01GV)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Kernel</strong></td>
+<td style="text-align:left">Linux 6.6.93 (armv5te)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Debug Console</strong></td>
+<td style="text-align:left">UART0 (<code>/dev/ttyS0</code>), 115200 8N1</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Network</strong></td>
+<td style="text-align:left">10/100M Ethernet (RMII)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Default IP / mDNS</strong></td>
+<td style="text-align:left">DHCP or <code>numaker-iot-nuc980g2.local</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Default Credentials</strong></td>
+<td style="text-align:left"><code>root</code> / <code>0penBmc</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="12-connectors">1.2 Connectors</h3>
+<ul>
+<li><strong>Debug Serial Console (UART0)</strong>: Micro-USB to board <strong>VCOM</strong> port (or header <code>PE14</code>/<code>PE15</code>), 115200 8N1.</li>
+<li><strong>NuWriter Programming Port (USB Device)</strong>: Micro-USB to board <strong>USB (Device)</strong> port. <em>(Do not connect NuWriter to VCOM or Host USB ports).</em></li>
+<li><strong>Ethernet (LAN)</strong>: RJ45 cable to local network (DHCP).</li>
+<li><strong>Power</strong>: 5V Micro-USB to dedicated power port.</li>
+<li><strong>Boot Mode DIP Switch</strong>:
+<ul>
+<li><strong>USB Boot (Download Mode)</strong>: Set DIP switch for USB download when flashing with NuWriter.</li>
+<li><strong>SPI NAND Boot (Normal Run Mode)</strong>: Set DIP switch for SPI NAND boot to run OpenBMC.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2 id="2-build-environment--compilation">2. Build Environment &amp; Compilation</h2>
+<div class="callout callout-note"><div class="callout-title">Note</div><p>All build commands below are executed <strong>inside the Docker container</strong>.
+If you have not set up the Docker build environment yet, please refer to <a href="../docker/index.html">Docker Build Environment Guide</a> to build and enter the container first.</p></div>
+<p>Ensure at least <strong>60 GB</strong> of free disk space for toolchain builds and sstate cache.</p>
+<h3 id="21-build-steps">2.1 Build Steps</h3>
+<ol>
+<li>Inside the Docker container, switch to the OpenBMC repository:</li>
+</ol>
+<pre><code class="language-bash">cd ~/openbmc
+</code></pre>
+<ol start="2">
+<li>Initialize the build directory:</li>
+</ol>
+<pre><code class="language-bash">MACHINE=numaker-iot-nuc980g2 source setup numaker-iot-nuc980g2 build-nuc980
+</code></pre>
+<ol start="3">
+<li>Start compilation:</li>
+</ol>
+<pre><code class="language-bash">bitbake nuwriter-pack
+</code></pre>
+<div class="callout callout-note"><div class="callout-title">Note</div><p>For subsequent sessions in a new shell:</p>
+<pre><code class="language-bash">cd ~/openbmc
+</code></pre>
+<pre><code class="language-bash">source oe-init-build-env build-nuc980
+</code></pre>
+<pre><code class="language-bash">bitbake nuwriter-pack
+</code></pre></div>
+<h3 id="22-build-outputs">2.2 Build Outputs</h3>
+<p>Deploy directory: <code>build-nuc980/tmp/deploy/images/numaker-iot-nuc980g2/</code></p>
+<pre><code class="language-text">├── nuwriter-pack-numaker-iot-nuc980g2.bin   (SPI NAND pack image)
+├── install_nuwriter.bat                     (NuWriter environment installer)
+└── nuwriter_program.bat                     (One-click flasher script)
+</code></pre>
+<h3 id="23-prebuilt-artifacts-from-github-actions">2.3 Prebuilt Artifacts from GitHub Actions</h3>
+<p>Precompiled zip packages are available from the CI pipeline:</p>
+<ol>
+<li>Go to: <a href="https://github.com/OpenNuvoton/openbmc/actions/workflows/numaker.yml" target="_blank" rel="noopener">OpenBMC GitHub Actions Workflow</a>.</li>
+<li>Select the latest successful build.</li>
+<li>Download <code>openbmc-numaker-iot-nuc980g2.zip</code> from <strong>Artifacts</strong> and extract it on Windows.</li>
+</ol>
+<hr />
+<h2 id="3-firmware-flashing-nuwriter">3. Firmware Flashing (NuWriter)</h2>
+<p>Requires <a href="https://github.com/OpenNuvoton/NUC980_NuWriter" target="_blank" rel="noopener">NuWriter for NUC980 (Windows)</a>.</p>
+<div class="callout callout-tip"><div class="callout-title">Tip</div><p>If NuWriter reports <code>No device connected</code>:</p>
+<ul>
+<li>Confirm the DIP switch is set to <strong>USB Boot (Download Mode)</strong>.</li>
+<li>Verify the cable is connected to <strong>USB (Device)</strong>, not VCOM.</li>
+<li>Check Windows Device Manager for the Nuvoton USB driver.</li>
+</ul></div>
+<h3 id="31-flashing-steps">3.1 Flashing Steps</h3>
+<ol>
+<li>Set the board DIP switch to <strong>USB Boot</strong> mode.</li>
+<li>Connect the board's USB Device port to the Windows PC and power on.</li>
+<li>In NuWriter:
+<ul>
+<li>Verify device is recognized as <code>NUC980</code>.</li>
+<li>Select <strong>Target</strong>: <code>SPI NAND</code>.</li>
+<li>In <strong>Erase</strong> tab → select <strong>Erase All</strong> → click <strong>Erase</strong>.</li>
+<li>In <strong>Burn</strong> tab → set <strong>Type</strong>: <code>Pack</code> → select <code>nuwriter-pack.bin</code> → click <strong>Burn</strong>.</li>
+</ul>
+</li>
+<li>Power off → switch DIP switch to <strong>SPI NAND Boot</strong> mode → power on.</li>
+</ol>
+<hr />
+<h2 id="4-boot-verification--sanity-checks">4. Boot Verification &amp; Sanity Checks</h2>
+<h3 id="41-expected-serial-boot-log-uart0-115200-8n1">4.1 Expected Serial Boot Log (UART0, 115200 8N1)</h3>
+<pre><code class="language-text">U-Boot SPL 2020.07 (Oct 12 2026 - 15:00:00 +0800)
+Trying to boot from SPI NAND
+
+U-Boot 2020.07 (Oct 12 2026 - 15:00:00 +0800)
+CPU: NUC980
+DRAM:  128 MiB
+NAND:  128 MiB
+Loading Kernel from 0x00200000 ...
+Booting Kernel ...
+Starting kernel ...
+
+[    0.000000] Booting Linux on physical CPU 0x0
+[    0.000000] Linux version 6.6.93 (oe-user@oe-host) ...
+...
+[  OK  ] Started Phosphor Web Server (bmcweb).
+[  OK  ] Started Dropbear SSH daemon.
+
+OpenBMC Release 2.14.0-dev
+numaker-iot-nuc980g2 login:
+</code></pre>
+<h3 id="42-network--access">4.2 Network &amp; Access</h3>
+<ul>
+<li>
+<p><strong>mDNS Hostname Resolution</strong>:</p>
+<pre><code class="language-bash">ping -c 3 numaker-iot-nuc980g2.local
+</code></pre>
+<p><em>(If mDNS is blocked on your router, log into UART0 and check <code>ip addr show eth0</code>).</em></p>
+</li>
+<li>
+<p><strong>SSH Access</strong>:</p>
+<pre><code class="language-bash">ssh root@numaker-iot-nuc980g2.local
+# Password: 0penBmc
+</code></pre>
+</li>
+<li>
+<p><strong>Redfish REST API</strong>:</p>
+<div class="callout callout-note"><div class="callout-title">Note</div><p>Due to memory constraints (128 MB RAM), <code>webui-vue</code> is omitted on NUC980. Management is performed directly via Redfish API (<code>https://&lt;BMC-IP&gt;/redfish/v1/</code>) and SSH.</p></div>
+<p>Query service root:</p>
+<pre><code class="language-bash">curl -k -u root:0penBmc https://numaker-iot-nuc980g2.local/redfish/v1/ | jq .
+</code></pre>
+</li>
+</ul>
+<hr />
+<h2 id="5-subsystem-verification">5. Subsystem Verification</h2>
+<h3 id="51-redfish-regression-test-suite">5.1 Redfish Regression Test Suite</h3>
+<p>Requires <code>curl</code> and <code>jq</code> on the test host:</p>
+<pre><code class="language-bash">cd doc/numaker-iot-nuc980g2/
+</code></pre>
+<pre><code class="language-bash">chmod +x test-redfish.sh
+</code></pre>
+<pre><code class="language-bash">./test-redfish.sh
+</code></pre>
+<p><strong>Output:</strong></p>
+<pre><code class="language-text">====================================================
+     NUC980 OpenBMC Functions Integration Test    
+====================================================
+[Test] GET Service Root...
+✓ Passed (HTTP 200)
+[Test] GET Chassis Details (system)...
+✓ Passed (HTTP 200)
+[Test] GET System details...
+✓ Passed (HTTP 200)
+[Test] User Management (AccountService)...
+POST Create Test Account (rftestuser): ✓ Passed (HTTP 201)
+PATCH Change Role to ReadOnly: ✓ Passed (HTTP 204)
+DELETE Delete Test Account (rftestuser): ✓ Passed (HTTP 200)
+[Test] Power Control Tests...
+POST Host Power On: ✓ Passed (HTTP 204)
+GET Verify Host PowerState: ✓ Passed (PowerState=On)
+====================================================
+Test Summary: All Tests Passed!
+Report generated: test-redfish.md
+====================================================
+</code></pre>
+<p>See <a href="test-redfish.html"><code>test-redfish.md</code></a> for full compliance results.</p>
+<h3 id="52-manual-redfish-api-checks">5.2 Manual Redfish API Checks</h3>
+<p>Service Root:</p>
+<pre><code class="language-bash">curl -k -s -u root:0penBmc https://numaker-iot-nuc980g2.local/redfish/v1/ | jq .
+</code></pre>
+<p>Chassis Status:</p>
+<pre><code class="language-bash">curl -k -s -u root:0penBmc https://numaker-iot-nuc980g2.local/redfish/v1/Chassis/system | jq '{Id, Name, Status, PowerState}'
+</code></pre>
+<p>Location Indicator LED (Turn ON):</p>
+<pre><code class="language-bash">curl -k -s -u root:0penBmc -X PATCH \
+  https://numaker-iot-nuc980g2.local/redfish/v1/Chassis/system \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;LocationIndicatorActive&quot;: true}' -i
+</code></pre>
+<h3 id="53-host-power-control-gpio">5.3 Host Power Control (GPIO)</h3>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th style="text-align:left">Signal</th>
+<th style="text-align:left">Direction</th>
+<th style="text-align:left">Pin</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong><code>POWER_OUT</code></strong></td>
+<td style="text-align:left">Output</td>
+<td style="text-align:left"><strong><code>PD12</code></strong></td>
+<td style="text-align:left">Power Button (Active Low, 200ms on, 4s force off)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>RESET_OUT</code></strong></td>
+<td style="text-align:left">Output</td>
+<td style="text-align:left"><strong><code>PD13</code></strong></td>
+<td style="text-align:left">Reset Button (Active Low, 200ms)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>PS_PWROK</code></strong></td>
+<td style="text-align:left">Input</td>
+<td style="text-align:left"><strong><code>PF9</code></strong></td>
+<td style="text-align:left">Host PSU Power Good status (Active High 3.3V)</td>
+</tr>
+</tbody>
+</table></div>
+<div class="callout callout-note"><div class="callout-title">Note</div><p><code>x86-power-control</code> verifies host power status on <code>PF9</code>. When testing standalone:</p>
+<ul>
+<li><strong>Power On</strong>: Connect <code>PF9</code> to <strong>3.3V</strong> before or immediately after issuing the Power On command.</li>
+<li><strong>Power Off / Force Off</strong>: Disconnect <code>PF9</code> (or pull to <strong>GND</strong>) after issuing the Power Off command.</li>
+</ul></div>
+<p>Power On:</p>
+<pre><code class="language-bash">curl -k -s -u root:0penBmc -X POST \
+  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;ResetType&quot;: &quot;On&quot;}' -i
+</code></pre>
+<p>Verify PowerState:</p>
+<pre><code class="language-bash">curl -k -s -u root:0penBmc https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system | jq .PowerState
+</code></pre>
+<p>Force Off:</p>
+<pre><code class="language-bash">curl -k -s -u root:0penBmc -X POST \
+  https://numaker-iot-nuc980g2.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;ResetType&quot;: &quot;ForceOff&quot;}' -i
+</code></pre>
+<p>See <a href="test-power-control.html"><code>test-power-control.md</code></a> for signal timings and wiring diagrams.</p>
+<hr />
+<h2 id="6-document-index">6. Document Index</h2>
+<ul>
+<li><a href="test-redfish.html"><code>test-redfish.md</code></a>: Full Redfish integration test results and schema compliance matrix.</li>
+<li><a href="https://github.com/OpenNuvoton/openbmc/blob/numaker/meta-numaker/doc/numaker-iot-nuc980g2/test-redfish.sh" target="_blank" rel="noopener"><code>test-redfish.sh</code></a>: Automated curl test script for Redfish regression testing.</li>
+<li><a href="test-power-control.html"><code>test-power-control.md</code></a>: Wiring diagram, signal timings, and manual GPIO verification guide.</li>
+</ul>
+</div><aside class="sidebar"><div class="side-group"><h3>NUC980G2</h3><ul class="side-list"><li><a class="active" href="quickstart.html">Quickstart Guide</a></li><li><a class="" href="index.html">Power &amp; Boot Settings</a></li><li><a class="" href="bom.html">Interactive BOM</a></li><li><a class="" href="test-redfish.html">Redfish API</a></li><li><a class="" href="test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#1-hardware-specifications--setup">1. Hardware Specifications &amp; Setup</a></li><li class="toc-h3"><a href="#11-specifications">1.1 Specifications</a></li><li class="toc-h3"><a href="#12-connectors">1.2 Connectors</a></li><li class="toc-h2"><a href="#2-build-environment--compilation">2. Build Environment &amp; Compilation</a></li><li class="toc-h3"><a href="#21-build-steps">2.1 Build Steps</a></li><li class="toc-h3"><a href="#22-build-outputs">2.2 Build Outputs</a></li><li class="toc-h3"><a href="#23-prebuilt-artifacts-from-github-actions">2.3 Prebuilt Artifacts from GitHub Actions</a></li><li class="toc-h2"><a href="#3-firmware-flashing-nuwriter">3. Firmware Flashing (NuWriter)</a></li><li class="toc-h3"><a href="#31-flashing-steps">3.1 Flashing Steps</a></li><li class="toc-h2"><a href="#4-boot-verification--sanity-checks">4. Boot Verification &amp; Sanity Checks</a></li><li class="toc-h3"><a href="#41-expected-serial-boot-log-uart0-115200-8n1">4.1 Expected Serial Boot Log (UART0, 115200 8N1)</a></li><li class="toc-h3"><a href="#42-network--access">4.2 Network &amp; Access</a></li><li class="toc-h2"><a href="#5-subsystem-verification">5. Subsystem Verification</a></li><li class="toc-h3"><a href="#51-redfish-regression-test-suite">5.1 Redfish Regression Test Suite</a></li><li class="toc-h3"><a href="#52-manual-redfish-api-checks">5.2 Manual Redfish API Checks</a></li><li class="toc-h3"><a href="#53-host-power-control-gpio">5.3 Host Power Control (GPIO)</a></li><li class="toc-h2"><a href="#6-document-index">6. Document Index</a></li></ul></div></aside></div></main>
+  <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
+  <script>
+document.querySelectorAll('pre').forEach(function (pre) {
+  var wrap = document.createElement('div');
+  wrap.className = 'code-wrap';
+  pre.parentNode.insertBefore(wrap, pre);
+  wrap.appendChild(pre);
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.addEventListener('click', function () {
+    navigator.clipboard.writeText(pre.innerText).then(function () {
+      btn.textContent = 'Copied';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1200);
+    });
+  });
+  wrap.appendChild(btn);
+});
+</script>
+</body>
+</html>

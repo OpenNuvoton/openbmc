@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NuMaker-IoT-MA35D05KI1 Redfish Firmware Update (OTA) Guide - NuMaker OpenBMC</title>
+  <style>
+:root {
+  color-scheme: light;
+  --ink: #243430;
+  --muted: #64736d;
+  --line: #dce5df;
+  --green: #08745f;
+  --green-soft: #e5f3ec;
+  --amber-soft: #fff4ca;
+  --red: #b23d38;
+  --bg: #f7faf8;
+}
+* { box-sizing: border-box; letter-spacing: 0; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font: 14px/1.6 "Bahnschrift", "Segoe UI", sans-serif;
+}
+a { color: var(--green); text-decoration: none; border-bottom: 1px solid currentColor; padding: 1px 0; }
+a:hover { color: var(--red); }
+a:focus-visible, button:focus-visible { outline: 3px solid #359782; outline-offset: 3px; }
+code, pre, .mono { font-family: "Cascadia Code", "Consolas", monospace; }
+.site-header {
+  border-top: 4px solid var(--green);
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+.header-inner {
+  max-width: 1120px;
+  margin: auto;
+  padding: 18px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.header-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.3;
+  font-weight: 650;
+}
+.header-sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.breadcrumbs {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.breadcrumbs a { color: var(--muted); border-bottom-color: transparent; }
+.breadcrumbs a:hover { color: var(--green); border-bottom-color: currentColor; }
+.header-nav {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.header-nav a.active { font-weight: 650; }
+.container {
+  max-width: 1120px;
+  margin: auto;
+  padding: 24px 24px 44px;
+}
+.doc-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 34px;
+  align-items: start;
+}
+.sidebar {
+  position: sticky;
+  top: 18px;
+  border-left: 1px solid var(--line);
+  padding-left: 16px;
+  font-size: 12.5px;
+}
+.side-group { margin-bottom: 20px; }
+.side-group h3 {
+  margin: 0 0 8px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.side-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.side-list a { border-bottom: 0; color: var(--ink); padding: 1px 0; }
+.side-list a:hover, .side-list a.active { color: var(--green); }
+.side-list a.active { font-weight: 650; }
+.side-list li.toc-h3 { padding-left: 10px; }
+.side-list.toc a { color: var(--muted); font-size: 12px; }
+.side-list.toc a:hover { color: var(--green); }
+.doc-body > h1:first-child { display: none; }
+.doc-body h2 {
+  margin: 28px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+.doc-body h2:first-child { margin-top: 0; }
+.doc-body h3 { margin: 18px 0 6px; font-size: 15px; font-weight: 650; }
+.doc-body h4 { margin: 14px 0 4px; font-size: 13.5px; font-weight: 650; }
+.doc-body p { margin: 9px 0; }
+.doc-body ul, .doc-body ol { margin: 9px 0; padding-left: 20px; }
+.doc-body li { margin: 4px 0; }
+.doc-body hr { border: 0; border-top: 1px solid var(--line); margin: 22px 0; }
+.doc-body code {
+  background: #eaf0ed;
+  padding: 1px 4px;
+  font-size: 12.5px;
+}
+.code-wrap { position: relative; margin: 10px 0; }
+.doc-body pre {
+  background: #1d2624;
+  color: #e7f0ed;
+  padding: 12px 15px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+.doc-body pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.copy-btn {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  border: 1px solid #3c4d49;
+  background: #283532;
+  color: #cfe0db;
+  font: 11px "Consolas", monospace;
+  padding: 2px 7px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.copy-btn:hover { background: var(--green); color: #fff; border-color: var(--green); }
+.table-scroll { overflow-x: auto; margin: 12px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 11.5px;
+  color: var(--muted);
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--line);
+}
+td {
+  padding: 8px;
+  border-bottom: 1px solid #e7ece9;
+  vertical-align: top;
+}
+.callout {
+  background: #fff;
+  border-left: 3px solid var(--green);
+  padding: 9px 12px;
+  margin: 12px 0;
+  font-size: 12.5px;
+}
+.callout-warning, .callout-caution { background: var(--amber-soft); border-left-color: #caa538; }
+.callout-title { font-weight: 650; margin-bottom: 2px; }
+.callout p { margin: 4px 0; }
+.flow-diagram {
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 12px 0 14px;
+}
+.flow-diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+footer.site-footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11.5px;
+  padding: 16px 24px;
+  text-align: center;
+  background: #fff;
+}
+@media (max-width: 880px) {
+  .doc-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .sidebar { position: static; border-left: 0; border-top: 1px solid var(--line); padding: 16px 0 0; }
+}
+</style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div>
+        <div class="breadcrumbs"><a href="../../index.html">NuMaker Guides</a> / <a href="../quickstart.html">NuMaker-IoT-MA35D05KI1</a> / <span>NuMaker-IoT-MA35D05KI1 Redfish Firmware Update (OTA) Guide</span></div>
+        <h1 class="header-title">NuMaker-IoT-MA35D05KI1 Redfish Firmware Update (OTA) Guide</h1>
+        
+      </div>
+      <nav class="header-nav" aria-label="Site navigation"><a href="../../index.html" class="active">Boards</a><a href="../../openbmc.html" class="">Setup Guide</a><a href="../../docker/index.html" class="">Docker Setup</a><a href="../../meta-numaker/index.html" class="">BSP Layers</a></nav>
+    </div>
+  </header>
+  <main class="container"><div class="doc-layout"><div class="doc-body"><h1 id="numaker-iot-ma35d05ki1-redfish-firmware-update-ota-guide">NuMaker-IoT-MA35D05KI1 Redfish Firmware Update (OTA) Guide</h1>
+<p>Operational guide for over-the-air (OTA) firmware updates on the <strong>NuMaker-IoT-MA35D05KI1</strong> using the DMTF Redfish <code>UpdateService</code> API, covering dual-bank (A/B) storage layouts, direct-to-disk streaming, anti-rollback checks, watchdog boot fallback, and automated test scripts.</p>
+<div class="callout callout-caution"><div class="callout-title">Caution</div><p></p>
+<h3 id="-hardware-prerequisite--critical-notice">⚠️ HARDWARE PREREQUISITE &amp; CRITICAL NOTICE</h3>
+<p><strong>A 512 MB (4G-bit) or larger SPI-NAND Flash is strictly required to test and run Redfish OTA updates on this board.</strong></p>
+<ul>
+<li><strong>Root Cause of 256 MB Update Failure (Why 256 MB Fails with HTTP 404 at 0%)</strong>:
+<ul>
+<li>The platform utilizes a Dual-Bank A/B redundancy architecture (<code>rofs-a</code> 70 MB + <code>rofs-b</code> 70 MB + <code>kernel-a/b</code> 32 MB + DTB/Env ~1 MB).</li>
+<li>On the stock factory <strong>256 MB (2G-bit)</strong> Flash, after reserving physical erase blocks for UBI wear-leveling and bad block management (~40 PEBs), the persistent writable partition <code>rwfs</code> (mounted at <code>/var/persist</code> and <code>/tmp/images</code>) is limited to <strong>~65 MB</strong> of usable space.</li>
+<li>The Redfish OTA firmware bundle (<code>obmc-phosphor-image-numaker-iot-ma35d05ki1.mtd-ubi-tar</code>) is approximately <strong>62 MB</strong>. When uploaded to disk, it occupies over 95% of the available <code>rwfs</code> partition.</li>
+<li>When <code>phosphor-software-manager</code> extracts the archive (<code>image-rofs</code> 46.6 MB + <code>image-kernel</code> 9.4 MB + <code>image-u-boot</code> 4.2 MB = 60.2 MB), <code>tar</code> immediately exhausts available disk space (<strong><code>ENOSPC: No space left on device</code></strong>). Consequently, the update task terminates prematurely at 0% progress and returns HTTP 404 Not Found.</li>
+</ul>
+</li>
+<li><strong>Required Action &amp; Workarounds</strong>:
+<ol>
+<li><strong>Upgrade Flash Chip (Mandatory for SPI-NAND OTA)</strong>: Replace the on-board SPI-NAND chip with a <strong>512 MB (4G-bit)</strong> component (e.g., Winbond W25N04KV or equivalent). On a 512 MB chip, <code>rwfs</code> automatically resizes to <strong>~315 MB</strong>, providing ample staging capacity for smooth OTA execution.</li>
+<li><strong>USB NuWriter Programming (for 256 MB Flash)</strong>: If the board remains populated with the default 256 MB Flash, <strong>do not attempt in-band Redfish OTA updates</strong>. Instead, flash the entire firmware bundle over USB using NuWriter with <code>nuwriter-pack-spinand-numaker-iot-ma35d05ki1.bin</code>.</li>
+<li><strong>Boot via SD1 / eMMC</strong>: Boards booted from MicroSD or eMMC using the EXT4 dual-bank layout are unaffected by this limitation, as <code>p6</code> (<code>rwfs</code>) provides several gigabytes of storage.</li>
+</ol>
+</li>
+</ul></div>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#1-architecture--update-mechanism">Architecture &amp; Update Mechanism</a>
+<ul>
+<li><a href="#11-spi-nand-pure-ubi-dual-bank-layout">1.1 SPI-NAND: Pure UBI Dual-Bank Layout</a></li>
+<li><a href="#12-sd1--emmc-mbr-ext4-dual-bank-layout">1.2 SD1 / eMMC: MBR EXT4 Dual-Bank Layout</a></li>
+<li><a href="#13-direct-to-disk-streaming-low-memory-oom-prevention">1.3 Direct-to-Disk Streaming (Low-Memory OOM Prevention)</a></li>
+<li><a href="#14-target-verification--anti-rollback">1.4 Target Verification &amp; Anti-Rollback</a></li>
+<li><a href="#15-watchdog-boot-fallback">1.5 Watchdog Boot Fallback</a></li>
+</ul>
+</li>
+<li><a href="#2-prerequisites">Prerequisites</a>
+<ul>
+<li><a href="#21-host-pc-dependencies">2.1 Host PC Dependencies</a></li>
+<li><a href="#22-default-bmc-connection-info">2.2 Default BMC Connection Info</a></li>
+<li><a href="#23-firmware-update-tarball-format">2.3 Firmware Update Tarball Format</a></li>
+</ul>
+</li>
+<li><a href="#3-automated-test-scripts">Automated Test Scripts</a>
+<ul>
+<li><a href="#31-end-to-end-firmware-update-test-redfish-updatesh">3.1 End-to-End Firmware Update (<code>test-redfish-update.sh</code>)</a></li>
+<li><a href="#32-anti-rollback--machine-check-test-rollback-guardsh">3.2 Anti-Rollback &amp; Machine Check (<code>test-rollback-guard.sh</code>)</a></li>
+<li><a href="#33-watchdog-boot-fallback-test-boot-fallbacksh">3.3 Watchdog Boot Fallback (<code>test-boot-fallback.sh</code>)</a></li>
+</ul>
+</li>
+<li><a href="#4-manual-redfish-update-via-curl">Manual Redfish Update via <code>curl</code></a>
+<ul>
+<li><a href="#step-1-query-current-firmware-inventory">Step 1: Query Current Firmware Inventory</a></li>
+<li><a href="#step-2-upload-firmware-package">Step 2: Upload Firmware Package</a></li>
+<li><a href="#step-3-monitor-task-progress">Step 3: Monitor Task Progress</a></li>
+<li><a href="#step-4-verify-reboot--active-bank">Step 4: Verify Reboot &amp; Active Bank</a></li>
+</ul>
+</li>
+<li><a href="#5-diagnostics--troubleshooting">Diagnostics &amp; Troubleshooting</a></li>
+</ol>
+<hr />
+<h2 id="1-architecture--update-mechanism">1. Architecture &amp; Update Mechanism</h2>
+<h3 id="11-spi-nand-pure-ubi-dual-bank-layout">1.1 SPI-NAND: Pure UBI Dual-Bank Layout</h3>
+<p>SPI-NAND uses a two-partition MTD layout, delegating wear-leveling and bad-block management to UBI:</p>
+<pre><code class="language-text">SPI-NAND (256MB / 512MB) UBI Layout
++-------------------------+-----------------------------------------------------------+
+| mtd0: uboot             | mtd1: rootfs (Pure UBI Pool)                              |
+| 0x00000000 - 0x00400000 | 0x00400000 - 0x10000000 (252 MB on 256MB SPI-NAND)        |
+| (4 MB Raw Bootloader)   | 0x00400000 - 0x20000000 (508 MB on 512MB SPI-NAND)        |
+|                         |                                                           |
+|  * Header               |  |-- Vol 0: u-boot-env (256 KB, preloaded 64KB env)       |
+|  * BL2 DTB              |  |-- Vol 1: kernel-a   (16 MB, Bank A Kernel)             |
+|  * BL2 Bin              |  |-- Vol 2: dtb-a      (512 KB, Bank A DTB)               |
+|  * FIP (BL31 + U-Boot)  |  |-- Vol 3: rofs-a     (70 MB, Bank A UBIFS RootFS)       |
+|                         |  |-- Vol 4: kernel-b   (16 MB, Bank B Kernel Standby)     |
+|                         |  |-- Vol 5: dtb-b      (512 KB, Bank B DTB Standby)       |
+|                         |  |-- Vol 6: rofs-b     (70 MB, Bank B UBIFS Standby)      |
+|                         |  `-- Vol 7: rwfs       (10 MB autoresize -&gt; ~65MB / ~315MB)|
++-------------------------+-----------------------------------------------------------+
+</code></pre>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th style="text-align:left">MTD Partition</th>
+<th style="text-align:left">Label</th>
+<th style="text-align:left">Size &amp; Offset</th>
+<th style="text-align:left">Contents &amp; UBI Volumes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong><code>mtd0</code></strong></td>
+<td style="text-align:left"><code>spinand-uboot</code></td>
+<td style="text-align:left">4 MB<br>(<code>0x0</code>–<code>0x400000</code>)</td>
+<td style="text-align:left"><strong>Raw Bootloader</strong>: Header + BL2 DTB + BL2 Bin + FIP (BL31 + U-Boot)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>mtd1</code></strong></td>
+<td style="text-align:left"><code>spinand-rootfs</code></td>
+<td style="text-align:left">252 MB (256MB SPI-NAND)<br>508 MB (512MB SPI-NAND)</td>
+<td style="text-align:left"><strong>Pure UBI Pool</strong>:<br>• <code>Vol 0 (u-boot-env)</code>: 256 KB, U-Boot environment<br>• <code>Vol 1 (kernel-a)</code>: 16 MB, Bank A Linux kernel<br>• <code>Vol 2 (dtb-a)</code>: 512 KB, Bank A device tree<br>• <code>Vol 3 (rofs-a)</code>: 70 MB, Bank A UBIFS read-only rootfs<br>• <code>Vol 4 (kernel-b)</code>: 16 MB, Bank B standby kernel<br>• <code>Vol 5 (dtb-b)</code>: 512 KB, Bank B standby device tree<br>• <code>Vol 6 (rofs-b)</code>: 70 MB, Bank B standby UBIFS rootfs<br>• <code>Vol 7 (rwfs)</code>: 10 MB (autoresizes to fill remaining flash, mounted at <code>/var/persist</code>)</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>Dual-Bank Update Flow</strong>:
+<ul>
+<li>The updater inspects <code>/proc/cmdline</code> and <code>/proc/mounts</code> to identify the active bank.</li>
+<li>When running on Bank A, <code>ubiupdatevol</code> writes the incoming image to Bank B (<code>kernel-b</code>, <code>dtb-b</code>, <code>rofs-b</code>), and vice versa when running on Bank B.</li>
+<li>Once all volumes are written, <code>fw_setenv</code> updates the U-Boot boot pointers (<code>bootubivol</code>, <code>kernelname</code>, <code>dtbname</code>).</li>
+</ul>
+</li>
+<li><strong>Bootloader Write Guard</strong>:
+<ul>
+<li>Before erasing and writing <code>image-u-boot</code> (4 MB) to <code>mtd0</code>, the updater compares its SHA-256 digest against the existing <code>mtd0</code> contents and skips flashing if identical, reducing flash wear and power-loss exposure.</li>
+</ul>
+</li>
+</ul>
+<div class="callout callout-warning"><div class="callout-title">Warning</div><p><strong>SPI-NAND Capacity vs. Redfish OTA Staging</strong>:
+On a 256 MB SPI-NAND flash, <code>rwfs</code> has only ~65 MB of usable space, which cannot accommodate both the 62 MB uploaded tarball and the 60+ MB extracted partition images simultaneously. Attempting an OTA update on a 256 MB flash inevitably causes an <code>ENOSPC</code> out-of-disk-space error. <strong>The flash chip must be upgraded to 512 MB to support Redfish OTA functionality.</strong></p></div>
+<hr />
+<h3 id="12-sd1--emmc-mbr-ext4-dual-bank-layout">1.2 SD1 / eMMC: MBR EXT4 Dual-Bank Layout</h3>
+<p>SD cards and eMMC manage wear-leveling internally via their hardware FTL and use standard <strong>EXT4</strong> partitions.</p>
+<div class="callout callout-note"><div class="callout-title">Note</div><p><strong>Why MBR (<code>msdos</code>) Instead of GPT?</strong>
+The MA35 internal boot ROM (IBR) reads the boot header from <strong>Sector 2 (<code>0x400</code>)</strong> on SD/eMMC devices. A GPT partition table places its primary header and partition entries across LBA 1–33 (<code>0x200</code>–<code>0x43FF</code>), colliding with Sector 2. SD1 and eMMC therefore use a standard <strong>MBR (<code>msdos</code>)</strong> partition table.</p></div>
+<pre><code class="language-text">SD1 (MicroSD) / eMMC MBR Dual-Bank Layout
++------------------------+---------+---------+----------+----------+---------------------------------+
+| Sector 0 ~ 8191        | Part 1  | Part 2  | Part 3   | Part 4   | Logical Partitions              |
+| 0x00000000-0x00400000  | boot-a  | boot-b  | rofs-a   | Extended | Part 5       | Part 6           |
+| 4MB Raw Bootloader/UBL | (32 MB) | (32 MB) | (256 MB) | Container| rofs-b       | rwfs             |
+|  * MBR (Sector 0)      | Bank A  | Bank B  | Bank A   | (1 sec)  | (256 MB)     | (256 MB ~ 15GB+) |
+|  * Header (Sector 2)   | Kernel  | Kernel  | RootFS   |          | Bank B       | /images (staging)|
+|  * BL2 DTB (0x20000)   | (EXT4)  | (EXT4)  | (EXT4)   |          | RootFS       | /var/persist     |
+|  * BL2 Bin (0x30000)   |         |         |          |          | (EXT4)       | (EXT4)           |
+|  * FIP (0xC0000)       |         |         |          |          |              |                  |
+|  * U-Boot Env (0x50000)|         |         |          |          |              |                  |
++------------------------+---------+---------+----------+----------+---------------------------------+
+</code></pre>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th style="text-align:left">Device Node (SD1 example)</th>
+<th style="text-align:left">Label</th>
+<th style="text-align:left">Default Size</th>
+<th style="text-align:left">Filesystem</th>
+<th style="text-align:left">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong><code>/dev/mmcblk1</code> (first 4 MB)</strong></td>
+<td style="text-align:left">(Raw Sectors)</td>
+<td style="text-align:left">4 MB</td>
+<td style="text-align:left">Raw Binary</td>
+<td style="text-align:left"><strong>Bootloader</strong>: MBR, IBR Header (<code>0x400</code>), BL2 DTB, BL2 Bin, FIP, and U-Boot Env (<code>0x50000</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>/dev/mmcblk1p1</code></strong></td>
+<td style="text-align:left"><code>boot-a</code></td>
+<td style="text-align:left">32 MB</td>
+<td style="text-align:left">EXT4</td>
+<td style="text-align:left"><strong>Bank A Boot</strong>: Linux kernel (<code>Image</code>) + DTB (<code>Image.dtb</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>/dev/mmcblk1p2</code></strong></td>
+<td style="text-align:left"><code>boot-b</code></td>
+<td style="text-align:left">32 MB</td>
+<td style="text-align:left">EXT4</td>
+<td style="text-align:left"><strong>Bank B Boot</strong>: Standby kernel + DTB</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>/dev/mmcblk1p3</code></strong></td>
+<td style="text-align:left"><code>rofs-a</code></td>
+<td style="text-align:left">256 MB</td>
+<td style="text-align:left">EXT4</td>
+<td style="text-align:left"><strong>Bank A RootFS</strong>: Read-only rootfs (<code>/</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>/dev/mmcblk1p4</code></strong></td>
+<td style="text-align:left">(Extended)</td>
+<td style="text-align:left">1 sector</td>
+<td style="text-align:left">Extended</td>
+<td style="text-align:left"><strong>MBR Extended Partition</strong>: Container for logical partitions <code>p5</code> and <code>p6</code></td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>/dev/mmcblk1p5</code></strong></td>
+<td style="text-align:left"><code>rofs-b</code></td>
+<td style="text-align:left">256 MB</td>
+<td style="text-align:left">EXT4</td>
+<td style="text-align:left"><strong>Bank B RootFS</strong>: Standby read-only rootfs</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>/dev/mmcblk1p6</code></strong></td>
+<td style="text-align:left"><code>rwfs</code></td>
+<td style="text-align:left">256 MB+ (resizable)</td>
+<td style="text-align:left">EXT4</td>
+<td style="text-align:left"><strong>Persistent Overlay &amp; OTA Staging</strong>: Mounted at <code>/var/persist</code> and <code>/images</code></td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>Dual-Bank Update Flow</strong>:
+<ul>
+<li>Upload <code>obmc-phosphor-image-numaker-iot-ma35d05ki1.mmc-ext4-tar</code>.</li>
+<li><strong>Active Bank A</strong> (<code>bootside=a</code>, <code>root=/dev/mmcblk1p3</code>): Kernel is written to <code>p2</code> (<code>boot-b</code>) and RootFS to <code>p5</code> (<code>rofs-b</code>).</li>
+<li><strong>Active Bank B</strong> (<code>bootside=b</code>, <code>root=/dev/mmcblk1p5</code>): Kernel is written to <code>p1</code> (<code>boot-a</code>) and RootFS to <code>p3</code> (<code>rofs-a</code>).</li>
+<li><strong>Post-Flash Sync</strong>: After writing the standby rootfs, the updater copies <code>bind-images.sh</code>, <code>obmc-flash-bmc</code>, <code>obmc-boot-verify.service</code>, and <code>/etc/fw_env.config</code> into the target partition.</li>
+<li><strong>Boot Pointer Switch</strong>: Updates U-Boot environment variables (<code>bootside=b</code> or <code>a</code>, <code>bootcount=0</code>, <code>upgrade_available=1</code>).</li>
+</ul>
+</li>
+</ul>
+<h4 id="online-partition-resize-on-sd-cards">Online Partition Resize on SD Cards</h4>
+<p>The initial WIC image allocates 256 MB to partition 6 (<code>rwfs</code>). On first boot, <code>/usr/bin/bind-images.sh</code> automatically runs this online partition resize logic and marks <code>/var/persist/.sd_resized</code> to expand <code>rwfs</code> to 100% of the SD card capacity.</p>
+<p>If you ever need to manually perform or verify the expansion:
+Because <code>p6</code> is mounted online (<code>/images</code> and <code>/var/persist</code>), <code>parted -s</code> (<code>--script</code>) aborts on the busy-partition warning; pass <code>echo yes | parted ---pretend-input-tty</code> (three leading hyphens) to confirm online expansion:</p>
+<pre><code class="language-bash">echo yes | parted ---pretend-input-tty /dev/mmcblk1 resizepart 4 100%
+</code></pre>
+<pre><code class="language-bash">echo yes | parted ---pretend-input-tty /dev/mmcblk1 resizepart 6 100%
+</code></pre>
+<pre><code class="language-bash">resize2fs /dev/mmcblk1p6
+</code></pre>
+<pre><code class="language-bash">df -h /var/persist
+</code></pre>
+<hr />
+<h3 id="13-direct-to-disk-streaming-low-memory-oom-prevention">1.3 Direct-to-Disk Streaming (Low-Memory OOM Prevention)</h3>
+<ul>
+<li>Available system RAM on MA35 boards is ~125–500 MB, whereas full OTA tarballs range from 55 MB to 170 MB.</li>
+<li>Upstream <code>bmcweb</code> buffers entire HTTP request payloads in heap memory, which triggers the Linux OOM killer on large uploads.</li>
+<li>The <code>bmcweb</code> direct-to-disk streaming patch:
+<ol>
+<li>Streams HTTP payloads exceeding 10 MB directly to <code>/tmp/images</code> on disk.</li>
+<li>Keeps <code>bmcweb</code> RSS memory overhead under 5 MB during upload.</li>
+<li>Calls <code>malloc_trim(0)</code> immediately after transfer completion to return heap pages to the kernel.</li>
+</ol>
+</li>
+</ul>
+<hr />
+<h3 id="14-target-verification--anti-rollback">1.4 Target Verification &amp; Anti-Rollback</h3>
+<p>Before extracting or writing flash partitions, <code>/usr/bin/ma35-verify-version.sh</code> validates the incoming <code>MANIFEST</code>:</p>
+<ol>
+<li><strong>Machine Check (<code>MachineName</code>)</strong>: Verifies <code>MachineName=numaker-iot-ma35d05ki1</code>. Mismatched packages are rejected (<code>HTTP 400</code> / <code>TaskAborted</code>).</li>
+<li><strong>Anti-Rollback (<code>SecurityVersion</code>)</strong>: Compares the package <code>SecurityVersion</code> against the running system baseline and aborts if the incoming version is lower.</li>
+</ol>
+<hr />
+<h3 id="15-watchdog-boot-fallback">1.5 Watchdog Boot Fallback</h3>
+<ul>
+<li>After an OTA update switches to the standby bank, U-Boot sets <code>bootcount=0</code>, <code>bootlimit=3</code>, and <code>upgrade_available=1</code>.</li>
+<li>U-Boot increments <code>bootcount</code> on every boot while <code>upgrade_available=1</code>:
+<ul>
+<li><strong>Normal Boot</strong>: Once userspace reaches multi-user state, <code>/lib/systemd/system/obmc-boot-verify.service</code> clears <code>bootcount=0</code> and <code>upgrade_available=0</code> to commit the new bank.</li>
+<li><strong>Boot Failure</strong>: If the new kernel or rootfs panics or hangs and the hardware watchdog resets the board beyond <code>bootlimit</code> (3 attempts), U-Boot's <code>altbootcmd</code> automatically reverts the boot pointers back to the previous working bank.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2 id="2-prerequisites">2. Prerequisites</h2>
+<h3 id="21-host-pc-dependencies">2.1 Host PC Dependencies</h3>
+<p>Install the required CLI utilities on your Linux workstation:</p>
+<pre><code class="language-bash">sudo apt-get update
+</code></pre>
+<pre><code class="language-bash">sudo apt-get install -y curl sshpass jq tar
+</code></pre>
+<h3 id="22-default-bmc-connection-info">2.2 Default BMC Connection Info</h3>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th style="text-align:left">Parameter</th>
+<th style="text-align:left">Default Value</th>
+<th style="text-align:left">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>BMC Hostname</strong></td>
+<td style="text-align:left"><code>numaker-iot-ma35d05ki1.local</code></td>
+<td style="text-align:left">Resolved via mDNS (<code>avahi-daemon</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Redfish Username</strong></td>
+<td style="text-align:left"><code>root</code></td>
+<td style="text-align:left"><code>Administrator</code> role</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Redfish Password</strong></td>
+<td style="text-align:left"><code>0penBmc</code></td>
+<td style="text-align:left">Default password (zero <code>0</code>)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Redfish Port</strong></td>
+<td style="text-align:left"><code>443</code></td>
+<td style="text-align:left">HTTPS with self-signed certificate (use <code>curl -k</code>)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Verify connectivity from the host PC:</p>
+<pre><code class="language-bash">ping -c 2 numaker-iot-ma35d05ki1.local
+</code></pre>
+<h3 id="23-firmware-update-tarball-format">2.3 Firmware Update Tarball Format</h3>
+<h4 id="1-spi-nand-package-mtd-ubi-tar">1. SPI-NAND Package (<code>*.mtd-ubi-tar</code>)</h4>
+<pre><code class="language-text">obmc-phosphor-image-numaker-iot-ma35d05ki1.mtd-ubi-tar
+├── MANIFEST            # Metadata (version, MachineName, SecurityVersion)
+├── image-kernel        # Linux kernel Image (written to kernel-a / kernel-b)
+├── image-dtb           # Device tree blob (written to dtb-a / dtb-b)
+├── image-rofs          # UBIFS rootfs image (written to rofs-a / rofs-b)
+├── image-u-boot        # (Optional) 4 MB SPI-NAND bootloader image
+└── image-rwfs          # Placeholder file required by phosphor-software-manager
+</code></pre>
+<h4 id="2-sd1--emmc-package-mmc-ext4-tar">2. SD1 / eMMC Package (<code>*.mmc-ext4-tar</code>)</h4>
+<pre><code class="language-text">obmc-phosphor-image-numaker-iot-ma35d05ki1.mmc-ext4-tar
+├── MANIFEST            # Metadata (version, MachineName, SecurityVersion)
+├── image-kernel        # Linux kernel Image (written to boot-a / boot-b)
+├── image-rofs          # EXT4 rootfs image (written to rofs-a / rofs-b)
+├── image-u-boot        # 4 MB bootloader image (Header + BL2 + FIP)
+└── image-rwfs          # Placeholder file required by phosphor-software-manager
+</code></pre>
+<p>Example <code>MANIFEST</code>:</p>
+<pre><code class="language-ini">purpose=xyz.openbmc_project.Software.Version.VersionPurpose.BMC
+version=2.15.0-ma35d05ki1
+MachineName=numaker-iot-ma35d05ki1
+SecurityVersion=4
+ExtendedVersion=openbmc-build-20261021
+</code></pre>
+<hr />
+<h2 id="3-automated-test-scripts">3. Automated Test Scripts</h2>
+<p>All test scripts are located in <code>meta-numaker/doc/numaker-iot-ma35d05ki1/test-redfish-update/</code>.</p>
+<div class="callout callout-note"><div class="callout-title">Note</div><p>Run these scripts from your <strong>Host Linux PC</strong> over the network—do not run them inside the BMC shell.</p></div>
+<h3 id="31-end-to-end-firmware-update-test-redfish-updatesh">3.1 End-to-End Firmware Update (<code>test-redfish-update.sh</code>)</h3>
+<div class="callout callout-caution"><div class="callout-title">Caution</div><p><strong>SPI-NAND Target Hardware Prerequisite</strong>:
+When testing SPI-NAND boot targets, confirm that the on-board flash has been upgraded to a <strong>512 MB (4G-bit)</strong> chip. Running this test on the default 256 MB chip will fail at 0% archive extraction due to <code>rwfs</code> exhaustion (<code>ENOSPC</code>), causing the task to terminate prematurely with HTTP 404. For 256 MB boards, use NuWriter USB flashing instead.</p></div>
+<p>Uploads the firmware tarball, polls the Redfish task monitor until completion, waits for the BMC to reboot, and verifies that the active bank switched.</p>
+<p>Usage:</p>
+<pre><code class="language-bash">./test-redfish-update.sh &lt;BMC_IP&gt; &lt;IMAGE_FILE&gt; [username:password] [Immediate|OnReset]
+</code></pre>
+<p>Example (SPI-NAND):</p>
+<pre><code class="language-bash">bash meta-numaker/doc/numaker-iot-ma35d05ki1/test-redfish-update/test-redfish-update.sh \
+  numaker-iot-ma35d05ki1.local \
+  build-ma35/tmp/deploy/images/numaker-iot-ma35d05ki1/obmc-phosphor-image-numaker-iot-ma35d05ki1.mtd-ubi-tar \
+  root:0penBmc \
+  Immediate
+</code></pre>
+<p>Example (SD1 / eMMC):</p>
+<pre><code class="language-bash">bash meta-numaker/doc/numaker-iot-ma35d05ki1/test-redfish-update/test-redfish-update.sh \
+  numaker-iot-ma35d05ki1.local \
+  build-ma35/tmp/deploy/images/numaker-iot-ma35d05ki1/obmc-phosphor-image-numaker-iot-ma35d05ki1.mmc-ext4-tar \
+  root:0penBmc \
+  Immediate
+</code></pre>
+<p><strong>Execution Flow</strong>:</p>
+<ol>
+<li><strong>[STEP 1] Upload Firmware</strong>: Checks Redfish <code>UpdateService</code> readiness, posts the tarball, and captures the <code>202 Accepted</code> task monitor URI.</li>
+<li><strong>[STEP 2] Monitor Progress</strong>: Polls the task monitor (<code>0%</code> → <code>100%</code>) until flashing completes and the BMC reboots.</li>
+<li><strong>[STEP 3] Wait for Reboot</strong>: Polls the BMC until Redfish comes back online (~30–50 seconds).</li>
+<li><strong>[STEP 4] Verify Inventory</strong>: Queries <code>/redfish/v1/UpdateService/FirmwareInventory</code> to confirm the updated version.</li>
+<li><strong>[STEP 5] Verify Active Bank</strong>: Connects via SSH to verify U-Boot environment variables and <code>/proc/cmdline</code>.</li>
+</ol>
+<hr />
+<h3 id="32-anti-rollback--machine-check-test-rollback-guardsh">3.2 Anti-Rollback &amp; Machine Check (<code>test-rollback-guard.sh</code>)</h3>
+<p>Verifies that packages with a mismatched <code>MachineName</code> or downgraded <code>SecurityVersion</code> are rejected.</p>
+<pre><code class="language-bash">./test-rollback-guard.sh numaker-iot-ma35d05ki1.local root:0penBmc
+</code></pre>
+<p><strong>Test Cases</strong>:</p>
+<ol>
+<li><strong>Inventory Check</strong>: Verifies <code>/redfish/v1/UpdateService/FirmwareInventory</code> responds.</li>
+<li><strong>Machine Mismatch Rejection</strong>: Generates and uploads a synthetic tarball with <code>MachineName=unsupported-machine-target</code> and verifies rejection.</li>
+<li><strong>SecurityVersion Downgrade Rejection</strong>: Generates and uploads a synthetic tarball with <code>SecurityVersion=0</code> and verifies anti-rollback rejection.</li>
+</ol>
+<hr />
+<h3 id="33-watchdog-boot-fallback-test-boot-fallbacksh">3.3 Watchdog Boot Fallback (<code>test-boot-fallback.sh</code>)</h3>
+<p>Simulates repeated boot failures to verify U-Boot's <code>altbootcmd</code> automatic bank fallback.</p>
+<pre><code class="language-bash">./test-boot-fallback.sh numaker-iot-ma35d05ki1.local root:0penBmc
+</code></pre>
+<p><strong>Test Flow</strong>:</p>
+<ol>
+<li>Records the currently active bank (e.g., Bank A).</li>
+<li>Sets U-Boot variables over SSH to simulate an unconfirmed update exceeding the boot limit (<code>fw_setenv bootcount 3 &amp;&amp; fw_setenv bootlimit 3 &amp;&amp; fw_setenv upgrade_available 1</code>).</li>
+<li>Reboots the BMC.</li>
+<li>Verifies that U-Boot falls back to the alternate bank (Bank B) and <code>obmc-boot-verify.service</code> resets <code>bootcount=0</code>.</li>
+</ol>
+<hr />
+<h2 id="4-manual-redfish-update-via-curl">4. Manual Redfish Update via <code>curl</code></h2>
+<p>Run the following commands from your <strong>Host PC</strong>:</p>
+<h3 id="step-1-query-current-firmware-inventory">Step 1: Query Current Firmware Inventory</h3>
+<pre><code class="language-bash">curl -k -s -u root:0penBmc \
+  https://numaker-iot-ma35d05ki1.local/redfish/v1/UpdateService/FirmwareInventory | jq .
+</code></pre>
+<h3 id="step-2-upload-firmware-package">Step 2: Upload Firmware Package</h3>
+<pre><code class="language-bash">curl -k -s -u root:0penBmc --http1.1 \
+  -X POST \
+  -H &quot;Content-Type: application/octet-stream&quot; \
+  -H &quot;Expect:&quot; \
+  -T build-ma35/tmp/deploy/images/numaker-iot-ma35d05ki1/obmc-phosphor-image-numaker-iot-ma35d05ki1.mtd-ubi-tar \
+  -i \
+  https://numaker-iot-ma35d05ki1.local/redfish/v1/UpdateService/update
+</code></pre>
+<p>Expected response:</p>
+<pre><code class="language-http">HTTP/1.1 202 Accepted
+Location: /redfish/v1/TaskService/TaskMonitors/0
+Content-Type: application/json
+</code></pre>
+<h3 id="step-3-monitor-task-progress">Step 3: Monitor Task Progress</h3>
+<pre><code class="language-bash">curl -k -s -u root:0penBmc \
+  https://numaker-iot-ma35d05ki1.local/redfish/v1/TaskService/TaskMonitors/0 | jq .
+</code></pre>
+<p><code>PercentComplete</code> advances from <code>0</code> to <code>100</code> during extraction and flashing, then triggers a reboot when <code>ApplyTime</code> is <code>Immediate</code>.</p>
+<h3 id="step-4-verify-reboot--active-bank">Step 4: Verify Reboot &amp; Active Bank</h3>
+<ol>
+<li>Confirm Redfish Manager state:</li>
+</ol>
+<pre><code class="language-bash">curl -k -s -u root:0penBmc https://numaker-iot-ma35d05ki1.local/redfish/v1/Managers/bmc | jq .Status
+</code></pre>
+<ol start="2">
+<li>Check active boot bank (SPI-NAND):</li>
+</ol>
+<pre><code class="language-bash">ssh root@numaker-iot-ma35d05ki1.local &quot;fw_printenv bootubivol kernelname dtbname upgrade_available bootcount&quot;
+</code></pre>
+<p>Or check active boot bank (SD1 / eMMC):</p>
+<pre><code class="language-bash">ssh root@numaker-iot-ma35d05ki1.local &quot;cat /proc/cmdline &amp;&amp; fw_printenv bootside upgrade_available bootcount&quot;
+</code></pre>
+<hr />
+<h2 id="5-diagnostics--troubleshooting">5. Diagnostics &amp; Troubleshooting</h2>
+<p>Log in to the BMC via serial console or SSH to inspect update status and logs.</p>
+<h3 id="51-inspect-d-bus-software-manager-state">5.1 Inspect D-Bus Software Manager State</h3>
+<p>Check service status:</p>
+<pre><code class="language-bash">systemctl status xyz.openbmc_project.Software.Manager.service
+</code></pre>
+<p>List software objects and activation state:</p>
+<pre><code class="language-bash">busctl tree xyz.openbmc_project.Software.Manager
+</code></pre>
+<pre><code class="language-bash">busctl introspect xyz.openbmc_project.Software.Manager \
+  /xyz/openbmc_project/software/&lt;VERSION_ID&gt; \
+  xyz.openbmc_project.Software.Activation
+</code></pre>
+<h3 id="52-inspect-flash-backend-logs">5.2 Inspect Flash Backend Logs</h3>
+<p>Low-level partition writing and boot-pointer updates are handled by <code>/usr/bin/obmc-flash-bmc</code>.</p>
+<ul>
+<li><strong>Persistent Flash Log (survives reboot)</strong>:<pre><code class="language-bash">cat /var/persist/flash.log
+</code></pre>
+</li>
+<li><strong>Live Journal Stream During Update</strong>:<pre><code class="language-bash">journalctl -f | grep &quot;MA35-FLASH&quot;
+</code></pre>
+</li>
+</ul>
+</div><aside class="sidebar"><div class="side-group"><h3>MA35D05KI1</h3><ul class="side-list"><li><a class="" href="../quickstart.html">Quickstart Guide</a></li><li><a class="" href="../index.html">Power &amp; Boot Settings</a></li><li><a class="" href="../bom.html">Interactive BOM</a></li><li><a class="" href="../test-redfish.html">Redfish API</a></li><li><a class="active" href="index.html">Redfish OTA</a></li><li><a class="" href="../test-sol.html">SOL</a></li><li><a class="" href="../test-can.html">CAN-FD</a></li><li><a class="" href="../test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h3"><a href="#-hardware-prerequisite--critical-notice">⚠️ HARDWARE PREREQUISITE &amp; CRITICAL NOTICE</a></li><li class="toc-h2"><a href="#table-of-contents">Table of Contents</a></li><li class="toc-h2"><a href="#1-architecture--update-mechanism">1. Architecture &amp; Update Mechanism</a></li><li class="toc-h3"><a href="#11-spi-nand-pure-ubi-dual-bank-layout">1.1 SPI-NAND: Pure UBI Dual-Bank Layout</a></li><li class="toc-h3"><a href="#12-sd1--emmc-mbr-ext4-dual-bank-layout">1.2 SD1 / eMMC: MBR EXT4 Dual-Bank Layout</a></li><li class="toc-h3"><a href="#13-direct-to-disk-streaming-low-memory-oom-prevention">1.3 Direct-to-Disk Streaming (Low-Memory OOM Prevention)</a></li><li class="toc-h3"><a href="#14-target-verification--anti-rollback">1.4 Target Verification &amp; Anti-Rollback</a></li><li class="toc-h3"><a href="#15-watchdog-boot-fallback">1.5 Watchdog Boot Fallback</a></li><li class="toc-h2"><a href="#2-prerequisites">2. Prerequisites</a></li><li class="toc-h3"><a href="#21-host-pc-dependencies">2.1 Host PC Dependencies</a></li><li class="toc-h3"><a href="#22-default-bmc-connection-info">2.2 Default BMC Connection Info</a></li><li class="toc-h3"><a href="#23-firmware-update-tarball-format">2.3 Firmware Update Tarball Format</a></li><li class="toc-h2"><a href="#3-automated-test-scripts">3. Automated Test Scripts</a></li><li class="toc-h3"><a href="#31-end-to-end-firmware-update-test-redfish-updatesh">3.1 End-to-End Firmware Update (test-redfish-update.sh)</a></li><li class="toc-h3"><a href="#32-anti-rollback--machine-check-test-rollback-guardsh">3.2 Anti-Rollback &amp; Machine Check (test-rollback-guard.sh)</a></li><li class="toc-h3"><a href="#33-watchdog-boot-fallback-test-boot-fallbacksh">3.3 Watchdog Boot Fallback (test-boot-fallback.sh)</a></li><li class="toc-h2"><a href="#4-manual-redfish-update-via-curl">4. Manual Redfish Update via curl</a></li><li class="toc-h3"><a href="#step-1-query-current-firmware-inventory">Step 1: Query Current Firmware Inventory</a></li><li class="toc-h3"><a href="#step-2-upload-firmware-package">Step 2: Upload Firmware Package</a></li><li class="toc-h3"><a href="#step-3-monitor-task-progress">Step 3: Monitor Task Progress</a></li><li class="toc-h3"><a href="#step-4-verify-reboot--active-bank">Step 4: Verify Reboot &amp; Active Bank</a></li><li class="toc-h2"><a href="#5-diagnostics--troubleshooting">5. Diagnostics &amp; Troubleshooting</a></li><li class="toc-h3"><a href="#51-inspect-d-bus-software-manager-state">5.1 Inspect D-Bus Software Manager State</a></li><li class="toc-h3"><a href="#52-inspect-flash-backend-logs">5.2 Inspect Flash Backend Logs</a></li></ul></div></aside></div></main>
+  <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
+  <script>
+document.querySelectorAll('pre').forEach(function (pre) {
+  var wrap = document.createElement('div');
+  wrap.className = 'code-wrap';
+  pre.parentNode.insertBefore(wrap, pre);
+  wrap.appendChild(pre);
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.addEventListener('click', function () {
+    navigator.clipboard.writeText(pre.innerText).then(function () {
+      btn.textContent = 'Copied';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1200);
+    });
+  });
+  wrap.appendChild(btn);
+});
+</script>
+</body>
+</html>

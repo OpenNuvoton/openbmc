@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NuMaker-IoT-MA35D05KI1 GPIO Power Control Guide - NuMaker OpenBMC</title>
+  <style>
+:root {
+  color-scheme: light;
+  --ink: #243430;
+  --muted: #64736d;
+  --line: #dce5df;
+  --green: #08745f;
+  --green-soft: #e5f3ec;
+  --amber-soft: #fff4ca;
+  --red: #b23d38;
+  --bg: #f7faf8;
+}
+* { box-sizing: border-box; letter-spacing: 0; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font: 14px/1.6 "Bahnschrift", "Segoe UI", sans-serif;
+}
+a { color: var(--green); text-decoration: none; border-bottom: 1px solid currentColor; padding: 1px 0; }
+a:hover { color: var(--red); }
+a:focus-visible, button:focus-visible { outline: 3px solid #359782; outline-offset: 3px; }
+code, pre, .mono { font-family: "Cascadia Code", "Consolas", monospace; }
+.site-header {
+  border-top: 4px solid var(--green);
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+.header-inner {
+  max-width: 1120px;
+  margin: auto;
+  padding: 18px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.header-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.3;
+  font-weight: 650;
+}
+.header-sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.breadcrumbs {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.breadcrumbs a { color: var(--muted); border-bottom-color: transparent; }
+.breadcrumbs a:hover { color: var(--green); border-bottom-color: currentColor; }
+.header-nav {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.header-nav a.active { font-weight: 650; }
+.container {
+  max-width: 1120px;
+  margin: auto;
+  padding: 24px 24px 44px;
+}
+.doc-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 230px;
+  gap: 34px;
+  align-items: start;
+}
+.sidebar {
+  position: sticky;
+  top: 18px;
+  border-left: 1px solid var(--line);
+  padding-left: 16px;
+  font-size: 12.5px;
+}
+.side-group { margin-bottom: 20px; }
+.side-group h3 {
+  margin: 0 0 8px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.side-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.side-list a { border-bottom: 0; color: var(--ink); padding: 1px 0; }
+.side-list a:hover, .side-list a.active { color: var(--green); }
+.side-list a.active { font-weight: 650; }
+.side-list li.toc-h3 { padding-left: 10px; }
+.side-list.toc a { color: var(--muted); font-size: 12px; }
+.side-list.toc a:hover { color: var(--green); }
+.doc-body > h1:first-child { display: none; }
+.doc-body h2 {
+  margin: 28px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+.doc-body h2:first-child { margin-top: 0; }
+.doc-body h3 { margin: 18px 0 6px; font-size: 15px; font-weight: 650; }
+.doc-body h4 { margin: 14px 0 4px; font-size: 13.5px; font-weight: 650; }
+.doc-body p { margin: 9px 0; }
+.doc-body ul, .doc-body ol { margin: 9px 0; padding-left: 20px; }
+.doc-body li { margin: 4px 0; }
+.doc-body hr { border: 0; border-top: 1px solid var(--line); margin: 22px 0; }
+.doc-body code {
+  background: #eaf0ed;
+  padding: 1px 4px;
+  font-size: 12.5px;
+}
+.code-wrap { position: relative; margin: 10px 0; }
+.doc-body pre {
+  background: #1d2624;
+  color: #e7f0ed;
+  padding: 12px 15px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+.doc-body pre code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+.copy-btn {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  border: 1px solid #3c4d49;
+  background: #283532;
+  color: #cfe0db;
+  font: 11px "Consolas", monospace;
+  padding: 2px 7px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.copy-btn:hover { background: var(--green); color: #fff; border-color: var(--green); }
+.table-scroll { overflow-x: auto; margin: 12px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 11.5px;
+  color: var(--muted);
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--line);
+}
+td {
+  padding: 8px;
+  border-bottom: 1px solid #e7ece9;
+  vertical-align: top;
+}
+.callout {
+  background: #fff;
+  border-left: 3px solid var(--green);
+  padding: 9px 12px;
+  margin: 12px 0;
+  font-size: 12.5px;
+}
+.callout-warning, .callout-caution { background: var(--amber-soft); border-left-color: #caa538; }
+.callout-title { font-weight: 650; margin-bottom: 2px; }
+.callout p { margin: 4px 0; }
+.flow-diagram {
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  overflow-x: auto;
+  margin: 12px 0 14px;
+}
+.flow-diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+footer.site-footer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11.5px;
+  padding: 16px 24px;
+  text-align: center;
+  background: #fff;
+}
+@media (max-width: 880px) {
+  .doc-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .sidebar { position: static; border-left: 0; border-top: 1px solid var(--line); padding: 16px 0 0; }
+}
+</style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div>
+        <div class="breadcrumbs"><a href="../index.html">NuMaker Guides</a> / <a href="quickstart.html">NuMaker-IoT-MA35D05KI1</a> / <span>NuMaker-IoT-MA35D05KI1 GPIO Power Control Guide</span></div>
+        <h1 class="header-title">NuMaker-IoT-MA35D05KI1 GPIO Power Control Guide</h1>
+        
+      </div>
+      <nav class="header-nav" aria-label="Site navigation"><a href="../index.html" class="active">Boards</a><a href="../openbmc.html" class="">Setup Guide</a><a href="../docker/index.html" class="">Docker Setup</a><a href="../meta-numaker/index.html" class="">BSP Layers</a></nav>
+    </div>
+  </header>
+  <main class="container"><div class="doc-layout"><div class="doc-body"><h1 id="numaker-iot-ma35d05ki1-gpio-power-control-guide">NuMaker-IoT-MA35D05KI1 GPIO Power Control Guide</h1>
+<h2 id="1-overview">1. Overview</h2>
+<p>The MA35D05KI1 BMC controls host power states via GPIO using OpenBMC's <code>x86-power-control</code> daemon and <code>libgpiod</code>. GPIO lines are addressed by standard line names (<code>POWER_OUT</code>, <code>RESET_OUT</code>, <code>PS_PWROK</code>).</p>
+<hr />
+<h2 id="2-hardware-signal-definitions">2. Hardware Signal Definitions</h2>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th style="text-align:left">Signal Name</th>
+<th style="text-align:left">Direction</th>
+<th style="text-align:left">Pin</th>
+<th style="text-align:left">Function</th>
+<th style="text-align:left">Electrical</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong><code>POWER_OUT</code></strong></td>
+<td style="text-align:left">Output</td>
+<td style="text-align:left"><strong><code>PN1</code></strong></td>
+<td style="text-align:left">Emulates ATX power button (200ms on, 4s force off)</td>
+<td style="text-align:left">Active Low, 3.3V open-drain / push-pull</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>RESET_OUT</code></strong></td>
+<td style="text-align:left">Output</td>
+<td style="text-align:left"><strong><code>PN0</code></strong></td>
+<td style="text-align:left">Emulates ATX reset button (500ms pulse)</td>
+<td style="text-align:left">Active Low, 3.3V open-drain / push-pull</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><code>PS_PWROK</code></strong></td>
+<td style="text-align:left">Input</td>
+<td style="text-align:left"><strong><code>PK12</code></strong></td>
+<td style="text-align:left">Detects Host PSU Power Good status</td>
+<td style="text-align:left">Active High, 3.3V input</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="wiring-diagram">Wiring Diagram</h3>
+<pre><code class="language-text">  MA35D05KI1 (BMC)               Host Motherboard
+  ────────────────               ────────────────
+  PN1 (POWER_OUT)  ───────────► PWR_BTN# (power button header)
+  PN0 (RESET_OUT)  ───────────► RST_BTN# (reset button header)
+  PK12 (PS_PWROK)  ◄─────────── PWROK (ATX PSU / VRM output)
+  GND ───────────────────────── GND (common ground)
+</code></pre>
+<div class="callout callout-note"><div class="callout-title">Note</div><p><code>POWER_OUT</code> and <code>RESET_OUT</code> idle HIGH (3.3V) and pull LOW when triggered. If evaluating standalone without a host motherboard, tie <code>PK12</code> to <code>3.3V</code> to simulate Power Good, or to <code>GND</code> to simulate power off.</p></div>
+<hr />
+<h2 id="3-control-commands">3. Control Commands</h2>
+<h3 id="31-redfish-api">3.1 Redfish API</h3>
+<p>Power On (200ms pulse):</p>
+<pre><code class="language-bash">curl -k -s -u root:0penBmc -X POST \
+  https://numaker-iot-ma35d05ki1.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;ResetType&quot;: &quot;On&quot;}' -i
+</code></pre>
+<p>Force Off (4s pulse):</p>
+<pre><code class="language-bash">curl -k -s -u root:0penBmc -X POST \
+  https://numaker-iot-ma35d05ki1.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;ResetType&quot;: &quot;ForceOff&quot;}' -i
+</code></pre>
+<p>Graceful Shutdown (short press, OS ACPI handler):</p>
+<pre><code class="language-bash">curl -k -s -u root:0penBmc -X POST \
+  https://numaker-iot-ma35d05ki1.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;ResetType&quot;: &quot;GracefulShutdown&quot;}' -i
+</code></pre>
+<p>Force Restart (500ms reset pulse):</p>
+<pre><code class="language-bash">curl -k -s -u root:0penBmc -X POST \
+  https://numaker-iot-ma35d05ki1.local/redfish/v1/Systems/system/Actions/ComputerSystem.Reset \
+  -H &quot;Content-Type: application/json&quot; \
+  -d '{&quot;ResetType&quot;: &quot;ForceRestart&quot;}' -i
+</code></pre>
+<p>Query Host Power State:</p>
+<pre><code class="language-bash">curl -k -s -u root:0penBmc \
+  https://numaker-iot-ma35d05ki1.local/redfish/v1/Systems/system | jq .PowerState
+</code></pre>
+<h3 id="32-d-bus-commands-bmc-ssh">3.2 D-Bus Commands (BMC SSH)</h3>
+<p>Query current host power state:</p>
+<pre><code class="language-bash">busctl get-property xyz.openbmc_project.State.Host \
+  /xyz/openbmc_project/state/host0 \
+  xyz.openbmc_project.State.Host CurrentHostState
+</code></pre>
+<p>Query current chassis power state:</p>
+<pre><code class="language-bash">busctl get-property xyz.openbmc_project.State.Chassis \
+  /xyz/openbmc_project/state/chassis0 \
+  xyz.openbmc_project.State.Chassis CurrentPowerState
+</code></pre>
+<p>Power On transition:</p>
+<pre><code class="language-bash">busctl set-property xyz.openbmc_project.State.Host \
+  /xyz/openbmc_project/state/host0 \
+  xyz.openbmc_project.State.Host RequestedHostTransition \
+  s &quot;xyz.openbmc_project.State.Host.Transition.On&quot;
+</code></pre>
+<p>Power Off transition:</p>
+<pre><code class="language-bash">busctl set-property xyz.openbmc_project.State.Host \
+  /xyz/openbmc_project/state/host0 \
+  xyz.openbmc_project.State.Host RequestedHostTransition \
+  s &quot;xyz.openbmc_project.State.Host.Transition.Off&quot;
+</code></pre>
+<p>Reboot transition:</p>
+<pre><code class="language-bash">busctl set-property xyz.openbmc_project.State.Host \
+  /xyz/openbmc_project/state/host0 \
+  xyz.openbmc_project.State.Host RequestedHostTransition \
+  s &quot;xyz.openbmc_project.State.Host.Transition.Reboot&quot;
+</code></pre>
+<h3 id="33-low-level-direct-gpio-control-gpiod">3.3 Low-Level Direct GPIO Control (<code>gpiod</code>)</h3>
+<p>Locate named lines:</p>
+<pre><code class="language-bash">gpiofind POWER_OUT
+</code></pre>
+<pre><code class="language-bash">gpiofind RESET_OUT
+</code></pre>
+<pre><code class="language-bash">gpiofind PS_PWROK
+</code></pre>
+<p>Read PS_PWROK status (1=Host on, 0=Host off):</p>
+<pre><code class="language-bash">gpioget $(gpiofind PS_PWROK)
+</code></pre>
+<p>Manual 200ms power button pulse:</p>
+<pre><code class="language-bash">gpioset -m time -u 200000 $(gpiofind POWER_OUT)=0
+</code></pre>
+<p>Manual 4s force power off pulse:</p>
+<pre><code class="language-bash">gpioset -m time -u 4000000 $(gpiofind POWER_OUT)=0
+</code></pre>
+<p>Manual 500ms reset pulse:</p>
+<pre><code class="language-bash">gpioset -m time -u 500000 $(gpiofind RESET_OUT)=0
+</code></pre>
+<hr />
+<h2 id="4-oscilloscope-verification">4. Oscilloscope Verification</h2>
+<h3 id="probe-mapping">Probe Mapping</h3>
+<ul>
+<li><strong>CH1</strong>: <code>PN1</code> (<code>POWER_OUT</code>)</li>
+<li><strong>CH2</strong>: <code>PN0</code> (<code>RESET_OUT</code>)</li>
+<li><strong>CH3</strong>: <code>PK12</code> (<code>PS_PWROK</code>)</li>
+<li><strong>GND</strong>: BMC Ground</li>
+<li><strong>Trigger</strong>: Falling edge on CH1 or CH2</li>
+</ul>
+<h3 id="timing-matrix">Timing Matrix</h3>
+<div class="table-scroll"><table>
+<thead>
+<tr>
+<th style="text-align:left">Operation</th>
+<th style="text-align:left">Trigger Source</th>
+<th style="text-align:left">Observation Pin</th>
+<th style="text-align:left">Active Level</th>
+<th style="text-align:left">Pulse Width</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>Power On</strong></td>
+<td style="text-align:left">Redfish <code>On</code> / D-Bus <code>Transition.On</code></td>
+<td style="text-align:left"><strong><code>PN1</code></strong></td>
+<td style="text-align:left">LOW</td>
+<td style="text-align:left">200 ms</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Graceful Shutdown</strong></td>
+<td style="text-align:left">Redfish <code>GracefulShutdown</code> / D-Bus <code>Transition.Off</code></td>
+<td style="text-align:left"><strong><code>PN1</code></strong></td>
+<td style="text-align:left">LOW</td>
+<td style="text-align:left">200 ms (initial)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Force Off</strong></td>
+<td style="text-align:left">Redfish <code>ForceOff</code></td>
+<td style="text-align:left"><strong><code>PN1</code></strong></td>
+<td style="text-align:left">LOW</td>
+<td style="text-align:left">4000 ms</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Force Restart</strong></td>
+<td style="text-align:left">Redfish <code>ForceRestart</code> / D-Bus <code>Transition.Reboot</code></td>
+<td style="text-align:left"><strong><code>PN0</code></strong></td>
+<td style="text-align:left">LOW</td>
+<td style="text-align:left">500 ms</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>Power Detection</strong></td>
+<td style="text-align:left">Query <code>PowerState</code></td>
+<td style="text-align:left"><strong><code>PK12</code></strong></td>
+<td style="text-align:left">DC level</td>
+<td style="text-align:left">HIGH=On, LOW=Off</td>
+</tr>
+</tbody>
+</table></div>
+</div><aside class="sidebar"><div class="side-group"><h3>MA35D05KI1</h3><ul class="side-list"><li><a class="" href="quickstart.html">Quickstart Guide</a></li><li><a class="" href="index.html">Power &amp; Boot Settings</a></li><li><a class="" href="bom.html">Interactive BOM</a></li><li><a class="" href="test-redfish.html">Redfish API</a></li><li><a class="" href="test-redfish-update/index.html">Redfish OTA</a></li><li><a class="" href="test-sol.html">SOL</a></li><li><a class="" href="test-can.html">CAN-FD</a></li><li><a class="active" href="test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#1-overview">1. Overview</a></li><li class="toc-h2"><a href="#2-hardware-signal-definitions">2. Hardware Signal Definitions</a></li><li class="toc-h3"><a href="#wiring-diagram">Wiring Diagram</a></li><li class="toc-h2"><a href="#3-control-commands">3. Control Commands</a></li><li class="toc-h3"><a href="#31-redfish-api">3.1 Redfish API</a></li><li class="toc-h3"><a href="#32-d-bus-commands-bmc-ssh">3.2 D-Bus Commands (BMC SSH)</a></li><li class="toc-h3"><a href="#33-low-level-direct-gpio-control-gpiod">3.3 Low-Level Direct GPIO Control (gpiod)</a></li><li class="toc-h2"><a href="#4-oscilloscope-verification">4. Oscilloscope Verification</a></li><li class="toc-h3"><a href="#probe-mapping">Probe Mapping</a></li><li class="toc-h3"><a href="#timing-matrix">Timing Matrix</a></li></ul></div></aside></div></main>
+  <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
+  <script>
+document.querySelectorAll('pre').forEach(function (pre) {
+  var wrap = document.createElement('div');
+  wrap.className = 'code-wrap';
+  pre.parentNode.insertBefore(wrap, pre);
+  wrap.appendChild(pre);
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'copy-btn';
+  btn.textContent = 'Copy';
+  btn.addEventListener('click', function () {
+    navigator.clipboard.writeText(pre.innerText).then(function () {
+      btn.textContent = 'Copied';
+      setTimeout(function () { btn.textContent = 'Copy'; }, 1200);
+    });
+  });
+  wrap.appendChild(btn);
+});
+</script>
+</body>
+</html>
