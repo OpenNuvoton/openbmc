@@ -15,7 +15,7 @@ if not exist "NUC980_PyNuWriter\nuwriter.py" (
 cd NUC980_PyNuWriter
 
 echo [1/3] Initializing DDR and loading XUSB...
-py -3 nuwriter.py -a @NUWRITER_DDR_IMG@
+py -3 nuwriter.py --chip nuc980 -a @NUWRITER_DDR_IMG@
 IF %ERRORLEVEL% NEQ 0 (
     echo ERROR: DDR initialization failed
     cd ..
@@ -24,7 +24,7 @@ IF %ERRORLEVEL% NEQ 0 (
 )
 
 echo [2/3] Erasing entire SPI-NAND flash...
-py -3 nuwriter.py -e spinand all
+py -3 nuwriter.py --chip nuc980 -e spinand all
 IF %ERRORLEVEL% NEQ 0 (
     echo ERROR: SPI-NAND erase failed
     cd ..
@@ -39,7 +39,7 @@ if not exist "..\nuwriter-pack-spinand-@MACHINE@.bin" (
     pause
     exit /b 1
 )
-py -3 nuwriter.py --ddr @NUWRITER_DDR_IMG@ -w spinand "..\nuwriter-pack-spinand-@MACHINE@.bin"
+py -3 nuwriter.py --chip nuc980 --ddr @NUWRITER_DDR_IMG@ -w spinand "..\nuwriter-pack-spinand-@MACHINE@.bin"
 IF %ERRORLEVEL% NEQ 0 (
     echo ERROR: SPI-NAND programming failed
     cd ..

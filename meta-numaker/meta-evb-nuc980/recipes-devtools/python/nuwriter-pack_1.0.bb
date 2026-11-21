@@ -49,7 +49,7 @@ do_compile() {
         -e "s|@MACHINE@|${MACHINE}|g" \
         ${S}/pack-spinand.json > ${B}/pack-spinand.json
 
-    python3 ${NUWRITER} -p ${B}/pack-spinand.json --output ${B}/nuwriter-pack-spinand-${MACHINE}.bin
+    python3 ${NUWRITER} --chip nuc980 -p ${B}/pack-spinand.json --output ${B}/nuwriter-pack-spinand-${MACHINE}.bin
 
     if [ ! -f ${B}/nuwriter-pack-spinand-${MACHINE}.bin ]; then
         bbfatal "NUC980_PyNuWriter failed to generate nuwriter-pack-spinand-${MACHINE}.bin"
@@ -92,7 +92,7 @@ EOF
             -e "s|@ROOTFS_EXT4@|${ROOTFS_EXT4}|g" \
             ${S}/pack-sd.json > ${B}/pack-sd.json
 
-        python3 ${NUWRITER} -p ${B}/pack-sd.json --output ${B}/nuwriter-pack-sd-${MACHINE}.bin
+        python3 ${NUWRITER} --chip nuc980 -p ${B}/pack-sd.json --output ${B}/nuwriter-pack-sd-${MACHINE}.bin
 
         if [ ! -f ${B}/nuwriter-pack-sd-${MACHINE}.bin ]; then
             bbfatal "NUC980_PyNuWriter failed to generate nuwriter-pack-sd-${MACHINE}.bin"

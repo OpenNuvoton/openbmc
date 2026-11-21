@@ -15,7 +15,7 @@ if not exist "NUC980_PyNuWriter\nuwriter.py" (
 cd NUC980_PyNuWriter
 
 echo [1/2] Initializing DDR and loading XUSB...
-py -3 nuwriter.py -a @NUWRITER_DDR_IMG@
+py -3 nuwriter.py --chip nuc980 -a @NUWRITER_DDR_IMG@
 IF %ERRORLEVEL% NEQ 0 (
     echo ERROR: DDR initialization failed
     cd ..
@@ -30,7 +30,7 @@ if not exist "..\nuwriter-pack-sd-@MACHINE@.bin" (
     pause
     exit /b 1
 )
-py -3 nuwriter.py --ddr @NUWRITER_DDR_IMG@ -w sd "..\nuwriter-pack-sd-@MACHINE@.bin"
+py -3 nuwriter.py --chip nuc980 --ddr @NUWRITER_DDR_IMG@ -w sd "..\nuwriter-pack-sd-@MACHINE@.bin"
 IF %ERRORLEVEL% NEQ 0 (
     echo ERROR: SD1/eMMC programming failed
     cd ..
