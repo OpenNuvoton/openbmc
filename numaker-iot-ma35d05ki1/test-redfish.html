@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MA35D05K OpenBMC Functions Integration Test Report - NuMaker OpenBMC</title>
+  <title>MA35D05KI1 OpenBMC Functions Integration Test Report - NuMaker OpenBMC</title>
   <style>
 :root {
   color-scheme: light;
@@ -205,14 +205,14 @@ footer.site-footer {
   <header class="site-header">
     <div class="header-inner">
       <div>
-        <div class="breadcrumbs"><a href="../index.html">NuMaker Guides</a> / <a href="quickstart.html">NuMaker-IoT-MA35D05KI1</a> / <span>MA35D05K OpenBMC Functions Integration Test Report</span></div>
-        <h1 class="header-title">MA35D05K OpenBMC Functions Integration Test Report</h1>
+        <div class="breadcrumbs"><a href="../index.html">NuMaker Guides</a> / <a href="quickstart.html">NuMaker-IoT-MA35D05KI1</a> / <span>MA35D05KI1 OpenBMC Functions Integration Test Report</span></div>
+        <h1 class="header-title">MA35D05KI1 OpenBMC Functions Integration Test Report</h1>
         
       </div>
       <nav class="header-nav" aria-label="Site navigation"><a href="../index.html" class="active">Boards</a><a href="../openbmc.html" class="">Setup Guide</a><a href="../docker/index.html" class="">Docker Setup</a><a href="../meta-numaker/index.html" class="">BSP Layers</a></nav>
     </div>
   </header>
-  <main class="container"><div class="doc-layout"><div class="doc-body"><h1 id="ma35d05k-openbmc-functions-integration-test-report">MA35D05K OpenBMC Functions Integration Test Report</h1>
+  <main class="container"><div class="doc-layout"><div class="doc-body"><h1 id="ma35d05k-openbmc-functions-integration-test-report">MA35D05KI1 OpenBMC Functions Integration Test Report</h1>
 <p><strong>Platform</strong>: NuMaker-IoT-MA35D05KI1<br />
 <strong>BMC Hostname</strong>: numaker-iot-ma35d05ki1.local</p>
 <hr />
@@ -274,7 +274,8 @@ footer.site-footer {
 </div><aside class="sidebar"><div class="side-group"><h3>MA35D05KI1</h3><ul class="side-list"><li><a class="" href="quickstart.html">Quickstart Guide</a></li><li><a class="" href="index.html">Power &amp; Boot Settings</a></li><li><a class="" href="bom.html">Interactive BOM</a></li><li><a class="active" href="test-redfish.html">Redfish API</a></li><li><a class="" href="test-redfish-update/index.html">Redfish OTA</a></li><li><a class="" href="test-sol.html">SOL</a></li><li><a class="" href="test-can.html">CAN-FD</a></li><li><a class="" href="test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#test-results">Test Results</a></li><li class="toc-h3"><a href="#user-management-accountservice">User Management (AccountService)</a></li><li class="toc-h3"><a href="#host-power-controls-gpio">Host Power Controls (GPIO)</a></li><li class="toc-h3"><a href="#firmware-update-via-redfish-dual-bank-ota--anti-rollback">Firmware Update via Redfish (Dual-Bank OTA &amp; Anti-Rollback)</a></li></ul></div></aside></div></main>
   <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
   <script>
-document.querySelectorAll('pre').forEach(function (pre) {
+document.querySelectorAll('pre > code.language-bash, pre > code.language-sh').forEach(function (code) {
+  var pre = code.parentNode;
   var wrap = document.createElement('div');
   wrap.className = 'code-wrap';
   pre.parentNode.insertBefore(wrap, pre);

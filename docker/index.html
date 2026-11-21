@@ -187,6 +187,27 @@ td {
   margin: 12px 0 14px;
 }
 .flow-diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+.flow-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.flow-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-weight: 600;
+}
+.flow-nav a:hover { border-color: var(--green); background: var(--green-soft); color: var(--green); }
 footer.site-footer {
   border-top: 1px solid var(--line);
   color: var(--muted);
@@ -215,11 +236,7 @@ footer.site-footer {
   <main class="container"><div class="doc-layout"><div class="doc-body"><h1 id="openbmc-docker-build-environment">OpenBMC Docker Build Environment</h1>
 <p>Building OpenBMC with Yocto requires an isolated Linux environment with specific cross-compilation dependencies and toolchains. Because host Linux distributions update frequently and may introduce package version mismatches, Nuvoton provides a pre-configured Docker container environment based on <strong>Ubuntu 24.04</strong>.</p>
 <p>Docker isolates the build environment from the host operating system while transparently mapping the host user's UID and home shared directory, completely avoiding file permission and ownership conflicts.</p>
-<div class="callout callout-note"><div class="callout-title">Note</div><p><strong>Docker vs. Native Linux Build</strong>:</p>
-<ul>
-<li><strong>Docker (Recommended)</strong>: Clean, reproducible, and pre-packaged with all required Bitbake and NuWriter Python dependencies. Settings inside Docker do not alter the host OS.</li>
-<li><strong>Native Linux</strong>: Requires installing build packages directly on the host using <code>apt-get</code>.</li>
-</ul></div>
+<div class="callout callout-note"><div class="callout-title">Note</div><p><strong>Use the Docker Build Environment</strong>: Always build inside the pre-configured Docker container to avoid host package version mismatches and build incompatibilities. It comes pre-packaged with all required BitBake and NuWriter Python dependencies without modifying your host OS.</p></div>
 <hr />
 <h2 id="1-prerequisites">1. Prerequisites</h2>
 <ul>
@@ -314,7 +331,7 @@ The OpenBMC repository on your host machine is mounted directly into <code>/home
 <div class="callout callout-tip"><div class="callout-title">Tip</div><p><strong>Board-Specific Build Guides</strong>:
 For step-by-step Bitbake commands and configuration instructions for each evaluation board, refer to the respective board documentation:</p>
 <ul>
-<li><a href="../numaker-iot-nuc980g2/quickstart.html">NuMaker-IoT-NUC980G2 Guide</a></li>
+<li><a href="../numaker-iot-nuc980g2/quickstart.html">NuMaker-IIoT-NUC980G2 Guide</a></li>
 <li><a href="../numaker-iot-ma35d03f80/quickstart.html">NuMaker-IoT-MA35D03F80 Guide</a></li>
 <li><a href="../numaker-iot-ma35d05ki1/quickstart.html">NuMaker-IoT-MA35D05KI1 Guide</a></li>
 <li><a href="../numaker-iot-ma35d16fj87c/quickstart.html">NuMaker-IoT-MA35D16FJ87C Guide</a></li>
@@ -346,7 +363,7 @@ For step-by-step Bitbake commands and configuration instructions for each evalua
 <td style="text-align:left">Teardown script (orthogonal to <code>build.sh</code>): cleanly stops and removes the development container and image.</td>
 </tr>
 <tr>
-<td style="text-align:left"><a href="index.html"><code>README.md</code></a></td>
+<td style="text-align:left"><a href="index.html">Docker Environment Guide</a></td>
 <td style="text-align:left">Documentation and operational guide for the Docker build environment.</td>
 </tr>
 </tbody>
@@ -430,10 +447,13 @@ For step-by-step Bitbake commands and configuration instructions for each evalua
 </ul>
 </li>
 </ol>
-<hr><h2 id="next-bitbake">Next Step: Compile Board Firmware Inside Docker</h2><p>After entering <code>~/openbmc</code> via <code>./join.sh</code>, continue with your target board guide to run BitBake and flash on Windows:</p><ul><li><a href="../numaker-iot-ma35d16fj87c/quickstart.html#2-build-environment--compilation">NuMaker-IoT-MA35D16FJ87C</a> &mdash; <code>MACHINE=numaker-iot-ma35d16fj87c</code></li><li><a href="../numaker-iot-ma35d03f80/quickstart.html#2-build-environment--compilation">NuMaker-IoT-MA35D03F80</a> &mdash; <code>MACHINE=numaker-iot-ma35d03f80</code></li><li><a href="../numaker-iot-ma35d05ki1/quickstart.html#2-build-environment--compilation">NuMaker-IoT-MA35D05KI1</a> &mdash; <code>MACHINE=numaker-iot-ma35d05ki1</code></li><li><a href="../numaker-iot-nuc980g2/quickstart.html#2-build-environment--compilation">NuMaker-IIoT-NUC980G2</a> &mdash; <code>MACHINE=numaker-iot-nuc980g2</code></li></ul></div><aside class="sidebar"><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#1-prerequisites">1. Prerequisites</a></li><li class="toc-h3"><a href="#installing-docker-on-ubuntu-2404">Installing Docker on Ubuntu (24.04)</a></li><li class="toc-h2"><a href="#2-setting-up--using-the-container">2. Setting Up &amp; Using the Container</a></li><li class="toc-h3"><a href="#21-build-docker-image-and-create-container">2.1 Build Docker Image and Create Container</a></li><li class="toc-h3"><a href="#22-enter-the-container">2.2 Enter the Container</a></li><li class="toc-h2"><a href="#3-working-inside-the-container">3. Working Inside the Container</a></li><li class="toc-h2"><a href="#4-file-description">4. File Description</a></li><li class="toc-h2"><a href="#5-container-management--lifecycle">5. Container Management &amp; Lifecycle</a></li><li class="toc-h3"><a href="#51-troubleshooting-stuck-containers-zfs-storage-driver">5.1 Troubleshooting Stuck Containers (ZFS Storage Driver)</a></li><li class="toc-h2"><a href="#6-important-notes--gotchas">6. Important Notes &amp; Gotchas</a></li><li class="toc-h2"><a href="#next-bitbake">Next Step: Compile Board Firmware</a></li></ul></div></aside></div></main>
+<hr><h2 id="next-bitbake">Next Step: Compile Board Firmware Inside Docker</h2><p>After entering <code>~/openbmc</code> via <code>./join.sh</code>, continue with your target board guide to run BitBake and flash on Windows:</p><ul><li><a href="../numaker-iot-ma35d16fj87c/quickstart.html#2-build-environment--compilation">NuMaker-IoT-MA35D16FJ87C</a> &mdash; <code>MACHINE=numaker-iot-ma35d16fj87c</code></li><li><a href="../numaker-iot-ma35d03f80/quickstart.html#2-build-environment--compilation">NuMaker-IoT-MA35D03F80</a> &mdash; <code>MACHINE=numaker-iot-ma35d03f80</code></li><li><a href="../numaker-iot-ma35d05ki1/quickstart.html#2-build-environment--compilation">NuMaker-IoT-MA35D05KI1</a> &mdash; <code>MACHINE=numaker-iot-ma35d05ki1</code></li><li><a href="../numaker-iot-nuc980g2/quickstart.html#2-build-environment--compilation">NuMaker-IIoT-NUC980G2</a> &mdash; <code>MACHINE=numaker-iot-nuc980g2</code></li></ul>
+<nav class="flow-nav" aria-label="Guide progression"><a href="../openbmc.html">&larr; Setup &amp; Flashing Guide</a><a href="../index.html#boards">Next: Select Board Quickstart &rarr;</a></nav>
+</div><aside class="sidebar"><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#1-prerequisites">1. Prerequisites</a></li><li class="toc-h3"><a href="#installing-docker-on-ubuntu-2404">Installing Docker on Ubuntu (24.04)</a></li><li class="toc-h2"><a href="#2-setting-up--using-the-container">2. Setting Up &amp; Using the Container</a></li><li class="toc-h3"><a href="#21-build-docker-image-and-create-container">2.1 Build Docker Image and Create Container</a></li><li class="toc-h3"><a href="#22-enter-the-container">2.2 Enter the Container</a></li><li class="toc-h2"><a href="#3-working-inside-the-container">3. Working Inside the Container</a></li><li class="toc-h2"><a href="#4-file-description">4. File Description</a></li><li class="toc-h2"><a href="#5-container-management--lifecycle">5. Container Management &amp; Lifecycle</a></li><li class="toc-h3"><a href="#51-troubleshooting-stuck-containers-zfs-storage-driver">5.1 Troubleshooting Stuck Containers (ZFS Storage Driver)</a></li><li class="toc-h2"><a href="#6-important-notes--gotchas">6. Important Notes &amp; Gotchas</a></li><li class="toc-h2"><a href="#next-bitbake">Next Step: Compile Board Firmware</a></li></ul></div></aside></div></main>
   <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
   <script>
-document.querySelectorAll('pre').forEach(function (pre) {
+document.querySelectorAll('pre > code.language-bash, pre > code.language-sh').forEach(function (code) {
+  var pre = code.parentNode;
   var wrap = document.createElement('div');
   wrap.className = 'code-wrap';
   pre.parentNode.insertBefore(wrap, pre);

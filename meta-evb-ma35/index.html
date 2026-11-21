@@ -214,14 +214,6 @@ footer.site-footer {
   </header>
   <main class="container"><div class="doc-layout"><div class="doc-body"><h1 id="meta-evb-ma35-openbmc-bsp-layer-for-nuvoton-ma35-family">meta-evb-ma35: OpenBMC BSP Layer for Nuvoton MA35 Family</h1>
 <p>OpenBMC BSP layer for Nuvoton MA35 evaluation boards (dual Arm Cortex-A35).</p>
-<h2 id="table-of-contents">Table of Contents</h2>
-<ul>
-<li><a href="#layer-features">Layer Features</a></li>
-<li><a href="#storage-layout">Storage Layout</a></li>
-<li><a href="#board-documentation--test-guides">Board Documentation &amp; Test Guides</a></li>
-<li><a href="#layer-structure">Layer Structure</a></li>
-</ul>
-<hr />
 <h2 id="layer-features">Layer Features</h2>
 <ul>
 <li><strong>Redfish &amp; WebUI</strong>: <code>bmcweb</code> (<code>/redfish/v1/</code>) and <code>webui-vue</code> with real-time sensor polling chart.</li>
@@ -241,168 +233,12 @@ footer.site-footer {
 </ul>
 <hr />
 <h2 id="storage-layout">Storage Layout</h2>
-<h3 id="1-spi-nand--raw-nand-512-mb-pure-ubi">1. SPI-NAND &amp; Raw NAND (512 MB Pure UBI)</h3>
-<div class="table-scroll"><table>
-<thead>
-<tr>
-<th style="text-align:left">MTD</th>
-<th style="text-align:left">Label</th>
-<th style="text-align:left">Address Range</th>
-<th style="text-align:left">Size</th>
-<th style="text-align:left">Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left"><code>mtd0</code></td>
-<td style="text-align:left"><code>spinand-uboot</code> / <code>nand-uboot</code></td>
-<td style="text-align:left"><code>0x00000000</code>–<code>0x00400000</code></td>
-<td style="text-align:left">4 MB</td>
-<td style="text-align:left">Raw bootloader (Header + BL2 DTB + BL2 + FIP)</td>
-</tr>
-<tr>
-<td style="text-align:left"><code>mtd1</code></td>
-<td style="text-align:left"><code>spinand-rootfs</code> / <code>nand-rootfs</code></td>
-<td style="text-align:left"><code>0x00400000</code>–<code>0x20000000</code></td>
-<td style="text-align:left">508 MB</td>
-<td style="text-align:left">UBI pool (<code>4064</code> PEBs)</td>
-</tr>
-</tbody>
-</table></div>
-<p><strong>UBI Volumes on <code>mtd1</code> (<code>ubi0</code>)</strong>:</p>
-<div class="table-scroll"><table>
-<thead>
-<tr>
-<th style="text-align:left">Volume ID</th>
-<th style="text-align:left">Name</th>
-<th style="text-align:left">Size</th>
-<th style="text-align:left">Type</th>
-<th style="text-align:left">Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left"><code>0</code></td>
-<td style="text-align:left"><code>u-boot-env</code></td>
-<td style="text-align:left">256 KiB</td>
-<td style="text-align:left">dynamic</td>
-<td style="text-align:left">U-Boot environment (64 KiB env image)</td>
-</tr>
-<tr>
-<td style="text-align:left"><code>1</code></td>
-<td style="text-align:left"><code>kernel-a</code></td>
-<td style="text-align:left">16 MiB</td>
-<td style="text-align:left">dynamic</td>
-<td style="text-align:left">Bank A kernel <code>Image</code></td>
-</tr>
-<tr>
-<td style="text-align:left"><code>2</code></td>
-<td style="text-align:left"><code>dtb-a</code></td>
-<td style="text-align:left">512 KiB</td>
-<td style="text-align:left">dynamic</td>
-<td style="text-align:left">Bank A device tree</td>
-</tr>
-<tr>
-<td style="text-align:left"><code>3</code></td>
-<td style="text-align:left"><code>rofs-a</code></td>
-<td style="text-align:left">100 MiB</td>
-<td style="text-align:left">dynamic</td>
-<td style="text-align:left">Bank A read-only rootfs (<code>ubifs</code>)</td>
-</tr>
-<tr>
-<td style="text-align:left"><code>4</code></td>
-<td style="text-align:left"><code>kernel-b</code></td>
-<td style="text-align:left">16 MiB</td>
-<td style="text-align:left">dynamic</td>
-<td style="text-align:left">Bank B standby kernel <code>Image</code></td>
-</tr>
-<tr>
-<td style="text-align:left"><code>5</code></td>
-<td style="text-align:left"><code>dtb-b</code></td>
-<td style="text-align:left">512 KiB</td>
-<td style="text-align:left">dynamic</td>
-<td style="text-align:left">Bank B standby device tree</td>
-</tr>
-<tr>
-<td style="text-align:left"><code>6</code></td>
-<td style="text-align:left"><code>rofs-b</code></td>
-<td style="text-align:left">100 MiB</td>
-<td style="text-align:left">dynamic</td>
-<td style="text-align:left">Bank B standby read-only rootfs (<code>ubifs</code>)</td>
-</tr>
-<tr>
-<td style="text-align:left"><code>7</code></td>
-<td style="text-align:left"><code>rwfs</code></td>
-<td style="text-align:left">~255 MiB</td>
-<td style="text-align:left">dynamic (autoresize)</td>
-<td style="text-align:left">Persistent overlay (<code>/var</code>)</td>
-</tr>
-</tbody>
-</table></div>
-<h3 id="2-sd1--emmc-mbr-dual-bank-ext4">2. SD1 / eMMC (MBR Dual-Bank EXT4)</h3>
-<p>MA35 IBR reads the boot header from Sector 2 (<code>0x400</code>), which conflicts with GPT headers; SD/eMMC images therefore use an <code>msdos</code> (MBR) partition table:</p>
-<div class="table-scroll"><table>
-<thead>
-<tr>
-<th style="text-align:left">Region / Partition</th>
-<th style="text-align:left">Offset / Label</th>
-<th style="text-align:left">Size</th>
-<th style="text-align:left">FS</th>
-<th style="text-align:left">Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left">Raw (unpartitioned)</td>
-<td style="text-align:left"><code>0x000400</code>–<code>0x400000</code></td>
-<td style="text-align:left">4 MB</td>
-<td style="text-align:left">raw</td>
-<td style="text-align:left">Header (<code>0x400</code>), BL2 (<code>0x30000</code>), Env (<code>0x50000</code>), FIP (<code>0xC0000</code>)</td>
-</tr>
-<tr>
-<td style="text-align:left">Partition 1 (<code>p1</code>)</td>
-<td style="text-align:left"><code>boot-a</code></td>
-<td style="text-align:left">32 MB</td>
-<td style="text-align:left"><code>ext4</code></td>
-<td style="text-align:left">Bank A <code>Image</code> + <code>Image.dtb</code></td>
-</tr>
-<tr>
-<td style="text-align:left">Partition 2 (<code>p2</code>)</td>
-<td style="text-align:left"><code>boot-b</code></td>
-<td style="text-align:left">32 MB</td>
-<td style="text-align:left"><code>ext4</code></td>
-<td style="text-align:left">Bank B <code>Image</code> + <code>Image.dtb</code></td>
-</tr>
-<tr>
-<td style="text-align:left">Partition 3 (<code>p3</code>)</td>
-<td style="text-align:left"><code>rofs-a</code></td>
-<td style="text-align:left">256 MB</td>
-<td style="text-align:left"><code>ext4</code></td>
-<td style="text-align:left">Bank A read-only rootfs</td>
-</tr>
-<tr>
-<td style="text-align:left">Partition 4 (<code>p4</code>)</td>
-<td style="text-align:left">—</td>
-<td style="text-align:left">—</td>
-<td style="text-align:left">Extended</td>
-<td style="text-align:left">MBR extended container</td>
-</tr>
-<tr>
-<td style="text-align:left">Partition 5 (<code>p5</code>)</td>
-<td style="text-align:left"><code>rofs-b</code></td>
-<td style="text-align:left">256 MB</td>
-<td style="text-align:left"><code>ext4</code></td>
-<td style="text-align:left">Bank B read-only rootfs</td>
-</tr>
-<tr>
-<td style="text-align:left">Partition 6 (<code>p6</code>)</td>
-<td style="text-align:left"><code>rwfs</code></td>
-<td style="text-align:left">256 MB+</td>
-<td style="text-align:left"><code>ext4</code></td>
-<td style="text-align:left">Persistent overlay (<code>/var</code>)</td>
-</tr>
-</tbody>
-</table></div>
+<p>All MA35 boards use a dual-bank (A/B) OTA storage layout so the inactive bank can be flashed while OpenBMC remains online:</p>
+<ul>
+<li><strong>SPI-NAND / Raw NAND (Pure UBI)</strong>: 2 MTD partitions — <code>mtd0</code> (4 MB raw bootloader: Header, BL2 DTB, BL2 Bin, FIP) and <code>mtd1</code> (Pure UBI pool containing <code>u-boot-env</code> 256 KiB, Bank A/B <code>kernel</code> 16 MiB, <code>dtb</code> 512 KiB, <code>rofs</code> <strong>70 MiB</strong> UBIFS, and autoresize <code>rwfs</code> 10 MiB &rarr; fills remaining flash).</li>
+<li><strong>SD1 / eMMC (MBR Dual-Bank EXT4)</strong>: Uses MBR (<code>msdos</code>) so the MA35 IBR boot header at Sector 2 (<code>0x400</code>) does not collide with GPT headers — 4 MB raw bootloader/UBL, <code>p1/p2</code> (<code>boot-a/b</code>, 32 MB each), <code>p3/p5</code> (<code>rofs-a/b</code>, 256 MB each), and <code>p6</code> (<code>rwfs</code>, 256 MB+ auto-resized to 100%).</li>
+</ul>
+<div class="callout callout-note"><div class="callout-title">Visual Memory Maps (Single Source of Truth)</div><p>For full address offsets, partition boundaries, and UBI volume memory map diagrams, refer to the board OTA guides: <a href="../numaker-iot-ma35d16fj87c/test-redfish-update/index.html#1-architecture--update-mechanism">MA35D16FJ87C Memory Map</a> &middot; <a href="../numaker-iot-ma35d03f80/test-redfish-update/index.html#1-architecture--update-mechanism">MA35D03F80 Memory Map</a> &middot; <a href="../numaker-iot-ma35d05ki1/test-redfish-update/index.html#1-architecture--update-mechanism">MA35D05KI1 Memory Map</a>.</p></div>
 <hr />
 <h2 id="board-documentation--test-guides">Board Documentation &amp; Test Guides</h2>
 <div class="table-scroll"><table>
@@ -522,10 +358,11 @@ footer.site-footer {
     ├── x86-power-control_%.bbappend
     └── x86-power-control/power-config-host0.json
 </code></pre>
-</div><aside class="sidebar"><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#table-of-contents">Table of Contents</a></li><li class="toc-h2"><a href="#layer-features">Layer Features</a></li><li class="toc-h2"><a href="#storage-layout">Storage Layout</a></li><li class="toc-h3"><a href="#1-spi-nand--raw-nand-512-mb-pure-ubi">1. SPI-NAND &amp; Raw NAND (512 MB Pure UBI)</a></li><li class="toc-h3"><a href="#2-sd1--emmc-mbr-dual-bank-ext4">2. SD1 / eMMC (MBR Dual-Bank EXT4)</a></li><li class="toc-h2"><a href="#board-documentation--test-guides">Board Documentation &amp; Test Guides</a></li><li class="toc-h2"><a href="#layer-structure">Layer Structure</a></li></ul></div></aside></div></main>
+</div><aside class="sidebar"><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#layer-features">Layer Features</a></li><li class="toc-h2"><a href="#storage-layout">Storage Layout</a></li><li class="toc-h2"><a href="#board-documentation--test-guides">Board Documentation &amp; Test Guides</a></li><li class="toc-h2"><a href="#layer-structure">Layer Structure</a></li></ul></div></aside></div></main>
   <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
   <script>
-document.querySelectorAll('pre').forEach(function (pre) {
+document.querySelectorAll('pre > code.language-bash, pre > code.language-sh').forEach(function (code) {
+  var pre = code.parentNode;
   var wrap = document.createElement('div');
   wrap.className = 'code-wrap';
   pre.parentNode.insertBefore(wrap, pre);

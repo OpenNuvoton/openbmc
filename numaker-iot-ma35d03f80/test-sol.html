@@ -187,6 +187,15 @@ td {
   margin: 12px 0 14px;
 }
 .flow-diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+.wiring-diagram {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  margin: 12px 0 14px;
+}
+.wiring-diagram svg { width: 100%; min-width: 560px; height: auto; display: block; }
 footer.site-footer {
   border-top: 1px solid var(--line);
   color: var(--muted);
@@ -298,26 +307,169 @@ Bypasses the power state check and connects directly to <code>obmc-console-serve
 <hr />
 <h2 id="4-wiring-diagrams">4. Wiring Diagrams</h2>
 <h3 id="41-connection-to-host-server-com-port">4.1 Connection to Host Server COM Port</h3>
-<pre><code class="language-text">  NuMaker-IoT-MA35D03F80 (SOL)           Host System COM Port
-  UART6_TXD (PN15)  ───────────────────►  RXD
-  UART6_RXD (PN14)  ◄───────────────────  TXD
-  UART6_nRTS (PN13) ───────────────────►  CTS
-  UART6_nCTS (PN12) ◄───────────────────  RTS
-  GND               ───────────────────   GND
-</code></pre>
+<div class="wiring-diagram" role="figure" aria-label="NuMaker-IoT-MA35D03F80 SOL Connection to Host Server COM Port">
+<svg viewBox="0 0 800 294" xmlns="http://www.w3.org/2000/svg" font-family="Bahnschrift,Segoe UI,sans-serif">
+  <defs>
+    <marker id="sol-arr-0" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 1 L7 4 L0 7 z" fill="#08745f"/></marker>
+    <marker id="sol-arr-1" viewBox="0 0 8 8" refX="1" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M7 1 L0 4 L7 7 z" fill="#1e5494"/></marker>
+    <marker id="sol-arr-2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 1 L7 4 L0 7 z" fill="#8f6200"/></marker>
+    <marker id="sol-arr-3" viewBox="0 0 8 8" refX="1" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M7 1 L0 4 L7 7 z" fill="#5534a5"/></marker>
+  </defs>
+
+  <text x="24" y="21" font-size="13" font-weight="700" fill="#243430">NuMaker-IoT-MA35D03F80 (SOL) ↔ Host System COM Port</text>
+  <text x="776" y="21" text-anchor="end" font-size="10" font-weight="600" fill="#8f6200">J63 Pin 1–2 Shorted (RS-232) · 115200 8N1</text>
+
+  <!-- Left Card: NuMaker Board -->
+  <rect x="24" y="38" width="276" height="232" rx="5" fill="#fff" stroke="#08745f" stroke-width="1.4"/>
+  <path d="M24 43 a5 5 0 0 1 5 -5 h266 a5 5 0 0 1 5 5 v31 h-276 z" fill="#e5f3ec"/>
+  <line x1="24" y1="74" x2="300" y2="74" stroke="#b9d9ca"/>
+  <text x="162" y="57" text-anchor="middle" font-size="11.5" font-weight="700" fill="#08745f">NuMaker-IoT-MA35D03F80</text>
+  <text x="162" y="69" text-anchor="middle" font-size="9.5" fill="#465c55">SOL Console (ttyS6 · UART6)</text>
+
+  <!-- Right Card: Host System COM Port -->
+  <rect x="500" y="38" width="276" height="232" rx="5" fill="#fff" stroke="#2b6cb0" stroke-width="1.4"/>
+  <path d="M500 43 a5 5 0 0 1 5 -5 h266 a5 5 0 0 1 5 5 v31 h-276 z" fill="#e8f2fc"/>
+  <line x1="500" y1="74" x2="776" y2="74" stroke="#b8d3ee"/>
+  <text x="638" y="57" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1e5494">Host System COM Port</text>
+  <text x="638" y="69" text-anchor="middle" font-size="9.5" fill="#465c55">Host Serial Console (UART / RS-232)</text>
+
+  <rect x="34" y="84" width="256" height="28" rx="3.5" fill="#f5fbf8" stroke="#c6e3d5"/>
+  <text x="44" y="102" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#08745f">UART6_TXD</text>
+  <text x="280" y="102" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#4f615b">PN15</text>
+  <circle cx="300" cy="98" r="3.5" fill="#08745f"/>
+  <rect x="510" y="84" width="256" height="28" rx="3.5" fill="#f5fbf8" stroke="#c6e3d5"/>
+  <text x="520" y="102" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#08745f">RXD</text>
+  <text x="756" y="102" text-anchor="end" font-size="9.5" fill="#64736d">Host COM</text>
+  <circle cx="500" cy="98" r="3.5" fill="#08745f"/>
+  <line x1="304" y1="98" x2="494" y2="98" stroke="#08745f" stroke-width="2" marker-end="url(#sol-arr-0)"/>
+  <rect x="360" y="89" width="80" height="17" rx="8.5" fill="#fff" stroke="#c6e3d5"/>
+  <text x="400" y="101" text-anchor="middle" font-size="9.5" font-weight="600" fill="#08745f">TX → RX</text>
+  <rect x="34" y="120" width="256" height="28" rx="3.5" fill="#f4f8fd" stroke="#c6dcf0"/>
+  <text x="44" y="138" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#1e5494">UART6_RXD</text>
+  <text x="280" y="138" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#4f615b">PN14</text>
+  <circle cx="300" cy="134" r="3.5" fill="#1e5494"/>
+  <rect x="510" y="120" width="256" height="28" rx="3.5" fill="#f4f8fd" stroke="#c6dcf0"/>
+  <text x="520" y="138" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#1e5494">TXD</text>
+  <text x="756" y="138" text-anchor="end" font-size="9.5" fill="#64736d">Host COM</text>
+  <circle cx="500" cy="134" r="3.5" fill="#1e5494"/>
+  <line x1="306" y1="134" x2="496" y2="134" stroke="#1e5494" stroke-width="2" marker-start="url(#sol-arr-1)"/>
+  <rect x="360" y="125" width="80" height="17" rx="8.5" fill="#fff" stroke="#c6dcf0"/>
+  <text x="400" y="137" text-anchor="middle" font-size="9.5" font-weight="600" fill="#1e5494">RX ← TX</text>
+  <rect x="34" y="156" width="256" height="28" rx="3.5" fill="#fffdf5" stroke="#e4cb86"/>
+  <text x="44" y="174" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#8f6200">UART6_nRTS</text>
+  <text x="280" y="174" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#4f615b">PN13</text>
+  <circle cx="300" cy="170" r="3.5" fill="#8f6200"/>
+  <rect x="510" y="156" width="256" height="28" rx="3.5" fill="#fffdf5" stroke="#e4cb86"/>
+  <text x="520" y="174" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#8f6200">CTS</text>
+  <text x="756" y="174" text-anchor="end" font-size="9.5" fill="#64736d">Host COM</text>
+  <circle cx="500" cy="170" r="3.5" fill="#8f6200"/>
+  <line x1="304" y1="170" x2="494" y2="170" stroke="#8f6200" stroke-width="2" marker-end="url(#sol-arr-2)"/>
+  <rect x="360" y="161" width="80" height="17" rx="8.5" fill="#fff" stroke="#e4cb86"/>
+  <text x="400" y="173" text-anchor="middle" font-size="9.5" font-weight="600" fill="#8f6200">RTS → CTS</text>
+  <rect x="34" y="192" width="256" height="28" rx="3.5" fill="#f6f2fe" stroke="#d3c3f3"/>
+  <text x="44" y="210" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#5534a5">UART6_nCTS</text>
+  <text x="280" y="210" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#4f615b">PN12</text>
+  <circle cx="300" cy="206" r="3.5" fill="#5534a5"/>
+  <rect x="510" y="192" width="256" height="28" rx="3.5" fill="#f6f2fe" stroke="#d3c3f3"/>
+  <text x="520" y="210" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#5534a5">RTS</text>
+  <text x="756" y="210" text-anchor="end" font-size="9.5" fill="#64736d">Host COM</text>
+  <circle cx="500" cy="206" r="3.5" fill="#5534a5"/>
+  <line x1="306" y1="206" x2="496" y2="206" stroke="#5534a5" stroke-width="2" marker-start="url(#sol-arr-3)"/>
+  <rect x="360" y="197" width="80" height="17" rx="8.5" fill="#fff" stroke="#d3c3f3"/>
+  <text x="400" y="209" text-anchor="middle" font-size="9.5" font-weight="600" fill="#5534a5">CTS ← RTS</text>
+  <rect x="34" y="228" width="256" height="28" rx="3.5" fill="#f2f5f4" stroke="#cfd9d5"/>
+  <text x="44" y="246" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#4f615b">GND</text>
+  <text x="280" y="246" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#4f615b">GND</text>
+  <circle cx="300" cy="242" r="3.5" fill="#4f615b"/>
+  <rect x="510" y="228" width="256" height="28" rx="3.5" fill="#f2f5f4" stroke="#cfd9d5"/>
+  <text x="520" y="246" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#4f615b">GND</text>
+  <text x="756" y="246" text-anchor="end" font-size="9.5" fill="#64736d">Host COM</text>
+  <circle cx="500" cy="242" r="3.5" fill="#4f615b"/>
+  <line x1="304" y1="242" x2="496" y2="242" stroke="#4f615b" stroke-width="1.6"/>
+  <rect x="360" y="233" width="80" height="17" rx="8.5" fill="#fff" stroke="#cfd9d5"/>
+  <text x="400" y="245" text-anchor="middle" font-size="9.5" font-weight="600" fill="#4f615b">Ground</text>
+</svg>
+</div>
 <p><em>Note: TX and RX must be cross-connected.</em></p>
 <h3 id="42-standalone-loopback-self-test">4.2 Standalone Loopback Self-Test</h3>
 <p>Connect board debug console <code>UART0</code> (<code>PE14</code>/<code>PE15</code>) to <code>UART6</code> (<code>PN14</code>/<code>PN15</code>) using jumper wires:</p>
-<pre><code class="language-text"> ┌─────────────────────────────────────────────────────────────┐
- │                  NuMaker-IoT-MA35D03F80                     │
- │                                                             │
- │   [ ttyS0: BMC Debug Console ]     [ ttyS6: SOL Console ]   │
- │                                                             │
- │   UART0_TXD (PE14) ───────────────► UART6_RXD (PN14)        │
- │   UART0_RXD (PE15) ◄─────────────── UART6_TXD (PN15)        │
- │   GND ───────────────────────────── GND                     │
- └─────────────────────────────────────────────────────────────┘
-</code></pre>
+<div class="wiring-diagram" role="figure" aria-label="NuMaker-IoT-MA35D03F80 Standalone SOL Loopback Self-Test Wiring">
+<svg viewBox="0 0 800 228" xmlns="http://www.w3.org/2000/svg" font-family="Bahnschrift,Segoe UI,sans-serif">
+  <defs>
+    <marker id="lb-tx" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1 L7 4 L0 7 z" fill="#08745f"/>
+    </marker>
+    <marker id="lb-rx" viewBox="0 0 8 8" refX="1" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M7 1 L0 4 L7 7 z" fill="#2b6cb0"/>
+    </marker>
+  </defs>
+
+  <text x="16" y="20" font-size="13" font-weight="700" fill="#243430">Standalone Loopback Self-Test (On-Board Jumper Wiring)</text>
+  <text x="784" y="20" text-anchor="end" font-size="10" fill="#64736d">ttyS0 ↔ ttyS6 on same board</text>
+
+  <!-- Outer Board Frame -->
+  <rect x="14" y="32" width="772" height="186" rx="6" fill="#f8fbf9" stroke="#9eb0a9" stroke-width="1.2" stroke-dasharray="5 3"/>
+  <rect x="304" y="24" width="192" height="18" rx="9" fill="#eef4f1" stroke="#9eb0a9"/>
+  <text x="400" y="36.5" text-anchor="middle" font-size="10" font-weight="700" fill="#243430">NuMaker-IoT-MA35D03F80</text>
+
+  <!-- Left Port: ttyS0 BMC Debug Console -->
+  <rect x="32" y="54" width="268" height="150" rx="5" fill="#fff" stroke="#08745f" stroke-width="1.3"/>
+  <path d="M32 59 a5 5 0 0 1 5 -5 h258 a5 5 0 0 1 5 5 v28 h-268 z" fill="#e5f3ec"/>
+  <line x1="32" y1="87" x2="300" y2="87" stroke="#b9d9ca"/>
+  <text x="166" y="72" text-anchor="middle" font-size="11" font-weight="700" fill="#08745f">ttyS0 · BMC Debug Console</text>
+  <text x="166" y="83" text-anchor="middle" font-size="9.5" fill="#465c55">UART0</text>
+
+  <rect x="42" y="96" width="248" height="28" rx="3.5" fill="#f5fbf8" stroke="#c6e3d5"/>
+  <text x="52" y="114" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#08745f">UART0_TXD</text>
+  <text x="280" y="114" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#465c55">PE14</text>
+
+  <rect x="42" y="132" width="248" height="28" rx="3.5" fill="#f4f8fd" stroke="#c6dcf0"/>
+  <text x="52" y="150" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#1e5494">UART0_RXD</text>
+  <text x="280" y="150" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#465c55">PE15</text>
+
+  <rect x="42" y="168" width="248" height="26" rx="3.5" fill="#f2f5f4" stroke="#cfd9d5"/>
+  <text x="52" y="185" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#4f615b">GND</text>
+  <text x="280" y="185" text-anchor="end" font-size="9.5" fill="#64736d">Common Ground</text>
+
+  <!-- Right Port: SOL Console -->
+  <rect x="500" y="54" width="268" height="150" rx="5" fill="#fff" stroke="#2b6cb0" stroke-width="1.3"/>
+  <path d="M500 59 a5 5 0 0 1 5 -5 h258 a5 5 0 0 1 5 5 v28 h-268 z" fill="#e8f2fc"/>
+  <line x1="500" y1="87" x2="768" y2="87" stroke="#b8d3ee"/>
+  <text x="634" y="72" text-anchor="middle" font-size="11" font-weight="700" fill="#1e5494">ttyS6 · SOL Console</text>
+  <text x="634" y="83" text-anchor="middle" font-size="9.5" fill="#465c55">Loopback Target</text>
+
+  <rect x="510" y="96" width="248" height="28" rx="3.5" fill="#f5fbf8" stroke="#c6e3d5"/>
+  <text x="520" y="114" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#08745f">UART6_RXD</text>
+  <text x="748" y="114" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#465c55">PN14</text>
+
+  <rect x="510" y="132" width="248" height="28" rx="3.5" fill="#f4f8fd" stroke="#c6dcf0"/>
+  <text x="520" y="150" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#1e5494">UART6_TXD</text>
+  <text x="748" y="150" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#465c55">PN15</text>
+
+  <rect x="510" y="168" width="248" height="26" rx="3.5" fill="#f2f5f4" stroke="#cfd9d5"/>
+  <text x="520" y="185" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#4f615b">GND</text>
+  <text x="748" y="185" text-anchor="end" font-size="9.5" fill="#64736d">Common Ground</text>
+
+  <!-- Pin Pads & Jumper Wires -->
+  <circle cx="300" cy="110" r="3.5" fill="#08745f"/>
+  <circle cx="500" cy="110" r="3.5" fill="#08745f"/>
+  <line x1="304" y1="110" x2="494" y2="110" stroke="#08745f" stroke-width="2" marker-end="url(#lb-tx)"/>
+  <rect x="352" y="101" width="96" height="17" rx="8.5" fill="#fff" stroke="#c6e3d5"/>
+  <text x="400" y="113" text-anchor="middle" font-size="9.5" font-weight="600" fill="#08745f">Jumper: TX → RX</text>
+
+  <circle cx="300" cy="146" r="3.5" fill="#2b6cb0"/>
+  <circle cx="500" cy="146" r="3.5" fill="#2b6cb0"/>
+  <line x1="306" y1="146" x2="496" y2="146" stroke="#2b6cb0" stroke-width="2" marker-start="url(#lb-rx)"/>
+  <rect x="352" y="137" width="96" height="17" rx="8.5" fill="#fff" stroke="#c6dcf0"/>
+  <text x="400" y="149" text-anchor="middle" font-size="9.5" font-weight="600" fill="#1e5494">Jumper: RX ← TX</text>
+
+  <circle cx="300" cy="181" r="3.5" fill="#6e7f79"/>
+  <circle cx="500" cy="181" r="3.5" fill="#6e7f79"/>
+  <line x1="304" y1="181" x2="496" y2="181" stroke="#6e7f79" stroke-width="1.6"/>
+  <rect x="366" y="172" width="68" height="17" rx="8.5" fill="#fff" stroke="#cfd9d5"/>
+  <text x="400" y="184" text-anchor="middle" font-size="9.5" fill="#4f615b">GND</text>
+</svg>
+</div>
 <hr />
 <h2 id="5-verification-steps">5. Verification Steps</h2>
 <h3 id="method-a-webui-console">Method A: WebUI Console</h3>
@@ -358,7 +510,8 @@ ssh -t root@numaker-iot-ma35d03f80.local obmc-console-client
 </div><aside class="sidebar"><div class="side-group"><h3>MA35D03F80</h3><ul class="side-list"><li><a class="" href="quickstart.html">Quickstart Guide</a></li><li><a class="" href="index.html">Power &amp; Boot Settings</a></li><li><a class="" href="bom.html">Interactive BOM</a></li><li><a class="" href="test-redfish.html">Redfish API</a></li><li><a class="" href="test-redfish-update/index.html">Redfish OTA</a></li><li><a class="active" href="test-sol.html">SOL</a></li><li><a class="" href="test-can.html">CAN-FD</a></li><li><a class="" href="test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#1-overview">1. Overview</a></li><li class="toc-h2"><a href="#2-hardware-signal-definitions">2. Hardware Signal Definitions</a></li><li class="toc-h2"><a href="#3-hardware-jumpers--gotchas">3. Hardware Jumpers &amp; Gotchas</a></li><li class="toc-h3"><a href="#31-jumper-j63-rs-232--rs-485-selection--critical">3.1 Jumper J63 (RS-232 / RS-485 Selection) — CRITICAL</a></li><li class="toc-h3"><a href="#32-webui-sol-power-dependency">3.2 WebUI SOL Power Dependency</a></li><li class="toc-h3"><a href="#33-exclusive-port-ownership">3.3 Exclusive Port Ownership</a></li><li class="toc-h2"><a href="#4-wiring-diagrams">4. Wiring Diagrams</a></li><li class="toc-h3"><a href="#41-connection-to-host-server-com-port">4.1 Connection to Host Server COM Port</a></li><li class="toc-h3"><a href="#42-standalone-loopback-self-test">4.2 Standalone Loopback Self-Test</a></li><li class="toc-h2"><a href="#5-verification-steps">5. Verification Steps</a></li><li class="toc-h3"><a href="#method-a-webui-console">Method A: WebUI Console</a></li><li class="toc-h3"><a href="#method-b-ssh-cli">Method B: SSH CLI</a></li><li class="toc-h2"><a href="#6-troubleshooting">6. Troubleshooting</a></li></ul></div></aside></div></main>
   <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
   <script>
-document.querySelectorAll('pre').forEach(function (pre) {
+document.querySelectorAll('pre > code.language-bash, pre > code.language-sh').forEach(function (code) {
+  var pre = code.parentNode;
   var wrap = document.createElement('div');
   wrap.className = 'code-wrap';
   pre.parentNode.insertBefore(wrap, pre);

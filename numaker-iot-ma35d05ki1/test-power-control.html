@@ -187,6 +187,15 @@ td {
   margin: 12px 0 14px;
 }
 .flow-diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+.wiring-diagram {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  margin: 12px 0 14px;
+}
+.wiring-diagram svg { width: 100%; min-width: 560px; height: auto; display: block; }
 footer.site-footer {
   border-top: 1px solid var(--line);
   color: var(--muted);
@@ -252,13 +261,98 @@ footer.site-footer {
 </tbody>
 </table></div>
 <h3 id="wiring-diagram">Wiring Diagram</h3>
-<pre><code class="language-text">  MA35D05KI1 (BMC)               Host Motherboard
-  ────────────────               ────────────────
-  PN1 (POWER_OUT)  ───────────► PWR_BTN# (power button header)
-  PN0 (RESET_OUT)  ───────────► RST_BTN# (reset button header)
-  PK12 (PS_PWROK)  ◄─────────── PWROK (ATX PSU / VRM output)
-  GND ───────────────────────── GND (common ground)
-</code></pre>
+<div class="wiring-diagram" role="figure" aria-label="MA35D05KI1 Host Power Control GPIO Wiring Diagram">
+<svg viewBox="0 0 800 256" xmlns="http://www.w3.org/2000/svg" font-family="Bahnschrift,Segoe UI,sans-serif">
+  <defs>
+    <marker id="pwr-out" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1 L7 4 L0 7 z" fill="#08745f"/>
+    </marker>
+    <marker id="rst-out" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1 L7 4 L0 7 z" fill="#b88214"/>
+    </marker>
+    <marker id="pwrok-in" viewBox="0 0 8 8" refX="1" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M7 1 L0 4 L7 7 z" fill="#2b6cb0"/>
+    </marker>
+  </defs>
+
+  <text x="20" y="21" font-size="13" font-weight="700" fill="#243430">MA35D05KI1 (BMC) ↔ Host Motherboard Power Control</text>
+  <text x="780" y="21" text-anchor="end" font-size="10" fill="#64736d">3.3V Logic · ATX Front-Panel Emulation</text>
+
+  <!-- Left Card: BMC -->
+  <rect x="20" y="38" width="256" height="202" rx="5" fill="#fff" stroke="#08745f" stroke-width="1.4"/>
+  <path d="M20 43 a5 5 0 0 1 5 -5 h246 a5 5 0 0 1 5 5 v31 h-256 z" fill="#e5f3ec"/>
+  <line x1="20" y1="74" x2="276" y2="74" stroke="#b9d9ca"/>
+  <text x="148" y="57" text-anchor="middle" font-size="11.5" font-weight="700" fill="#08745f">MA35D05KI1 (BMC)</text>
+  <text x="148" y="69" text-anchor="middle" font-size="9.5" fill="#465c55">OpenBMC · x86-power-control</text>
+
+  <!-- Right Card: Host Motherboard -->
+  <rect x="524" y="38" width="256" height="202" rx="5" fill="#fff" stroke="#2b6cb0" stroke-width="1.4"/>
+  <path d="M524 43 a5 5 0 0 1 5 -5 h246 a5 5 0 0 1 5 5 v31 h-256 z" fill="#e8f2fc"/>
+  <line x1="524" y1="74" x2="780" y2="74" stroke="#b8d3ee"/>
+  <text x="652" y="57" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1e5494">Host Motherboard</text>
+  <text x="652" y="69" text-anchor="middle" font-size="9.5" fill="#465c55">ATX Power / Front Panel Header</text>
+
+  <!-- Row 1: POWER_OUT -> PWR_BTN# -->
+  <rect x="30" y="84" width="236" height="29" rx="3.5" fill="#f5fbf8" stroke="#c6e3d5"/>
+  <text x="40" y="102" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#08745f">POWER_OUT</text>
+  <text x="256" y="102" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" font-weight="700" fill="#465c55">PN1</text>
+  <circle cx="276" cy="98" r="3.5" fill="#08745f"/>
+
+  <rect x="534" y="84" width="236" height="29" rx="3.5" fill="#f5fbf8" stroke="#c6e3d5"/>
+  <text x="544" y="102" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#08745f">PWR_BTN#</text>
+  <text x="760" y="102" text-anchor="end" font-size="9.5" fill="#5e706a">Power Button</text>
+  <circle cx="524" cy="98" r="3.5" fill="#08745f"/>
+
+  <line x1="280" y1="98" x2="518" y2="98" stroke="#08745f" stroke-width="2" marker-end="url(#pwr-out)"/>
+  <rect x="330" y="89" width="140" height="18" rx="9" fill="#fff" stroke="#c6e3d5"/>
+  <text x="400" y="101" text-anchor="middle" font-size="9.5" font-weight="600" fill="#08745f">Active-Low · 200ms / 4s</text>
+
+  <!-- Row 2: RESET_OUT -> RST_BTN# -->
+  <rect x="30" y="122" width="236" height="29" rx="3.5" fill="#fffdf5" stroke="#e4cb86"/>
+  <text x="40" y="140" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#8f6200">RESET_OUT</text>
+  <text x="256" y="140" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" font-weight="700" fill="#7a6840">PN0</text>
+  <circle cx="276" cy="136" r="3.5" fill="#b88214"/>
+
+  <rect x="534" y="122" width="236" height="29" rx="3.5" fill="#fffdf5" stroke="#e4cb86"/>
+  <text x="544" y="140" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#8f6200">RST_BTN#</text>
+  <text x="760" y="140" text-anchor="end" font-size="9.5" fill="#7a6840">Reset Button</text>
+  <circle cx="524" cy="136" r="3.5" fill="#b88214"/>
+
+  <line x1="280" y1="136" x2="518" y2="136" stroke="#b88214" stroke-width="2" marker-end="url(#rst-out)"/>
+  <rect x="338" y="127" width="124" height="18" rx="9" fill="#fff" stroke="#e4cb86"/>
+  <text x="400" y="139" text-anchor="middle" font-size="9.5" font-weight="600" fill="#8f6200">Active-Low · 500ms</text>
+
+  <!-- Row 3: PS_PWROK <- PWROK -->
+  <rect x="30" y="160" width="236" height="29" rx="3.5" fill="#f4f8fd" stroke="#c6dcf0"/>
+  <text x="40" y="178" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#1e5494">PS_PWROK</text>
+  <text x="256" y="178" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" font-weight="700" fill="#465c55">PK12</text>
+  <circle cx="276" cy="174" r="3.5" fill="#2b6cb0"/>
+
+  <rect x="534" y="160" width="236" height="29" rx="3.5" fill="#f4f8fd" stroke="#c6dcf0"/>
+  <text x="544" y="178" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#1e5494">PWROK</text>
+  <text x="760" y="178" text-anchor="end" font-size="9.5" fill="#5e706a">ATX PSU / VRM</text>
+  <circle cx="524" cy="174" r="3.5" fill="#2b6cb0"/>
+
+  <line x1="282" y1="174" x2="520" y2="174" stroke="#2b6cb0" stroke-width="2" marker-start="url(#pwrok-in)"/>
+  <rect x="338" y="165" width="124" height="18" rx="9" fill="#fff" stroke="#c6dcf0"/>
+  <text x="400" y="177" text-anchor="middle" font-size="9.5" font-weight="600" fill="#1e5494">Active-High · 3.3V</text>
+
+  <!-- Row 4: GND -->
+  <rect x="30" y="198" width="236" height="29" rx="3.5" fill="#f2f5f4" stroke="#cfd9d5"/>
+  <text x="40" y="216" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#4f615b">GND</text>
+  <text x="256" y="216" text-anchor="end" font-size="9.5" fill="#64736d">Reference Ground</text>
+  <circle cx="276" cy="212" r="3.5" fill="#6e7f79"/>
+
+  <rect x="534" y="198" width="236" height="29" rx="3.5" fill="#f2f5f4" stroke="#cfd9d5"/>
+  <text x="544" y="216" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#4f615b">GND</text>
+  <text x="760" y="216" text-anchor="end" font-size="9.5" fill="#64736d">Common Ground</text>
+  <circle cx="524" cy="212" r="3.5" fill="#6e7f79"/>
+
+  <line x1="280" y1="212" x2="520" y2="212" stroke="#6e7f79" stroke-width="1.6"/>
+  <rect x="352" y="203" width="96" height="18" rx="9" fill="#fff" stroke="#cfd9d5"/>
+  <text x="400" y="215" text-anchor="middle" font-size="9.5" fill="#4f615b">Common Ground</text>
+</svg>
+</div>
 <div class="callout callout-note"><div class="callout-title">Note</div><p><code>POWER_OUT</code> and <code>RESET_OUT</code> idle HIGH (3.3V) and pull LOW when triggered. If evaluating standalone without a host motherboard, tie <code>PK12</code> to <code>3.3V</code> to simulate Power Good, or to <code>GND</code> to simulate power off.</p></div>
 <hr />
 <h2 id="3-control-commands">3. Control Commands</h2>
@@ -402,7 +496,8 @@ footer.site-footer {
 </div><aside class="sidebar"><div class="side-group"><h3>MA35D05KI1</h3><ul class="side-list"><li><a class="" href="quickstart.html">Quickstart Guide</a></li><li><a class="" href="index.html">Power &amp; Boot Settings</a></li><li><a class="" href="bom.html">Interactive BOM</a></li><li><a class="" href="test-redfish.html">Redfish API</a></li><li><a class="" href="test-redfish-update/index.html">Redfish OTA</a></li><li><a class="" href="test-sol.html">SOL</a></li><li><a class="" href="test-can.html">CAN-FD</a></li><li><a class="active" href="test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#1-overview">1. Overview</a></li><li class="toc-h2"><a href="#2-hardware-signal-definitions">2. Hardware Signal Definitions</a></li><li class="toc-h3"><a href="#wiring-diagram">Wiring Diagram</a></li><li class="toc-h2"><a href="#3-control-commands">3. Control Commands</a></li><li class="toc-h3"><a href="#31-redfish-api">3.1 Redfish API</a></li><li class="toc-h3"><a href="#32-d-bus-commands-bmc-ssh">3.2 D-Bus Commands (BMC SSH)</a></li><li class="toc-h3"><a href="#33-low-level-direct-gpio-control-gpiod">3.3 Low-Level Direct GPIO Control (gpiod)</a></li><li class="toc-h2"><a href="#4-oscilloscope-verification">4. Oscilloscope Verification</a></li><li class="toc-h3"><a href="#probe-mapping">Probe Mapping</a></li><li class="toc-h3"><a href="#timing-matrix">Timing Matrix</a></li></ul></div></aside></div></main>
   <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
   <script>
-document.querySelectorAll('pre').forEach(function (pre) {
+document.querySelectorAll('pre > code.language-bash, pre > code.language-sh').forEach(function (code) {
+  var pre = code.parentNode;
   var wrap = document.createElement('div');
   wrap.className = 'code-wrap';
   pre.parentNode.insertBefore(wrap, pre);

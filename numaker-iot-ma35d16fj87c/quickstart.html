@@ -187,6 +187,27 @@ td {
   margin: 12px 0 14px;
 }
 .flow-diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+.flow-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.flow-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-weight: 600;
+}
+.flow-nav a:hover { border-color: var(--green); background: var(--green-soft); color: var(--green); }
 footer.site-footer {
   border-top: 1px solid var(--line);
   color: var(--muted);
@@ -215,8 +236,7 @@ footer.site-footer {
   <main class="container"><div class="doc-layout"><div class="doc-body"><h1 id="numaker-iot-ma35d16fj87c-openbmc-quickstart--reference">NuMaker-IoT-MA35D16FJ87C OpenBMC Quickstart &amp; Reference</h1>
 <p>Operational guide for building, flashing, and verifying OpenBMC on the <strong>Nuvoton NuMaker-IoT-MA35D16FJ87C</strong> evaluation board. The board acts as an out-of-band BMC controlling an external host via Redfish, WebUI, Serial-Over-LAN (SOL), and GPIO power signals (<code>POWER_OUT</code>, <code>RESET_OUT</code>, <code>PS_PWROK</code>).</p>
 <hr />
-<h2 id="1-hardware-specifications--setup">1. Hardware Specifications &amp; Setup</h2>
-<h3 id="11-specifications">1.1 Specifications</h3>
+<h2 id="1-hardware-specifications">1. Hardware Specifications</h2>
 <div class="table-scroll"><table>
 <thead>
 <tr>
@@ -275,55 +295,6 @@ footer.site-footer {
 </tr>
 </tbody>
 </table></div>
-<h3 id="12-connectors">1.2 Connectors</h3>
-<ul>
-<li><strong>Debug Serial Console (UART0)</strong>: Micro-USB to board <strong>VCOM</strong> port (115200 8N1).</li>
-<li><strong>NuWriter Programming Port (USB0 Device)</strong>: Micro-USB to board <strong>USB0 (Device)</strong> port. <em>(Do not connect NuWriter to VCOM or Host USB ports).</em></li>
-<li><strong>Ethernet (LAN)</strong>: RJ45 cable to local network (DHCP).</li>
-<li><strong>Power</strong>: 5V via USB.</li>
-</ul>
-<h3 id="13-boot-mode-dip-switch-settings-sw7">1.3 Boot Mode DIP Switch Settings (SW7)</h3>
-<p>SW7 defines boot source and bus configuration at power-on.</p>
-<ul>
-<li><strong>ON (H)</strong>: Switch ON (3.3V)</li>
-<li><strong>OFF (L)</strong>: Switch OFF (Pulled down to Low)</li>
-</ul>
-<p><strong>Switch Pin Assignments:</strong></p>
-<ul>
-<li><code>SW1 (PG0)</code>: Secure Boot (<code>ON</code>: Disable, <code>OFF</code>: Enable)</li>
-<li><code>SW2 (PG1)</code>: QSPI0 / SD I/O Voltage (<code>OFF</code>: 3.3V, <code>ON</code>: 1.8V)</li>
-<li><code>SW3 (PG2)</code> / <code>SW4 (PG3)</code>: Boot Source (<code>LL</code>: QSPI0 Flash, <code>LH</code>: SD/eMMC, <code>HL</code>: NAND Flash, <code>HH</code>: USB)</li>
-<li><code>SW5 (PG4)</code>: USB Boot (<code>OFF</code>: USBD Device, <code>ON</code>: USBH Host) / NAND Page Size bit 0</li>
-<li><code>SW6 (PG5)</code>: USBH Port (<code>OFF</code>: Port 0, <code>ON</code>: Port 1) / NAND Page Size bit 1</li>
-<li><code>SW7 (PG6)</code>: QSPI0: SPI-NAND 1-bit / SD: <code>OFF</code>=SD0, <code>ON</code>=SD1 / NAND BCH bit 0</li>
-<li><code>SW8 (PG7)</code>: QSPI0: <code>OFF</code>=SPI-NAND, <code>ON</code>=SPI-NOR / SD: <code>OFF</code>=4-bit / NAND BCH bit 1</li>
-</ul>
-<div class="table-scroll"><table>
-<thead>
-<tr>
-<th style="text-align:left">Target Storage</th>
-<th style="text-align:left">USB Download (NuWriter)</th>
-<th style="text-align:left">Normal Boot (Run Mode)</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left"><strong>SPI NAND</strong></td>
-<td style="text-align:left"><strong>1, 3, 4 ON</strong>; others OFF</td>
-<td style="text-align:left"><strong>1 ON</strong>; others OFF</td>
-</tr>
-<tr>
-<td style="text-align:left"><strong>SD Card (SD1)</strong></td>
-<td style="text-align:left"><strong>1, 3, 4, 7 ON</strong>; others OFF</td>
-<td style="text-align:left"><strong>1, 3, 7 ON</strong>; others OFF</td>
-</tr>
-<tr>
-<td style="text-align:left"><strong>Raw NAND</strong></td>
-<td style="text-align:left"><strong>1, 3, 4 ON</strong>; others OFF</td>
-<td style="text-align:left"><strong>1, 4 ON</strong>; others OFF</td>
-</tr>
-</tbody>
-</table></div>
 <hr />
 <h2 id="2-build-environment--compilation">2. Build Environment &amp; Compilation</h2>
 <div class="callout callout-note"><div class="callout-title">Note</div><p>All build commands below are executed <strong>inside the Docker container</strong>.
@@ -366,44 +337,12 @@ If you have not set up the Docker build environment yet, please refer to <a href
 <p>Precompiled zip packages are available from the CI pipeline:</p>
 <ol>
 <li>Go to: <a href="https://github.com/OpenNuvoton/openbmc/actions/workflows/numaker.yml" target="_blank" rel="noopener">OpenBMC GitHub Actions Workflow</a>.</li>
-<li>Select the latest successful build.</li>
+<li>Sign in to your GitHub account (required to download Actions artifacts) and select the latest successful build.</li>
 <li>Download <code>openbmc-numaker-iot-ma35d16fj87c.zip</code> from <strong>Artifacts</strong> and extract it on Windows.</li>
 </ol>
 <hr />
 <h2 id="3-firmware-flashing-nuwriter">3. Firmware Flashing (NuWriter)</h2>
-<p>Flashing uses Nuvoton's Python-based <strong>NuWriter</strong> tool via Windows batch scripts.</p>
-<div class="callout callout-tip"><div class="callout-title">Tip</div><p>If NuWriter fails to detect the board:</p>
-<ul>
-<li>Confirm SW7 is set to <strong>USB Download Mode</strong> (<code>1, 3, 4 ON</code>, or <code>1, 3, 4, 7 ON</code> for SD1).</li>
-<li>Verify the cable is connected to <strong>USB0 (Device)</strong>, not VCOM.</li>
-<li>Check Windows Device Manager for Nuvoton USB / WinUSB driver.</li>
-</ul></div>
-<h3 id="31-initial-setup-first-time-only">3.1 Initial Setup (First Time Only)</h3>
-<ol>
-<li>Connect <strong>USB0 (Device)</strong> to Windows PC.</li>
-<li>Run <code>install_nuwriter.bat</code> in the extracted artifact directory to fetch <code>MA35D1_NuWriter</code> and DDR configs.</li>
-</ol>
-<h3 id="32-flashing-spi-nand">3.2 Flashing SPI NAND</h3>
-<ol>
-<li>Set SW7 to <strong>USB Download Mode</strong> (<code>1, 3, 4 ON</code>; others OFF) → power on.</li>
-<li>Run <code>nuwriter_program_spinand.bat</code>.</li>
-<li>Wait for <code>Programming completed successfully!</code>.</li>
-<li>Power off → set SW7 to <strong>SPI NAND Boot</strong> (<code>1 ON</code>; others OFF) → power on.</li>
-</ol>
-<h3 id="33-flashing-raw-nand">3.3 Flashing Raw NAND</h3>
-<ol>
-<li>Set SW7 to <strong>USB Download Mode</strong> (<code>1, 3, 4 ON</code>; others OFF) → power on.</li>
-<li>Run <code>nuwriter_program_nand.bat</code>.</li>
-<li>Wait for completion.</li>
-<li>Power off → set SW7 to <strong>Raw NAND Boot</strong> (<code>1, 4 ON</code>; others OFF) → power on.</li>
-</ol>
-<h3 id="34-flashing-microsd-card">3.4 Flashing MicroSD Card</h3>
-<ol>
-<li>Insert MicroSD card into the slot.</li>
-<li>Set SW7 to <strong>USB Download Mode for SD1</strong> (<code>1, 3, 4, 7 ON</code>; others OFF) → power on.</li>
-<li>Run <code>nuwriter_program_sd.bat</code>.</li>
-<li>Power off → set SW7 to <strong>SD Boot</strong> (<code>1, 3, 7 ON</code>; others OFF) → power on.</li>
-</ol>
+<div class="callout callout-note"><div class="callout-title">Windows Flashing Flow</div><p>For step-by-step NuWriter flashing scripts (<code>install_nuwriter.bat</code> / <code>nuwriter_program_*.bat</code>), USB0 wiring, power-on sequence, and interactive boot switch presets, refer to <a href="index.html"><strong>MA35D16FJ87C Power &amp; Boot Settings</strong></a>.</p></div>
 <hr />
 <h2 id="4-boot-verification--sanity-checks">4. Boot Verification &amp; Sanity Checks</h2>
 <h3 id="41-expected-serial-boot-log-uart0-115200-8n1">4.1 Expected Serial Boot Log (UART0, 115200 8N1)</h3>
@@ -475,7 +414,7 @@ Test Summary: All Tests Passed!
 Report generated: test-redfish.md
 ====================================================
 </code></pre>
-<p>See <a href="test-redfish.html"><code>test-redfish.md</code></a> for full compliance results.</p>
+<p>See <a href="test-redfish.html">Redfish Integration Test Report</a> for full compliance results.</p>
 <h3 id="52-host-serial-over-lan-sol-console">5.2 Host Serial-Over-LAN (SOL) Console</h3>
 <p>On <code>numaker-iot-ma35d16fj87c</code>, <strong><code>UART10</code></strong> (<code>/dev/ttyS10</code>, <code>PH6</code>/<code>PH7</code>) is assigned as the Host SOL link.</p>
 <ol>
@@ -487,7 +426,7 @@ Open <strong>Operations → Serial-over-LAN console</strong>.
 <div class="callout callout-note"><div class="callout-title">Note</div><p>WebUI terminal checks host power status (<code>PS_PWROK</code> on <code>PK12</code>). If evaluating standalone without a host motherboard, tie <code>PK12</code> to <code>3.3V</code> and set Host Power to On via Redfish, or use direct CLI access via <code>obmc-console-client</code>.</p></div>
 </li>
 </ol>
-<p>Refer to <a href="test-sol.html"><code>test-sol.md</code></a> for loopback tests and wiring details.</p>
+<p>Refer to <a href="test-sol.html">Serial-Over-LAN (SOL) Console Guide</a> for loopback tests and wiring details.</p>
 <h3 id="53-independent-rs-485-interface-hardware-aud">5.3 Independent RS-485 Interface (Hardware AUD)</h3>
 <p>On <code>numaker-iot-ma35d16fj87c</code>, <strong><code>UART12</code></strong> (<code>/dev/ttyS12</code>, <code>PC13</code>~<code>PC15</code>) provides hardware Auto-Direction (AUD) control.</p>
 <ol>
@@ -501,7 +440,7 @@ Open <strong>Operations → Serial-over-LAN console</strong>.
 </code></pre>
 </li>
 </ol>
-<p>Refer to <a href="test-rs485.html"><code>test-rs485.md</code></a> for hardware AUD principles and pin connections.</p>
+<p>Refer to <a href="test-rs485.html">RS-485 Serial Interface Guide</a> for hardware AUD principles and pin connections.</p>
 <h3 id="54-can--can-fd-bus">5.4 CAN / CAN-FD Bus</h3>
 <p>MA35D16FJ87C provides 3 CAN controllers: <code>can0</code> (<code>PN2</code>/<code>PN3</code>), <code>can1</code> (<code>PN6</code>/<code>PN7</code>), <code>can2</code> (<code>PM2</code>/<code>PM3</code>).</p>
 <div class="callout callout-warning"><div class="callout-title">Warning</div><p>SoC CAN pins output 3.3V TTL levels. Connect via an external <strong>3.3V CAN transceiver</strong> (e.g. SN65HVD230 / TJA1051T) with <strong>120Ω termination resistors</strong> on both bus ends. Do NOT connect TTL pins directly to a 12V/24V CAN bus.</p></div>
@@ -520,7 +459,7 @@ Open <strong>Operations → Serial-over-LAN console</strong>.
 <p>Transmitter:</p>
 <pre><code class="language-bash">cansend can0 123##3112233445566778899AABBCCDDEEFF
 </code></pre>
-<p>See <a href="test-can.html"><code>test-can.md</code></a> for transceiver pin connections and packet formats.</p>
+<p>See <a href="test-can.html">CAN / CAN-FD Guide</a> for transceiver pin connections and packet formats.</p>
 <h3 id="55-host-power-control-gpio">5.5 Host Power Control (GPIO)</h3>
 <div class="table-scroll"><table>
 <thead>
@@ -559,7 +498,7 @@ curl -k -s -u root:0penBmc -X POST \
   -d '{&quot;ResetType&quot;: &quot;On&quot;}' -i
 # Expected: HTTP/1.1 204 No Content
 </code></pre>
-<p>See <a href="test-power-control.html"><code>test-power-control.md</code></a> for GPIO timing and control guides.</p>
+<p>See <a href="test-power-control.html">GPIO Power Control Guide</a> for GPIO timing and control guides.</p>
 <h3 id="56-soc-temperature-monitoring">5.6 SoC Temperature Monitoring</h3>
 <p>Via D-Bus (on BMC):</p>
 <pre><code class="language-bash">busctl get-property xyz.openbmc_project.MA35_Thermal /xyz/openbmc_project/sensors/temperature/cpu_thermal xyz.openbmc_project.Sensor.Value Value
@@ -570,34 +509,32 @@ curl -k -s -u root:0penBmc -X POST \
 <p>Stress and polling test script:</p>
 <pre><code class="language-bash">./test-cpu-temp.sh
 </code></pre>
-<p>High-frequency stress testing (20ms / 50 Hz+, persistent Keep-Alive):</p>
-<pre><code class="language-bash">./stress-redfish.sh
-</code></pre>
 <h3 id="57-firmware-update-via-redfish-ota">5.7 Firmware Update via Redfish (OTA)</h3>
 <p>End-to-end Redfish update with dual-bank (A/B) flashing and boot fallback:</p>
 <pre><code class="language-bash"># Automated end-to-end OTA verification (from repo root):
 ./meta-numaker/doc/numaker-iot-ma35d16fj87c/test-redfish-update/test-redfish-update.sh numaker-iot-ma35d16fj87c.local \
   build-ma35/tmp/deploy/images/numaker-iot-ma35d16fj87c/obmc-phosphor-image-numaker-iot-ma35d16fj87c.mtd-ubi-tar
 </code></pre>
-<p>For partition architecture, manual step-by-step curl commands, anti-rollback checks, and boot fallback testing, refer to <a href="test-redfish-update/index.html"><code>test-redfish-update/README.md</code></a>.</p>
+<p>For partition architecture, manual step-by-step curl commands, anti-rollback checks, and boot fallback testing, refer to <a href="test-redfish-update/index.html">Redfish Firmware Update (OTA) Guide</a>.</p>
 <hr />
 <h2 id="6-document-index">6. Document Index</h2>
 <ul>
-<li><a href="test-can.html"><code>test-can.md</code></a>: CAN / CAN-FD bus setup, transceiver wiring, and socketCAN commands.</li>
-<li><a href="test-sol.html"><code>test-sol.md</code></a>: Host SOL console guide and WebUI integration.</li>
-<li><a href="test-rs485.html"><code>test-rs485.md</code></a>: Independent RS-485 serial communication guide with Hardware AUD.</li>
-<li><a href="test-redfish.html"><code>test-redfish.md</code></a>: Redfish integration test report and schema compliance results.</li>
 <li><a href="https://github.com/OpenNuvoton/openbmc/blob/numaker/meta-numaker/doc/numaker-iot-ma35d16fj87c/test-redfish.sh" target="_blank" rel="noopener"><code>test-redfish.sh</code></a>: Automated curl test script for Redfish API regression tests.</li>
-<li><a href="test-redfish-update/index.html"><code>test-redfish-update/README.md</code></a>: Redfish OTA firmware update guide, dual-bank architecture, and automated test suite.</li>
-<li><a href="test-power-control.html"><code>test-power-control.md</code></a>: Host power state machine, wiring diagrams, and GPIO pinouts.</li>
 <li><a href="https://github.com/OpenNuvoton/openbmc/blob/numaker/meta-numaker/doc/numaker-iot-ma35d16fj87c/test-cpu-temp.sh" target="_blank" rel="noopener"><code>test-cpu-temp.sh</code></a>: Live SoC thermal monitoring script.</li>
-<li><code>stress-redfish.py</code>: High-frequency (20ms / 50 Hz+) Redfish stress test tool with HTTP Keep-Alive and latency percentiles.</li>
-<li><code>stress-redfish.sh</code>: Interactive launcher and presets for high-frequency stress testing.</li>
+<li><a href="test-can.html">CAN / CAN-FD Guide</a>: CAN / CAN-FD bus setup, transceiver wiring, and socketCAN commands.</li>
+<li><a href="test-sol.html">Serial-Over-LAN (SOL) Console Guide</a>: Host SOL console guide and WebUI integration.</li>
+<li><a href="test-rs485.html">RS-485 Serial Interface Guide</a>: Independent RS-485 serial communication guide with Hardware AUD.</li>
+<li><a href="test-redfish.html">Redfish Integration Test Report</a>: Redfish integration test report and schema compliance results.</li>
+<li><a href="test-redfish-update/index.html">Redfish Firmware Update (OTA) Guide</a>: Redfish OTA firmware update guide, dual-bank architecture, and automated test suite.</li>
+<li><a href="test-power-control.html">GPIO Power Control Guide</a>: Host power state machine, wiring diagrams, and GPIO pinouts.</li>
 </ul>
-</div><aside class="sidebar"><div class="side-group"><h3>MA35D16FJ87C</h3><ul class="side-list"><li><a class="active" href="quickstart.html">Quickstart Guide</a></li><li><a class="" href="index.html">Power &amp; Boot Settings</a></li><li><a class="" href="bom.html">Interactive BOM</a></li><li><a class="" href="test-redfish.html">Redfish API</a></li><li><a class="" href="test-redfish-update/index.html">Redfish OTA</a></li><li><a class="" href="test-sol.html">SOL</a></li><li><a class="" href="test-can.html">CAN-FD</a></li><li><a class="" href="test-rs485.html">RS-485</a></li><li><a class="" href="test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#1-hardware-specifications--setup">1. Hardware Specifications &amp; Setup</a></li><li class="toc-h3"><a href="#11-specifications">1.1 Specifications</a></li><li class="toc-h3"><a href="#12-connectors">1.2 Connectors</a></li><li class="toc-h3"><a href="#13-boot-mode-dip-switch-settings-sw7">1.3 Boot Mode DIP Switch Settings (SW7)</a></li><li class="toc-h2"><a href="#2-build-environment--compilation">2. Build Environment &amp; Compilation</a></li><li class="toc-h3"><a href="#21-build-steps">2.1 Build Steps</a></li><li class="toc-h3"><a href="#22-build-outputs">2.2 Build Outputs</a></li><li class="toc-h3"><a href="#23-prebuilt-artifacts-from-github-actions">2.3 Prebuilt Artifacts from GitHub Actions</a></li><li class="toc-h2"><a href="#3-firmware-flashing-nuwriter">3. Firmware Flashing (NuWriter)</a></li><li class="toc-h3"><a href="#31-initial-setup-first-time-only">3.1 Initial Setup (First Time Only)</a></li><li class="toc-h3"><a href="#32-flashing-spi-nand">3.2 Flashing SPI NAND</a></li><li class="toc-h3"><a href="#33-flashing-raw-nand">3.3 Flashing Raw NAND</a></li><li class="toc-h3"><a href="#34-flashing-microsd-card">3.4 Flashing MicroSD Card</a></li><li class="toc-h2"><a href="#4-boot-verification--sanity-checks">4. Boot Verification &amp; Sanity Checks</a></li><li class="toc-h3"><a href="#41-expected-serial-boot-log-uart0-115200-8n1">4.1 Expected Serial Boot Log (UART0, 115200 8N1)</a></li><li class="toc-h3"><a href="#42-network--access">4.2 Network &amp; Access</a></li><li class="toc-h2"><a href="#5-subsystem-verification">5. Subsystem Verification</a></li><li class="toc-h3"><a href="#51-redfish-regression-test-suite">5.1 Redfish Regression Test Suite</a></li><li class="toc-h3"><a href="#52-host-serial-over-lan-sol-console">5.2 Host Serial-Over-LAN (SOL) Console</a></li><li class="toc-h3"><a href="#53-independent-rs-485-interface-hardware-aud">5.3 Independent RS-485 Interface (Hardware AUD)</a></li><li class="toc-h3"><a href="#54-can--can-fd-bus">5.4 CAN / CAN-FD Bus</a></li><li class="toc-h3"><a href="#55-host-power-control-gpio">5.5 Host Power Control (GPIO)</a></li><li class="toc-h3"><a href="#56-soc-temperature-monitoring">5.6 SoC Temperature Monitoring</a></li><li class="toc-h3"><a href="#57-firmware-update-via-redfish-ota">5.7 Firmware Update via Redfish (OTA)</a></li><li class="toc-h2"><a href="#6-document-index">6. Document Index</a></li></ul></div></aside></div></main>
+
+<nav class="flow-nav" aria-label="Guide progression"><a href="../docker/index.html">&larr; Docker Build Environment</a><a href="index.html">Next: MA35D16FJ87C Power &amp; Boot &rarr;</a></nav>
+</div><aside class="sidebar"><div class="side-group"><h3>MA35D16FJ87C</h3><ul class="side-list"><li><a class="active" href="quickstart.html">Quickstart Guide</a></li><li><a class="" href="index.html">Power &amp; Boot Settings</a></li><li><a class="" href="bom.html">Interactive BOM</a></li><li><a class="" href="test-redfish.html">Redfish API</a></li><li><a class="" href="test-redfish-update/index.html">Redfish OTA</a></li><li><a class="" href="test-sol.html">SOL</a></li><li><a class="" href="test-can.html">CAN-FD</a></li><li><a class="" href="test-rs485.html">RS-485</a></li><li><a class="" href="test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#1-hardware-specifications">1. Hardware Specifications</a></li><li class="toc-h2"><a href="#2-build-environment--compilation">2. Build Environment &amp; Compilation</a></li><li class="toc-h3"><a href="#21-build-steps">2.1 Build Steps</a></li><li class="toc-h3"><a href="#22-build-outputs">2.2 Build Outputs</a></li><li class="toc-h3"><a href="#23-prebuilt-artifacts-from-github-actions">2.3 Prebuilt Artifacts from GitHub Actions</a></li><li class="toc-h2"><a href="#3-firmware-flashing-nuwriter">3. Firmware Flashing (NuWriter)</a></li><li class="toc-h2"><a href="#4-boot-verification--sanity-checks">4. Boot Verification &amp; Sanity Checks</a></li><li class="toc-h3"><a href="#41-expected-serial-boot-log-uart0-115200-8n1">4.1 Expected Serial Boot Log (UART0, 115200 8N1)</a></li><li class="toc-h3"><a href="#42-network--access">4.2 Network &amp; Access</a></li><li class="toc-h2"><a href="#5-subsystem-verification">5. Subsystem Verification</a></li><li class="toc-h3"><a href="#51-redfish-regression-test-suite">5.1 Redfish Regression Test Suite</a></li><li class="toc-h3"><a href="#52-host-serial-over-lan-sol-console">5.2 Host Serial-Over-LAN (SOL) Console</a></li><li class="toc-h3"><a href="#53-independent-rs-485-interface-hardware-aud">5.3 Independent RS-485 Interface (Hardware AUD)</a></li><li class="toc-h3"><a href="#54-can--can-fd-bus">5.4 CAN / CAN-FD Bus</a></li><li class="toc-h3"><a href="#55-host-power-control-gpio">5.5 Host Power Control (GPIO)</a></li><li class="toc-h3"><a href="#56-soc-temperature-monitoring">5.6 SoC Temperature Monitoring</a></li><li class="toc-h3"><a href="#57-firmware-update-via-redfish-ota">5.7 Firmware Update via Redfish (OTA)</a></li><li class="toc-h2"><a href="#6-document-index">6. Document Index</a></li></ul></div></aside></div></main>
   <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
   <script>
-document.querySelectorAll('pre').forEach(function (pre) {
+document.querySelectorAll('pre > code.language-bash, pre > code.language-sh').forEach(function (code) {
+  var pre = code.parentNode;
   var wrap = document.createElement('div');
   wrap.className = 'code-wrap';
   pre.parentNode.insertBefore(wrap, pre);

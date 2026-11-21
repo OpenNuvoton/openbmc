@@ -217,19 +217,20 @@ footer.site-footer {
 <h2 id="directory-structure">Directory Structure</h2>
 <pre><code>meta-numaker/
 ├── conf/            # Layer configuration (numaker-layer)
-├── doc/             # Docker build environment, board quickstarts, and test guides
+├── doc/             # Docker build scripts &amp; automated board test scripts (docs on GitHub Pages)
 ├── meta-evb-ma35/   # Sub-layer for MA35 series EVBs (MA35D16, MA35D03, MA35D05K)
 └── meta-evb-nuc980/ # Sub-layer for NUC980 series EVBs (NUC980G2)
 </code></pre>
 <ul>
 <li><strong><a href="../meta-evb-ma35/index.html">meta-evb-ma35</a></strong>: Machine configurations and recipes for 64-bit Cortex-A35 EVBs.</li>
 <li><strong><a href="../meta-evb-nuc980/index.html">meta-evb-nuc980</a></strong>: Machine configurations and recipes for 32-bit ARM926EJ-S EVBs.</li>
-<li><strong><a href="../index.html#boards">doc</a></strong>: Docker build scripts, hardware setup, and feature test procedures.</li>
+<li><strong><a href="../index.html#boards">doc</a></strong>: Docker build scripts and automated test scripts (full HTML board guides are published on GitHub Pages).</li>
 </ul>
 </div><aside class="sidebar"><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#directory-structure">Directory Structure</a></li></ul></div></aside></div></main>
   <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
   <script>
-document.querySelectorAll('pre').forEach(function (pre) {
+document.querySelectorAll('pre > code.language-bash, pre > code.language-sh').forEach(function (code) {
+  var pre = code.parentNode;
   var wrap = document.createElement('div');
   wrap.className = 'code-wrap';
   pre.parentNode.insertBefore(wrap, pre);

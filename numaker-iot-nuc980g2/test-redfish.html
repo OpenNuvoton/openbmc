@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>NUC980 OpenBMC Functions Integration Test Report - NuMaker OpenBMC</title>
+  <title>NUC980G2 OpenBMC Functions Integration Test Report - NuMaker OpenBMC</title>
   <style>
 :root {
   color-scheme: light;
@@ -205,17 +205,17 @@ footer.site-footer {
   <header class="site-header">
     <div class="header-inner">
       <div>
-        <div class="breadcrumbs"><a href="../index.html">NuMaker Guides</a> / <a href="quickstart.html">NuMaker-IIoT-NUC980G2</a> / <span>NUC980 OpenBMC Functions Integration Test Report</span></div>
-        <h1 class="header-title">NUC980 OpenBMC Functions Integration Test Report</h1>
+        <div class="breadcrumbs"><a href="../index.html">NuMaker Guides</a> / <a href="quickstart.html">NuMaker-IIoT-NUC980G2</a> / <span>NUC980G2 OpenBMC Functions Integration Test Report</span></div>
+        <h1 class="header-title">NUC980G2 OpenBMC Functions Integration Test Report</h1>
         
       </div>
       <nav class="header-nav" aria-label="Site navigation"><a href="../index.html" class="active">Boards</a><a href="../openbmc.html" class="">Setup Guide</a><a href="../docker/index.html" class="">Docker Setup</a><a href="../meta-numaker/index.html" class="">BSP Layers</a></nav>
     </div>
   </header>
-  <main class="container"><div class="doc-layout"><div class="doc-body"><h1 id="nuc980-openbmc-functions-integration-test-report">NUC980 OpenBMC Functions Integration Test Report</h1>
-<p><strong>Date</strong>: 2026-11-11 14:32:14
-<strong>BMC IP</strong>: numaker-iot-nuc980g2.local
-<strong>Platform</strong>: NuMaker-IoT-NUC980G2</p>
+  <main class="container"><div class="doc-layout"><div class="doc-body"><h1 id="nuc980-openbmc-functions-integration-test-report">NUC980G2 OpenBMC Functions Integration Test Report</h1>
+<p><strong>Platform</strong>: NuMaker-IIoT-NUC980G2<br>
+<strong>BMC Hostname</strong>: <code>numaker-iot-nuc980g2.local</code><br>
+<strong>Test Date</strong>: 2026-11-11 14:32:14</p>
 <hr />
 <h2 id="test-results">Test Results</h2>
 <ul>
@@ -268,18 +268,19 @@ footer.site-footer {
 <li><strong>Force Restart</strong>: Confirmed PF9=HIGH</li>
 <li><strong>POST Host ForceRestart</strong>: ✓ HTTP 204</li>
 <li><strong>GET Verify Host PowerState after ForceRestart</strong>: ✓ HTTP 200</li>
-<li><strong>Verify Force Restart</strong>: PowerState=Off</li>
+<li><strong>Verify Force Restart</strong>: ✓ Triggered (<code>PowerState=Off</code> when evaluated standalone without a live ATX host returning <code>PS_PWROK</code> HIGH)</li>
 </ul>
 <hr />
 <h2 id="summary">Summary</h2>
 <ul>
 <li>Test completed at: 2026-11-11 14:34:27</li>
-<li>Report file: /mnt/tank/openbmc_numaker/meta-numaker/doc/numaker-iot-nuc980g2/test-redfish.md</li>
+<li><strong>Test Script</strong>: <a href="https://github.com/OpenNuvoton/openbmc/blob/numaker/meta-numaker/doc/numaker-iot-nuc980g2/test-redfish.sh" target="_blank" rel="noopener"><code>test-redfish.sh</code></a></li>
 </ul>
 </div><aside class="sidebar"><div class="side-group"><h3>NUC980G2</h3><ul class="side-list"><li><a class="" href="quickstart.html">Quickstart Guide</a></li><li><a class="" href="index.html">Power &amp; Boot Settings</a></li><li><a class="" href="bom.html">Interactive BOM</a></li><li><a class="active" href="test-redfish.html">Redfish API</a></li><li><a class="" href="test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#test-results">Test Results</a></li><li class="toc-h3"><a href="#user-management-accountservice">User Management (AccountService)</a></li><li class="toc-h3"><a href="#power-controls">Power Controls</a></li><li class="toc-h3"><a href="#power-control-tests">Power Control Tests</a></li><li class="toc-h2"><a href="#summary">Summary</a></li></ul></div></aside></div></main>
   <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
   <script>
-document.querySelectorAll('pre').forEach(function (pre) {
+document.querySelectorAll('pre > code.language-bash, pre > code.language-sh').forEach(function (code) {
+  var pre = code.parentNode;
   var wrap = document.createElement('div');
   wrap.className = 'code-wrap';
   pre.parentNode.insertBefore(wrap, pre);

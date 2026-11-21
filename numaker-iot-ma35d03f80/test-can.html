@@ -187,6 +187,15 @@ td {
   margin: 12px 0 14px;
 }
 .flow-diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+.wiring-diagram {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  margin: 12px 0 14px;
+}
+.wiring-diagram svg { width: 100%; min-width: 560px; height: auto; display: block; }
 footer.site-footer {
   border-top: 1px solid var(--line);
   color: var(--muted);
@@ -324,17 +333,126 @@ footer.site-footer {
 </table></div>
 <h3 id="external-transceiver-wiring">External Transceiver Wiring</h3>
 <p>SoC pins output 3.3V TTL. Connect via an external 3.3V CAN transceiver (e.g. SN65HVD230, TJA1051T):</p>
-<pre><code class="language-text"> ┌───────────────────────────┐         ┌────────────────────────┐
- │   NuMaker-IoT-MA35D03F80  │         │  CAN Transceiver (PHY) │
- │                           │         │                        │
- │   CAN_TXD (e.g. PN3/PN7) ─┼────────►│ CAN_TXD          CAN_H ├─────── CAN Bus High
- │   CAN_RXD (e.g. PN2/PN6) ◄┼─────────┤ CAN_RXD          CAN_L ├─────── CAN Bus Low
- │   GND ────────────────────┼─────────┤ GND                GND ├──┬──── Common Ground
- └───────────────────────────┘         └────────────────────────┘  │
-                                                                 [120Ω] Termination
-                                                                   │
-                                                           ────────┴────
-</code></pre>
+<div class="wiring-diagram" role="figure" aria-label="NuMaker-IoT-MA35D03F80 External CAN Transceiver Wiring Diagram">
+<svg viewBox="0 0 800 226" xmlns="http://www.w3.org/2000/svg" font-family="Bahnschrift,Segoe UI,sans-serif">
+  <defs>
+    <marker id="can-tx" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1 L7 4 L0 7 z" fill="#08745f"/>
+    </marker>
+    <marker id="can-rx" viewBox="0 0 8 8" refX="1" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M7 1 L0 4 L7 7 z" fill="#2b6cb0"/>
+    </marker>
+  </defs>
+
+  <!-- Title Bar -->
+  <text x="12" y="19" font-size="13" font-weight="700" fill="#243430">NuMaker-IoT-MA35D03F80 · External CAN Transceiver Wiring</text>
+  <text x="788" y="19" text-anchor="end" font-size="10.5" fill="#64736d">3.3V TTL ↔ Differential CAN Bus</text>
+
+  <!-- Subtle Legend -->
+  <g transform="translate(12,29)" font-size="10" fill="#5e706a">
+    <line x1="0" y1="5" x2="16" y2="5" stroke="#08745f" stroke-width="2"/>
+    <text x="21" y="8.5">CAN_TXD (3.3V Out)</text>
+    <line x1="130" y1="5" x2="146" y2="5" stroke="#2b6cb0" stroke-width="2"/>
+    <text x="151" y="8.5">CAN_RXD (3.3V In)</text>
+    <line x1="254" y1="5" x2="270" y2="5" stroke="#c04632" stroke-width="2"/>
+    <text x="275" y="8.5">CAN_H (High)</text>
+    <line x1="354" y1="5" x2="370" y2="5" stroke="#1f7a8c" stroke-width="2"/>
+    <text x="375" y="8.5">CAN_L (Low)</text>
+    <rect x="448" y="0" width="12" height="10" rx="1.5" fill="#fff4d6" stroke="#b88214"/>
+    <text x="465" y="8.5">120 Ω Bus Termination</text>
+  </g>
+
+  <!-- Left Block: NuMaker Board (SoC) -->
+  <rect x="12" y="52" width="232" height="160" rx="5" fill="#fff" stroke="#08745f" stroke-width="1.4"/>
+  <path d="M12 57 a5 5 0 0 1 5 -5 h222 a5 5 0 0 1 5 5 v28 h-232 z" fill="#e5f3ec"/>
+  <line x1="12" y1="85" x2="244" y2="85" stroke="#b9d9ca"/>
+  <text x="128" y="70" text-anchor="middle" font-size="11.5" font-weight="700" fill="#08745f">NuMaker-IoT-MA35D03F80</text>
+  <text x="128" y="81" text-anchor="middle" font-size="9.5" fill="#465c55">SoC M_CAN Controller (3.3V TTL)</text>
+
+  <!-- Board Pin Rows -->
+  <rect x="22" y="96" width="212" height="28" rx="3.5" fill="#f5fbf8" stroke="#c6e3d5"/>
+  <text x="30" y="114" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#08745f">CAN_TXD</text>
+  <text x="226" y="114" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="9.5" fill="#465c55">PN3 / PN7 / PM3</text>
+
+  <rect x="22" y="134" width="212" height="28" rx="3.5" fill="#f4f8fd" stroke="#c6dcf0"/>
+  <text x="30" y="152" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#1e5494">CAN_RXD</text>
+  <text x="226" y="152" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="9.5" fill="#465c55">PN2 / PN6 / PM2</text>
+
+  <rect x="22" y="172" width="212" height="28" rx="3.5" fill="#f2f5f4" stroke="#cfd9d5"/>
+  <text x="30" y="190" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#4f615b">GND</text>
+  <text x="226" y="190" text-anchor="end" font-size="9.5" fill="#64736d">Reference Ground</text>
+
+  <!-- Board Pin Pads -->
+  <circle cx="244" cy="110" r="3.5" fill="#08745f"/>
+  <circle cx="244" cy="148" r="3.5" fill="#2b6cb0"/>
+  <circle cx="244" cy="186" r="3.5" fill="#6e7f79"/>
+
+  <!-- TTL Signal Wires -->
+  <line x1="248" y1="110" x2="322" y2="110" stroke="#08745f" stroke-width="2" marker-end="url(#can-tx)"/>
+  <text x="285" y="103" text-anchor="middle" font-size="9.5" font-weight="600" fill="#08745f">TX · 3.3V</text>
+
+  <line x1="250" y1="148" x2="324" y2="148" stroke="#2b6cb0" stroke-width="2" marker-start="url(#can-rx)"/>
+  <text x="285" y="141" text-anchor="middle" font-size="9.5" font-weight="600" fill="#1e5494">RX · 3.3V</text>
+
+  <line x1="248" y1="186" x2="324" y2="186" stroke="#6e7f79" stroke-width="1.6"/>
+  <text x="285" y="179" text-anchor="middle" font-size="9.5" fill="#64736d">GND</text>
+
+  <!-- Center Block: External CAN Transceiver (PHY) -->
+  <rect x="326" y="52" width="198" height="160" rx="5" fill="#fff" stroke="#2b6cb0" stroke-width="1.4"/>
+  <path d="M326 57 a5 5 0 0 1 5 -5 h188 a5 5 0 0 1 5 5 v28 h-198 z" fill="#e8f2fc"/>
+  <line x1="326" y1="85" x2="524" y2="85" stroke="#b8d3ee"/>
+  <text x="425" y="70" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1e5494">CAN Transceiver (PHY)</text>
+  <text x="425" y="81" text-anchor="middle" font-size="9.5" fill="#465c55">e.g. SN65HVD230 / TJA1051T</text>
+
+  <!-- PHY Internal Pin Labels -->
+  <line x1="425" y1="95" x2="425" y2="200" stroke="#dce5df" stroke-dasharray="3 3"/>
+  <rect x="394" y="136" width="62" height="22" rx="11" fill="#f3f7fa" stroke="#c3d7ec"/>
+  <text x="425" y="150" text-anchor="middle" font-size="9" font-weight="700" fill="#2b6cb0">TTL ↔ DIFF</text>
+
+  <text x="336" y="114" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#08745f">TXD</text>
+  <text x="336" y="152" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#1e5494">RXD</text>
+  <text x="336" y="190" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#4f615b">GND</text>
+
+  <text x="514" y="114" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#c04632">CAN_H</text>
+  <text x="514" y="152" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#1f7a8c">CAN_L</text>
+  <text x="514" y="190" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#4f615b">GND</text>
+
+  <!-- PHY Pin Pads -->
+  <circle cx="326" cy="110" r="3.5" fill="#08745f"/>
+  <circle cx="326" cy="148" r="3.5" fill="#2b6cb0"/>
+  <circle cx="326" cy="186" r="3.5" fill="#6e7f79"/>
+  <circle cx="524" cy="110" r="3.5" fill="#c04632"/>
+  <circle cx="524" cy="148" r="3.5" fill="#1f7a8c"/>
+  <circle cx="524" cy="186" r="3.5" fill="#6e7f79"/>
+
+  <!-- Differential CAN Bus Wires -->
+  <line x1="528" y1="110" x2="676" y2="110" stroke="#c04632" stroke-width="2.2"/>
+  <text x="562" y="102" text-anchor="middle" font-size="9.5" font-weight="700" fill="#c04632">CAN_H</text>
+
+  <line x1="528" y1="148" x2="676" y2="148" stroke="#1f7a8c" stroke-width="2.2"/>
+  <text x="562" y="162" text-anchor="middle" font-size="9.5" font-weight="700" fill="#1f7a8c">CAN_L</text>
+
+  <line x1="528" y1="186" x2="676" y2="186" stroke="#6e7f79" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="602" y="199" text-anchor="middle" font-size="9.5" fill="#64736d">Common Ground</text>
+
+  <!-- 120 Ohm Termination Resistor across CAN_H and CAN_L -->
+  <circle cx="602" cy="110" r="3" fill="#b88214"/>
+  <circle cx="602" cy="148" r="3" fill="#b88214"/>
+  <line x1="602" y1="110" x2="602" y2="117" stroke="#b88214" stroke-width="1.6"/>
+  <rect x="595" y="117" width="14" height="24" rx="2" fill="#fff4d6" stroke="#b88214" stroke-width="1.5"/>
+  <line x1="602" y1="141" x2="602" y2="148" stroke="#b88214" stroke-width="1.6"/>
+  <text x="615" y="128" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#7c5300">120 Ω</text>
+  <text x="615" y="140" font-size="9" fill="#8f7230">Term.</text>
+
+  <!-- Far-Right CAN Bus / Peer Node Box -->
+  <rect x="676" y="76" width="112" height="126" rx="5" fill="#f8fbf9" stroke="#9eb0a9" stroke-width="1.2" stroke-dasharray="4 2"/>
+  <text x="732" y="96" text-anchor="middle" font-size="11" font-weight="700" fill="#243430">CAN Bus</text>
+  <text x="732" y="113" text-anchor="middle" font-size="9.5" fill="#c04632">Bus High</text>
+  <text x="732" y="151" text-anchor="middle" font-size="9.5" fill="#1f7a8c">Bus Low</text>
+  <text x="732" y="176" text-anchor="middle" font-size="9" fill="#5e706a">Peer Node / Analyzer</text>
+  <text x="732" y="190" text-anchor="middle" font-size="9" fill="#8f7230">(120 Ω at far end)</text>
+</svg>
+</div>
 <div class="callout callout-warning"><div class="callout-title">Warning</div><p>Ensure a <strong>120Ω termination resistor</strong> is placed across <code>CAN_H</code> and <code>CAN_L</code> at each bus end. Do not connect SoC TTL pins directly to 12V/24V bus lines.</p></div>
 <hr />
 <h2 id="3-interface-configuration">3. Interface Configuration</h2>
@@ -434,7 +552,8 @@ footer.site-footer {
 </div><aside class="sidebar"><div class="side-group"><h3>MA35D03F80</h3><ul class="side-list"><li><a class="" href="quickstart.html">Quickstart Guide</a></li><li><a class="" href="index.html">Power &amp; Boot Settings</a></li><li><a class="" href="bom.html">Interactive BOM</a></li><li><a class="" href="test-redfish.html">Redfish API</a></li><li><a class="" href="test-redfish-update/index.html">Redfish OTA</a></li><li><a class="" href="test-sol.html">SOL</a></li><li><a class="active" href="test-can.html">CAN-FD</a></li><li><a class="" href="test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#1-overview">1. Overview</a></li><li class="toc-h2"><a href="#2-hardware-signals--transceiver-wiring">2. Hardware Signals &amp; Transceiver Wiring</a></li><li class="toc-h3"><a href="#external-transceiver-wiring">External Transceiver Wiring</a></li><li class="toc-h2"><a href="#3-interface-configuration">3. Interface Configuration</a></li><li class="toc-h3"><a href="#mode-a-classic-can-20-500-kbps">Mode A: Classic CAN 2.0 (500 kbps)</a></li><li class="toc-h3"><a href="#mode-b-can-fd-500-kbps-nominal--2-mbps-data-phase">Mode B: CAN-FD (500 kbps Nominal + 2 Mbps Data Phase)</a></li><li class="toc-h3"><a href="#mode-c-internal-loopback-self-test-without-external-phy">Mode C: Internal Loopback (Self-test without external PHY)</a></li><li class="toc-h2"><a href="#4-transmission--reception-testing-can-utils">4. Transmission &amp; Reception Testing (can-utils)</a></li><li class="toc-h3"><a href="#41-two-port-interconnect-test-can0-to-can1">4.1 Two-Port Interconnect Test (can0 to can1)</a></li><li class="toc-h3"><a href="#42-frame-transmission-cansend">4.2 Frame Transmission (cansend)</a></li><li class="toc-h3"><a href="#43-traffic-generator-cangen">4.3 Traffic Generator (cangen)</a></li><li class="toc-h3"><a href="#44-traffic-monitoring-candump--cansniffer">4.4 Traffic Monitoring (candump / cansniffer)</a></li><li class="toc-h2"><a href="#5-troubleshooting">5. Troubleshooting</a></li></ul></div></aside></div></main>
   <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
   <script>
-document.querySelectorAll('pre').forEach(function (pre) {
+document.querySelectorAll('pre > code.language-bash, pre > code.language-sh').forEach(function (code) {
+  var pre = code.parentNode;
   var wrap = document.createElement('div');
   wrap.className = 'code-wrap';
   pre.parentNode.insertBefore(wrap, pre);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>meta-evb-nuc980: OpenBMC BSP Layer for NuMaker-IoT-NUC980G2 - NuMaker OpenBMC</title>
+  <title>meta-evb-nuc980: OpenBMC BSP Layer for NuMaker-IIoT-NUC980G2 - NuMaker OpenBMC</title>
   <style>
 :root {
   color-scheme: light;
@@ -187,6 +187,8 @@ td {
   margin: 12px 0 14px;
 }
 .flow-diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+.mmap-diagram { background: #fff; border: 1px solid var(--line); border-radius: 5px; padding: 12px 14px; overflow-x: auto; margin: 12px 0 14px; }
+.mmap-diagram svg { width: 100%; min-width: 560px; height: auto; display: block; }
 footer.site-footer {
   border-top: 1px solid var(--line);
   color: var(--muted);
@@ -206,22 +208,14 @@ footer.site-footer {
     <div class="header-inner">
       <div>
         <div class="breadcrumbs"><a href="../index.html">NuMaker Guides</a> / <a href="../meta-numaker/index.html">meta-numaker</a> / <span>meta-evb-nuc980</span></div>
-        <h1 class="header-title">meta-evb-nuc980: OpenBMC BSP Layer for NuMaker-IoT-NUC980G2</h1>
+        <h1 class="header-title">meta-evb-nuc980: OpenBMC BSP Layer for NuMaker-IIoT-NUC980G2</h1>
         
       </div>
       <nav class="header-nav" aria-label="Site navigation"><a href="../index.html" class="">Boards</a><a href="../openbmc.html" class="">Setup Guide</a><a href="../docker/index.html" class="">Docker Setup</a><a href="../meta-numaker/index.html" class="active">BSP Layers</a></nav>
     </div>
   </header>
-  <main class="container"><div class="doc-layout"><div class="doc-body"><h1 id="meta-evb-nuc980-openbmc-bsp-layer-for-numaker-iot-nuc980g2">meta-evb-nuc980: OpenBMC BSP Layer for NuMaker-IoT-NUC980G2</h1>
-<p>OpenBMC BSP layer for the Nuvoton NuMaker-IoT-NUC980G2 evaluation board (ARM926EJ-S).</p>
-<h2 id="table-of-contents">Table of Contents</h2>
-<ul>
-<li><a href="#layer-features">Layer Features</a></li>
-<li><a href="#spi-nand-flash-layout">SPI-NAND Flash Layout</a></li>
-<li><a href="#board-documentation--test-guides">Board Documentation &amp; Test Guides</a></li>
-<li><a href="#layer-structure">Layer Structure</a></li>
-</ul>
-<hr />
+  <main class="container"><div class="doc-layout"><div class="doc-body"><h1 id="meta-evb-nuc980-openbmc-bsp-layer-for-numaker-iot-nuc980g2">meta-evb-nuc980: OpenBMC BSP Layer for NuMaker-IIoT-NUC980G2</h1>
+<p>OpenBMC BSP layer for the Nuvoton NuMaker-IIoT-NUC980G2 evaluation board (ARM926EJ-S).</p>
 <h2 id="layer-features">Layer Features</h2>
 <ul>
 <li><strong>Redfish API</strong>: <code>bmcweb</code> (<code>/redfish/v1/</code>) for chassis/system control, sensor readings, and user management (<code>webui-vue</code> is omitted to fit the 128 MB RAM budget).</li>
@@ -231,55 +225,78 @@ footer.site-footer {
 </ul>
 <hr />
 <h2 id="spi-nand-flash-layout">SPI-NAND Flash Layout</h2>
-<p>Total capacity: 128 MB (<code>0x0000000</code>–<code>0x8000000</code>)</p>
-<div class="table-scroll"><table>
-<thead>
-<tr>
-<th style="text-align:left">MTD</th>
-<th style="text-align:left">Label</th>
-<th style="text-align:left">Address Range</th>
-<th style="text-align:left">Size</th>
-<th style="text-align:left">Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left"><code>mtd0</code></td>
-<td style="text-align:left"><code>u-boot</code></td>
-<td style="text-align:left"><code>0x0000000</code>–<code>0x0100000</code></td>
-<td style="text-align:left">1 MB</td>
-<td style="text-align:left">U-Boot SPL (<code>0x0</code>) + U-Boot environment (<code>0x80000</code>)</td>
-</tr>
-<tr>
-<td style="text-align:left"><code>mtd1</code></td>
-<td style="text-align:left"><code>u-boot-env</code></td>
-<td style="text-align:left"><code>0x0100000</code>–<code>0x0180000</code></td>
-<td style="text-align:left">512 KB</td>
-<td style="text-align:left">U-Boot proper (<code>u-boot.bin</code>)</td>
-</tr>
-<tr>
-<td style="text-align:left"><code>mtd2</code></td>
-<td style="text-align:left"><code>kernel</code></td>
-<td style="text-align:left"><code>0x0180000</code>–<code>0x0800000</code></td>
-<td style="text-align:left">6.5 MB</td>
-<td style="text-align:left">Device tree (<code>0x180000</code>) + Kernel <code>uImage</code> (<code>0x200000</code>)</td>
-</tr>
-<tr>
-<td style="text-align:left"><code>mtd3</code></td>
-<td style="text-align:left"><code>rofs</code></td>
-<td style="text-align:left"><code>0x0800000</code>–<code>0x3800000</code></td>
-<td style="text-align:left">48 MB</td>
-<td style="text-align:left">Read-only rootfs UBI volume (<code>ubifs</code>)</td>
-</tr>
-<tr>
-<td style="text-align:left"><code>mtd4</code></td>
-<td style="text-align:left"><code>rwfs</code></td>
-<td style="text-align:left"><code>0x3800000</code>–<code>0x8000000</code></td>
-<td style="text-align:left">72 MB</td>
-<td style="text-align:left">Persistent overlay UBI volume (<code>/var</code>)</td>
-</tr>
-</tbody>
-</table></div>
+<div class="mmap-diagram" role="figure" aria-label="NUC980G2 128 MB SPI-NAND Flash Memory Map">
+<svg viewBox="0 0 800 286" xmlns="http://www.w3.org/2000/svg" font-family="Bahnschrift,Segoe UI,sans-serif">
+  <text x="10" y="19" font-size="13" font-weight="700" fill="#243430">NUC980G2 · 128 MB SPI-NAND Flash Memory Map (W25N01GV)</text>
+  <text x="790" y="19" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#64736d">0x0000_0000 – 0x0800_0000</text>
+
+  <!-- Address Ticks -->
+  <g font-family="Cascadia Code,Consolas,monospace" font-size="9.5" fill="#64736d">
+    <text x="10" y="47">0x0000000</text>
+    <text x="116" y="47">0x0100000</text>
+    <text x="206" y="47">0x0180000</text>
+    <text x="326" y="47">0x0800000</text>
+    <text x="536" y="47">0x3800000</text>
+    <text x="790" y="47" text-anchor="end">0x8000000 (128 MB)</text>
+  </g>
+  <path d="M10 50v6 M116 50v6 M206 50v6 M326 50v6 M536 50v6 M790 50v6" stroke="#9eb0a9" stroke-width="1"/>
+
+  <!-- Linear MTD Strip -->
+  <rect x="10" y="56" width="104" height="50" rx="4" fill="#fff6db" stroke="#d6a32e" stroke-width="1.3"/>
+  <text x="62" y="77" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="11" font-weight="700" fill="#7c5300">mtd0</text>
+  <text x="62" y="93" text-anchor="middle" font-size="9.5" fill="#8f7230">1 MB · SPL+Env</text>
+
+  <rect x="118" y="56" width="86" height="50" rx="4" fill="#fff4d6" stroke="#c89420" stroke-width="1.2"/>
+  <text x="161" y="77" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="11" font-weight="700" fill="#7c5300">mtd1</text>
+  <text x="161" y="93" text-anchor="middle" font-size="9.5" fill="#8f7230">512 KB</text>
+
+  <rect x="208" y="56" width="116" height="50" rx="4" fill="#e8f2fc" stroke="#2b6cb0" stroke-width="1.2"/>
+  <text x="266" y="77" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="11" font-weight="700" fill="#1e5494">mtd2 · kernel</text>
+  <text x="266" y="93" text-anchor="middle" font-size="9.5" fill="#465c55">6.5 MB · DTB+uImage</text>
+
+  <rect x="328" y="56" width="206" height="50" rx="4" fill="#e5f3ec" stroke="#08745f" stroke-width="1.3"/>
+  <text x="431" y="77" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="11" font-weight="700" fill="#08745f">mtd3 · rofs (UBIFS RO)</text>
+  <text x="431" y="93" text-anchor="middle" font-size="9.5" fill="#465c55">48 MB · Read-Only RootFS</text>
+
+  <rect x="538" y="56" width="252" height="50" rx="4" fill="#f4effe" stroke="#7c5bc4" stroke-width="1.3"/>
+  <text x="664" y="77" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="11" font-weight="700" fill="#5534a5">mtd4 · rwfs (UBIFS RW)</text>
+  <text x="664" y="93" text-anchor="middle" font-size="9.5" fill="#5e5478">72 MB · Persistent Overlay (/var)</text>
+
+  <!-- Detailed Partition Rows -->
+  <rect x="10" y="120" width="780" height="158" rx="5" fill="#fff" stroke="#cfe0d8" stroke-width="1.2"/>
+  <g font-size="10.5">
+    <rect x="20" y="130" width="760" height="24" rx="3" fill="#fffaf0" stroke="#e4c878"/>
+    <text x="30" y="146" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#7c5300">mtd0 · u-boot</text>
+    <text x="200" y="146" font-family="Cascadia Code,Consolas,monospace" font-size="9.5" fill="#64736d">0x0000000 – 0x0100000</text>
+    <text x="372" y="146" fill="#4f615b">U-Boot SPL (0x0) + U-Boot environment (0x80000)</text>
+    <text x="770" y="146" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#7c5300">1 MB</text>
+
+    <rect x="20" y="159" width="760" height="24" rx="3" fill="#fffaf0" stroke="#e4c878"/>
+    <text x="30" y="175" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#7c5300">mtd1 · u-boot-env</text>
+    <text x="200" y="175" font-family="Cascadia Code,Consolas,monospace" font-size="9.5" fill="#64736d">0x0100000 – 0x0180000</text>
+    <text x="372" y="175" fill="#4f615b">U-Boot proper (u-boot.bin)</text>
+    <text x="770" y="175" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#7c5300">512 KB</text>
+
+    <rect x="20" y="188" width="760" height="24" rx="3" fill="#f3f8fd" stroke="#b0cee9"/>
+    <text x="30" y="204" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#1e5494">mtd2 · kernel</text>
+    <text x="200" y="204" font-family="Cascadia Code,Consolas,monospace" font-size="9.5" fill="#64736d">0x0180000 – 0x0800000</text>
+    <text x="372" y="204" fill="#4f615b">Device tree (0x180000) + Kernel uImage (0x200000)</text>
+    <text x="770" y="204" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#1e5494">6.5 MB</text>
+
+    <rect x="20" y="217" width="760" height="24" rx="3" fill="#f3faf6" stroke="#a8d5c2"/>
+    <text x="30" y="233" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#08745f">mtd3 · rofs</text>
+    <text x="200" y="233" font-family="Cascadia Code,Consolas,monospace" font-size="9.5" fill="#64736d">0x0800000 – 0x3800000</text>
+    <text x="372" y="233" fill="#4f615b">Read-only rootfs UBI volume (ubifs)</text>
+    <text x="770" y="233" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#08745f">48 MB</text>
+
+    <rect x="20" y="246" width="760" height="24" rx="3" fill="#f6f2fe" stroke="#c7b5ec"/>
+    <text x="30" y="262" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#5534a5">mtd4 · rwfs</text>
+    <text x="200" y="262" font-family="Cascadia Code,Consolas,monospace" font-size="9.5" fill="#64736d">0x3800000 – 0x8000000</text>
+    <text x="372" y="262" fill="#4f615b">Persistent overlay UBI volume (/var)</text>
+    <text x="770" y="262" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#5534a5">72 MB</text>
+  </g>
+</svg>
+</div>
 <hr />
 <h2 id="board-documentation--test-guides">Board Documentation &amp; Test Guides</h2>
 <div class="table-scroll"><table>
@@ -346,10 +363,11 @@ footer.site-footer {
     ├── x86-power-control_%.bbappend
     └── x86-power-control/power-config-host0.json
 </code></pre>
-</div><aside class="sidebar"><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#table-of-contents">Table of Contents</a></li><li class="toc-h2"><a href="#layer-features">Layer Features</a></li><li class="toc-h2"><a href="#spi-nand-flash-layout">SPI-NAND Flash Layout</a></li><li class="toc-h2"><a href="#board-documentation--test-guides">Board Documentation &amp; Test Guides</a></li><li class="toc-h2"><a href="#layer-structure">Layer Structure</a></li></ul></div></aside></div></main>
+</div><aside class="sidebar"><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#layer-features">Layer Features</a></li><li class="toc-h2"><a href="#spi-nand-flash-layout">SPI-NAND Flash Layout</a></li><li class="toc-h2"><a href="#board-documentation--test-guides">Board Documentation &amp; Test Guides</a></li><li class="toc-h2"><a href="#layer-structure">Layer Structure</a></li></ul></div></aside></div></main>
   <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
   <script>
-document.querySelectorAll('pre').forEach(function (pre) {
+document.querySelectorAll('pre > code.language-bash, pre > code.language-sh').forEach(function (code) {
+  var pre = code.parentNode;
   var wrap = document.createElement('div');
   wrap.className = 'code-wrap';
   pre.parentNode.insertBefore(wrap, pre);

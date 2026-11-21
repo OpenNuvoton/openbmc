@@ -274,7 +274,8 @@ footer.site-footer {
 </div><aside class="sidebar"><div class="side-group"><h3>MA35D16FJ87C</h3><ul class="side-list"><li><a class="" href="quickstart.html">Quickstart Guide</a></li><li><a class="" href="index.html">Power &amp; Boot Settings</a></li><li><a class="" href="bom.html">Interactive BOM</a></li><li><a class="active" href="test-redfish.html">Redfish API</a></li><li><a class="" href="test-redfish-update/index.html">Redfish OTA</a></li><li><a class="" href="test-sol.html">SOL</a></li><li><a class="" href="test-can.html">CAN-FD</a></li><li><a class="" href="test-rs485.html">RS-485</a></li><li><a class="" href="test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#test-results">Test Results</a></li><li class="toc-h3"><a href="#user-management-accountservice">User Management (AccountService)</a></li><li class="toc-h3"><a href="#host-power-controls-gpio">Host Power Controls (GPIO)</a></li><li class="toc-h3"><a href="#firmware-update-via-redfish-dual-bank-ota--anti-rollback">Firmware Update via Redfish (Dual-Bank OTA &amp; Anti-Rollback)</a></li></ul></div></aside></div></main>
   <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
   <script>
-document.querySelectorAll('pre').forEach(function (pre) {
+document.querySelectorAll('pre > code.language-bash, pre > code.language-sh').forEach(function (code) {
+  var pre = code.parentNode;
   var wrap = document.createElement('div');
   wrap.className = 'code-wrap';
   pre.parentNode.insertBefore(wrap, pre);

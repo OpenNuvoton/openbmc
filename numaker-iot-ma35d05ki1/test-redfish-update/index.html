@@ -187,6 +187,15 @@ td {
   margin: 12px 0 14px;
 }
 .flow-diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+.mmap-diagram {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  margin: 12px 0 14px;
+}
+.mmap-diagram svg { width: 100%; min-width: 560px; height: auto; display: block; }
 footer.site-footer {
   border-top: 1px solid var(--line);
   color: var(--muted);
@@ -235,85 +244,133 @@ footer.site-footer {
 </li>
 </ul></div>
 <hr />
-<h2 id="table-of-contents">Table of Contents</h2>
-<ol>
-<li><a href="#1-architecture--update-mechanism">Architecture &amp; Update Mechanism</a>
-<ul>
-<li><a href="#11-spi-nand-pure-ubi-dual-bank-layout">1.1 SPI-NAND: Pure UBI Dual-Bank Layout</a></li>
-<li><a href="#12-sd1--emmc-mbr-ext4-dual-bank-layout">1.2 SD1 / eMMC: MBR EXT4 Dual-Bank Layout</a></li>
-<li><a href="#13-direct-to-disk-streaming-low-memory-oom-prevention">1.3 Direct-to-Disk Streaming (Low-Memory OOM Prevention)</a></li>
-<li><a href="#14-target-verification--anti-rollback">1.4 Target Verification &amp; Anti-Rollback</a></li>
-<li><a href="#15-watchdog-boot-fallback">1.5 Watchdog Boot Fallback</a></li>
-</ul>
-</li>
-<li><a href="#2-prerequisites">Prerequisites</a>
-<ul>
-<li><a href="#21-host-pc-dependencies">2.1 Host PC Dependencies</a></li>
-<li><a href="#22-default-bmc-connection-info">2.2 Default BMC Connection Info</a></li>
-<li><a href="#23-firmware-update-tarball-format">2.3 Firmware Update Tarball Format</a></li>
-</ul>
-</li>
-<li><a href="#3-automated-test-scripts">Automated Test Scripts</a>
-<ul>
-<li><a href="#31-end-to-end-firmware-update-test-redfish-updatesh">3.1 End-to-End Firmware Update (<code>test-redfish-update.sh</code>)</a></li>
-<li><a href="#32-anti-rollback--machine-check-test-rollback-guardsh">3.2 Anti-Rollback &amp; Machine Check (<code>test-rollback-guard.sh</code>)</a></li>
-<li><a href="#33-watchdog-boot-fallback-test-boot-fallbacksh">3.3 Watchdog Boot Fallback (<code>test-boot-fallback.sh</code>)</a></li>
-</ul>
-</li>
-<li><a href="#4-manual-redfish-update-via-curl">Manual Redfish Update via <code>curl</code></a>
-<ul>
-<li><a href="#step-1-query-current-firmware-inventory">Step 1: Query Current Firmware Inventory</a></li>
-<li><a href="#step-2-upload-firmware-package">Step 2: Upload Firmware Package</a></li>
-<li><a href="#step-3-monitor-task-progress">Step 3: Monitor Task Progress</a></li>
-<li><a href="#step-4-verify-reboot--active-bank">Step 4: Verify Reboot &amp; Active Bank</a></li>
-</ul>
-</li>
-<li><a href="#5-diagnostics--troubleshooting">Diagnostics &amp; Troubleshooting</a></li>
-</ol>
-<hr />
 <h2 id="1-architecture--update-mechanism">1. Architecture &amp; Update Mechanism</h2>
 <h3 id="11-spi-nand-pure-ubi-dual-bank-layout">1.1 SPI-NAND: Pure UBI Dual-Bank Layout</h3>
 <p>SPI-NAND uses a two-partition MTD layout, delegating wear-leveling and bad-block management to UBI:</p>
-<pre><code class="language-text">SPI-NAND (256MB / 512MB) UBI Layout
-+-------------------------+-----------------------------------------------------------+
-| mtd0: uboot             | mtd1: rootfs (Pure UBI Pool)                              |
-| 0x00000000 - 0x00400000 | 0x00400000 - 0x10000000 (252 MB on 256MB SPI-NAND)        |
-| (4 MB Raw Bootloader)   | 0x00400000 - 0x20000000 (508 MB on 512MB SPI-NAND)        |
-|                         |                                                           |
-|  * Header               |  |-- Vol 0: u-boot-env (256 KB, preloaded 64KB env)       |
-|  * BL2 DTB              |  |-- Vol 1: kernel-a   (16 MB, Bank A Kernel)             |
-|  * BL2 Bin              |  |-- Vol 2: dtb-a      (512 KB, Bank A DTB)               |
-|  * FIP (BL31 + U-Boot)  |  |-- Vol 3: rofs-a     (70 MB, Bank A UBIFS RootFS)       |
-|                         |  |-- Vol 4: kernel-b   (16 MB, Bank B Kernel Standby)     |
-|                         |  |-- Vol 5: dtb-b      (512 KB, Bank B DTB Standby)       |
-|                         |  |-- Vol 6: rofs-b     (70 MB, Bank B UBIFS Standby)      |
-|                         |  `-- Vol 7: rwfs       (10 MB autoresize -&gt; ~65MB / ~315MB)|
-+-------------------------+-----------------------------------------------------------+
-</code></pre>
-<div class="table-scroll"><table>
-<thead>
-<tr>
-<th style="text-align:left">MTD Partition</th>
-<th style="text-align:left">Label</th>
-<th style="text-align:left">Size &amp; Offset</th>
-<th style="text-align:left">Contents &amp; UBI Volumes</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left"><strong><code>mtd0</code></strong></td>
-<td style="text-align:left"><code>spinand-uboot</code></td>
-<td style="text-align:left">4 MB<br>(<code>0x0</code>–<code>0x400000</code>)</td>
-<td style="text-align:left"><strong>Raw Bootloader</strong>: Header + BL2 DTB + BL2 Bin + FIP (BL31 + U-Boot)</td>
-</tr>
-<tr>
-<td style="text-align:left"><strong><code>mtd1</code></strong></td>
-<td style="text-align:left"><code>spinand-rootfs</code></td>
-<td style="text-align:left">252 MB (256MB SPI-NAND)<br>508 MB (512MB SPI-NAND)</td>
-<td style="text-align:left"><strong>Pure UBI Pool</strong>:<br>• <code>Vol 0 (u-boot-env)</code>: 256 KB, U-Boot environment<br>• <code>Vol 1 (kernel-a)</code>: 16 MB, Bank A Linux kernel<br>• <code>Vol 2 (dtb-a)</code>: 512 KB, Bank A device tree<br>• <code>Vol 3 (rofs-a)</code>: 70 MB, Bank A UBIFS read-only rootfs<br>• <code>Vol 4 (kernel-b)</code>: 16 MB, Bank B standby kernel<br>• <code>Vol 5 (dtb-b)</code>: 512 KB, Bank B standby device tree<br>• <code>Vol 6 (rofs-b)</code>: 70 MB, Bank B standby UBIFS rootfs<br>• <code>Vol 7 (rwfs)</code>: 10 MB (autoresizes to fill remaining flash, mounted at <code>/var/persist</code>)</td>
-</tr>
-</tbody>
-</table></div>
+<div class="mmap-diagram" role="figure" aria-label="SPI-NAND (256 / 512 MB) · Pure UBI Memory Map">
+<svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" font-family="Bahnschrift,Segoe UI,sans-serif">
+  <!-- Title & Legend -->
+  <text x="10" y="19" font-size="13" font-weight="700" fill="#243430">SPI-NAND (256 / 512 MB) · Pure UBI Memory Map</text>
+  <g transform="translate(10,29)" font-size="10.5" fill="#4f615b">
+    <rect x="0" y="0" width="11" height="11" rx="2" fill="#fff4d6" stroke="#d6a32e"/>
+    <text x="16" y="9.5">Raw Bootloader</text>
+    <rect x="108" y="0" width="11" height="11" rx="2" fill="#eef2f0" stroke="#9eb0a9"/>
+    <text x="124" y="9.5">U-Boot Env</text>
+    <rect x="196" y="0" width="11" height="11" rx="2" fill="#e5f3ec" stroke="#08745f"/>
+    <text x="212" y="9.5">Bank A (Active)</text>
+    <rect x="304" y="0" width="11" height="11" rx="2" fill="#e8f2fc" stroke="#2b6cb0"/>
+    <text x="320" y="9.5">Bank B (Standby)</text>
+    <rect x="424" y="0" width="11" height="11" rx="2" fill="#f2edfc" stroke="#6b46c1"/>
+    <text x="440" y="9.5">RWFS (Persistent)</text>
+  </g>
+
+  <!-- Address Ticks -->
+  <g font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#64736d">
+    <text x="10" y="61">0x0000_0000</text>
+    <text x="228" y="61" text-anchor="middle">0x0040_0000</text>
+    <text x="790" y="61" text-anchor="end">0x1000_0000 (256M) · 0x2000_0000 (512M)</text>
+  </g>
+  <path d="M10 64v6 M228 64v6 M790 64v6" stroke="#9eb0a9" stroke-width="1"/>
+
+  <!-- Level 1: Physical MTD Bar -->
+  <rect x="10" y="70" width="218" height="56" rx="4" fill="#fff6db" stroke="#d6a32e" stroke-width="1.3"/>
+  <text x="119" y="89" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7c5300">mtd0 · 4 MB</text>
+  <text x="119" y="104" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#7a5d1f">spinand-uboot</text>
+  <text x="119" y="118" text-anchor="middle" font-size="10" fill="#8f7230">Raw Bootloader</text>
+
+  <rect x="232" y="70" width="558" height="56" rx="4" fill="#f2f8f5" stroke="#08745f" stroke-width="1.4"/>
+  <text x="511" y="89" text-anchor="middle" font-size="12.5" font-weight="700" fill="#08745f">mtd1 · Pure UBI Pool (252 / 508 MB)</text>
+  <text x="511" y="104" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#465c55">spinand-rootfs</text>
+  <text x="511" y="118" text-anchor="middle" font-size="10" fill="#64736d">UBI Wear-Leveling &amp; Bad-Block Managed Volumes (Vol 0 – Vol 7)</text>
+
+  <!-- Zoom Connectors -->
+  <path d="M10 126 L10 148 M228 126 L228 148" stroke="#d6a32e" stroke-width="1" stroke-dasharray="3 3"/>
+  <path d="M232 126 L244 148 M790 126 L790 148" stroke="#08745f" stroke-width="1" stroke-dasharray="3 3"/>
+
+  <!-- Level 2 Left: mtd0 Detail -->
+  <rect x="10" y="148" width="218" height="244" rx="5" fill="#fffdf7" stroke="#e4c878" stroke-width="1.2"/>
+  <path d="M10 153 a5 5 0 0 1 5 -5 h208 a5 5 0 0 1 5 5 v21 h-218 z" fill="#fff4d6"/>
+  <line x1="10" y1="174" x2="228" y2="174" stroke="#e8d290"/>
+  <text x="20" y="165" font-size="11.5" font-weight="700" fill="#7c5300">mtd0 · Raw Bootloader</text>
+  <text x="218" y="165" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#8f7230">4 MB</text>
+
+  <g font-size="11">
+    <rect x="20" y="184" width="198" height="39" rx="3.5" fill="#fff" stroke="#e0c574"/>
+    <text x="30" y="200" font-weight="700" fill="#6b4700">Header</text>
+    <text x="30" y="214" font-size="10" fill="#7a6840">IBR Boot Header</text>
+
+    <rect x="20" y="231" width="198" height="39" rx="3.5" fill="#fff" stroke="#e0c574"/>
+    <text x="30" y="247" font-weight="700" fill="#6b4700">BL2 DTB</text>
+    <text x="30" y="261" font-size="10" fill="#7a6840">Hardware Device Tree</text>
+
+    <rect x="20" y="278" width="198" height="39" rx="3.5" fill="#fff" stroke="#e0c574"/>
+    <text x="30" y="294" font-weight="700" fill="#6b4700">BL2 Bin</text>
+    <text x="30" y="308" font-size="10" fill="#7a6840">TF-A Stage 2 Loader</text>
+
+    <rect x="20" y="325" width="198" height="39" rx="3.5" fill="#fff" stroke="#e0c574"/>
+    <text x="30" y="341" font-weight="700" fill="#6b4700">FIP</text>
+    <text x="30" y="355" font-size="10" fill="#7a6840">BL31 + U-Boot</text>
+  </g>
+  <text x="119" y="382" text-anchor="middle" font-size="10" fill="#8f7230">SHA-256 identical-skip write guard</text>
+
+  <!-- Level 2 Right: mtd1 UBI Volume Pool -->
+  <rect x="244" y="148" width="546" height="244" rx="5" fill="#fff" stroke="#c3d6ce" stroke-width="1.2"/>
+  <path d="M244 153 a5 5 0 0 1 5 -5 h536 a5 5 0 0 1 5 5 v21 h-546 z" fill="#edf5f1"/>
+  <line x1="244" y1="174" x2="790" y2="174" stroke="#cfe0d8"/>
+  <text x="256" y="165" font-size="11.5" font-weight="700" fill="#243430">mtd1 · UBI Volumes (Vol 0 – Vol 7)</text>
+  <text x="778" y="165" text-anchor="end" font-size="10.5" font-weight="600" fill="#08745f">Active ↔ Standby Dual-Bank</text>
+
+  <!-- Vol 0: u-boot-env -->
+  <rect x="256" y="184" width="522" height="28" rx="3.5" fill="#eef2f0" stroke="#a6b8b0"/>
+  <text x="266" y="202" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#3a4c46">Vol 0 · u-boot-env</text>
+  <text x="435" y="202" font-size="10.5" fill="#5e706a">U-Boot env (preloaded 64 KB)</text>
+  <text x="768" y="202" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#3a4c46">256 KB</text>
+
+  <!-- Bank A Column -->
+  <rect x="256" y="220" width="255" height="126" rx="4" fill="#f5fbf8" stroke="#08745f" stroke-width="1.2"/>
+  <path d="M256 224 a4 4 0 0 1 4 -4 h247 a4 4 0 0 1 4 4 v18 h-255 z" fill="#dff1e8"/>
+  <text x="266" y="235" font-size="11" font-weight="700" fill="#08745f">Bank A</text>
+  <text x="501" y="235" text-anchor="end" font-size="10" fill="#0a6653">Active / Primary</text>
+
+  <rect x="264" y="248" width="239" height="27" rx="3" fill="#fff" stroke="#a8d5c2"/>
+  <text x="272" y="265" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#08745f">Vol 1 · kernel-a</text>
+  <text x="495" y="265" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#243430">16 MB</text>
+
+  <rect x="264" y="280" width="239" height="27" rx="3" fill="#fff" stroke="#a8d5c2"/>
+  <text x="272" y="297" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#08745f">Vol 2 · dtb-a</text>
+  <text x="495" y="297" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#243430">512 KB</text>
+
+  <rect x="264" y="312" width="239" height="27" rx="3" fill="#fff" stroke="#a8d5c2"/>
+  <text x="272" y="329" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#08745f">Vol 3 · rofs-a</text>
+  <text x="385" y="329" font-size="10" fill="#5e706a">UBIFS RO</text>
+  <text x="495" y="329" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#243430">70 MB</text>
+
+  <!-- Bank B Column -->
+  <rect x="523" y="220" width="255" height="126" rx="4" fill="#f4f8fd" stroke="#2b6cb0" stroke-width="1.2"/>
+  <path d="M523 224 a4 4 0 0 1 4 -4 h247 a4 4 0 0 1 4 4 v18 h-255 z" fill="#dcebfa"/>
+  <text x="533" y="235" font-size="11" font-weight="700" fill="#1e5494">Bank B</text>
+  <text x="768" y="235" text-anchor="end" font-size="10" fill="#2b6cb0">Standby / OTA Target</text>
+
+  <rect x="531" y="248" width="239" height="27" rx="3" fill="#fff" stroke="#b0cee9"/>
+  <text x="539" y="265" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#1e5494">Vol 4 · kernel-b</text>
+  <text x="762" y="265" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#243430">16 MB</text>
+
+  <rect x="531" y="280" width="239" height="27" rx="3" fill="#fff" stroke="#b0cee9"/>
+  <text x="539" y="297" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#1e5494">Vol 5 · dtb-b</text>
+  <text x="762" y="297" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#243430">512 KB</text>
+
+  <rect x="531" y="312" width="239" height="27" rx="3" fill="#fff" stroke="#b0cee9"/>
+  <text x="539" y="329" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#1e5494">Vol 6 · rofs-b</text>
+  <text x="652" y="329" font-size="10" fill="#5e706a">UBIFS RO</text>
+  <text x="762" y="329" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#243430">70 MB</text>
+
+  <!-- Vol 7: rwfs -->
+  <rect x="256" y="354" width="522" height="29" rx="3.5" fill="#f4effe" stroke="#7c5bc4"/>
+  <text x="266" y="372" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#5534a5">Vol 7 · rwfs</text>
+  <text x="372" y="372" font-size="10.5" fill="#5e5478">Mounted at /var/persist (autoresize to fill flash)</text>
+  <text x="768" y="372" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#5534a5">10 MB → ~65 / ~315 MB+</text>
+</svg>
+</div>
 <ul>
 <li><strong>Dual-Bank Update Flow</strong>:
 <ul>
@@ -335,81 +392,143 @@ On a 256 MB SPI-NAND flash, <code>rwfs</code> has only ~65 MB of usable space, w
 <p>SD cards and eMMC manage wear-leveling internally via their hardware FTL and use standard <strong>EXT4</strong> partitions.</p>
 <div class="callout callout-note"><div class="callout-title">Note</div><p><strong>Why MBR (<code>msdos</code>) Instead of GPT?</strong>
 The MA35 internal boot ROM (IBR) reads the boot header from <strong>Sector 2 (<code>0x400</code>)</strong> on SD/eMMC devices. A GPT partition table places its primary header and partition entries across LBA 1–33 (<code>0x200</code>–<code>0x43FF</code>), colliding with Sector 2. SD1 and eMMC therefore use a standard <strong>MBR (<code>msdos</code>)</strong> partition table.</p></div>
-<pre><code class="language-text">SD1 (MicroSD) / eMMC MBR Dual-Bank Layout
-+------------------------+---------+---------+----------+----------+---------------------------------+
-| Sector 0 ~ 8191        | Part 1  | Part 2  | Part 3   | Part 4   | Logical Partitions              |
-| 0x00000000-0x00400000  | boot-a  | boot-b  | rofs-a   | Extended | Part 5       | Part 6           |
-| 4MB Raw Bootloader/UBL | (32 MB) | (32 MB) | (256 MB) | Container| rofs-b       | rwfs             |
-|  * MBR (Sector 0)      | Bank A  | Bank B  | Bank A   | (1 sec)  | (256 MB)     | (256 MB ~ 15GB+) |
-|  * Header (Sector 2)   | Kernel  | Kernel  | RootFS   |          | Bank B       | /images (staging)|
-|  * BL2 DTB (0x20000)   | (EXT4)  | (EXT4)  | (EXT4)   |          | RootFS       | /var/persist     |
-|  * BL2 Bin (0x30000)   |         |         |          |          | (EXT4)       | (EXT4)           |
-|  * FIP (0xC0000)       |         |         |          |          |              |                  |
-|  * U-Boot Env (0x50000)|         |         |          |          |              |                  |
-+------------------------+---------+---------+----------+----------+---------------------------------+
-</code></pre>
-<div class="table-scroll"><table>
-<thead>
-<tr>
-<th style="text-align:left">Device Node (SD1 example)</th>
-<th style="text-align:left">Label</th>
-<th style="text-align:left">Default Size</th>
-<th style="text-align:left">Filesystem</th>
-<th style="text-align:left">Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td style="text-align:left"><strong><code>/dev/mmcblk1</code> (first 4 MB)</strong></td>
-<td style="text-align:left">(Raw Sectors)</td>
-<td style="text-align:left">4 MB</td>
-<td style="text-align:left">Raw Binary</td>
-<td style="text-align:left"><strong>Bootloader</strong>: MBR, IBR Header (<code>0x400</code>), BL2 DTB, BL2 Bin, FIP, and U-Boot Env (<code>0x50000</code>)</td>
-</tr>
-<tr>
-<td style="text-align:left"><strong><code>/dev/mmcblk1p1</code></strong></td>
-<td style="text-align:left"><code>boot-a</code></td>
-<td style="text-align:left">32 MB</td>
-<td style="text-align:left">EXT4</td>
-<td style="text-align:left"><strong>Bank A Boot</strong>: Linux kernel (<code>Image</code>) + DTB (<code>Image.dtb</code>)</td>
-</tr>
-<tr>
-<td style="text-align:left"><strong><code>/dev/mmcblk1p2</code></strong></td>
-<td style="text-align:left"><code>boot-b</code></td>
-<td style="text-align:left">32 MB</td>
-<td style="text-align:left">EXT4</td>
-<td style="text-align:left"><strong>Bank B Boot</strong>: Standby kernel + DTB</td>
-</tr>
-<tr>
-<td style="text-align:left"><strong><code>/dev/mmcblk1p3</code></strong></td>
-<td style="text-align:left"><code>rofs-a</code></td>
-<td style="text-align:left">256 MB</td>
-<td style="text-align:left">EXT4</td>
-<td style="text-align:left"><strong>Bank A RootFS</strong>: Read-only rootfs (<code>/</code>)</td>
-</tr>
-<tr>
-<td style="text-align:left"><strong><code>/dev/mmcblk1p4</code></strong></td>
-<td style="text-align:left">(Extended)</td>
-<td style="text-align:left">1 sector</td>
-<td style="text-align:left">Extended</td>
-<td style="text-align:left"><strong>MBR Extended Partition</strong>: Container for logical partitions <code>p5</code> and <code>p6</code></td>
-</tr>
-<tr>
-<td style="text-align:left"><strong><code>/dev/mmcblk1p5</code></strong></td>
-<td style="text-align:left"><code>rofs-b</code></td>
-<td style="text-align:left">256 MB</td>
-<td style="text-align:left">EXT4</td>
-<td style="text-align:left"><strong>Bank B RootFS</strong>: Standby read-only rootfs</td>
-</tr>
-<tr>
-<td style="text-align:left"><strong><code>/dev/mmcblk1p6</code></strong></td>
-<td style="text-align:left"><code>rwfs</code></td>
-<td style="text-align:left">256 MB+ (resizable)</td>
-<td style="text-align:left">EXT4</td>
-<td style="text-align:left"><strong>Persistent Overlay &amp; OTA Staging</strong>: Mounted at <code>/var/persist</code> and <code>/images</code></td>
-</tr>
-</tbody>
-</table></div>
+<div class="mmap-diagram" role="figure" aria-label="SD1 (microSD) / eMMC MBR EXT4 Dual-Bank Memory Map">
+<svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" font-family="Bahnschrift,Segoe UI,sans-serif">
+  <!-- Title & Legend -->
+  <text x="10" y="19" font-size="13" font-weight="700" fill="#243430">SD1 (microSD) / eMMC · MBR (msdos) EXT4 Dual-Bank Memory Map</text>
+  <text x="790" y="19" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" fill="#64736d">/dev/mmcblk1</text>
+  <g transform="translate(10,29)" font-size="10.5" fill="#4f615b">
+    <rect x="0" y="0" width="11" height="11" rx="2" fill="#fff4d6" stroke="#d6a32e"/>
+    <text x="16" y="9.5">Raw Bootloader / UBL</text>
+    <rect x="138" y="0" width="11" height="11" rx="2" fill="#e5f3ec" stroke="#08745f"/>
+    <text x="154" y="9.5">Bank A (Active)</text>
+    <rect x="246" y="0" width="11" height="11" rx="2" fill="#e8f2fc" stroke="#2b6cb0"/>
+    <text x="262" y="9.5">Bank B (Standby)</text>
+    <rect x="366" y="0" width="11" height="11" rx="2" fill="#f0f3f2" stroke="#8a9d96" stroke-dasharray="2 1"/>
+    <text x="382" y="9.5">MBR Extended (p4)</text>
+    <rect x="492" y="0" width="11" height="11" rx="2" fill="#f2edfc" stroke="#6b46c1"/>
+    <text x="508" y="9.5">RWFS (Persistent &amp; Staging)</text>
+  </g>
+
+  <!-- Linear Address Ticks -->
+  <g font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#64736d">
+    <text x="10" y="61">Sector 0 (0x0)</text>
+    <text x="140" y="61">Sector 8192 (4 MB)</text>
+    <text x="444" y="61">p4 Extended Container</text>
+    <text x="790" y="61" text-anchor="end">100% Disk Capacity</text>
+  </g>
+  <path d="M10 64v6 M138 64v6 M444 64v5 M790 64v5" stroke="#9eb0a9" stroke-width="1"/>
+
+  <!-- Level 1: Linear Disk Layout Bar -->
+  <rect x="10" y="72" width="126" height="52" rx="4" fill="#fff6db" stroke="#d6a32e" stroke-width="1.3"/>
+  <text x="73" y="94" text-anchor="middle" font-size="11.5" font-weight="700" fill="#7c5300">Raw UBL</text>
+  <text x="73" y="110" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#8f7230">4 MB (Raw)</text>
+
+  <rect x="140" y="72" width="70" height="52" rx="4" fill="#e5f3ec" stroke="#08745f" stroke-width="1.2"/>
+  <text x="175" y="92" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#08745f">p1 boot-a</text>
+  <text x="175" y="109" text-anchor="middle" font-size="10" fill="#465c55">32 MB</text>
+
+  <rect x="214" y="72" width="70" height="52" rx="4" fill="#e8f2fc" stroke="#2b6cb0" stroke-width="1.2"/>
+  <text x="249" y="92" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#1e5494">p2 boot-b</text>
+  <text x="249" y="109" text-anchor="middle" font-size="10" fill="#465c55">32 MB</text>
+
+  <rect x="288" y="72" width="150" height="52" rx="4" fill="#e5f3ec" stroke="#08745f" stroke-width="1.2"/>
+  <text x="363" y="92" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="11" font-weight="700" fill="#08745f">p3 · rofs-a</text>
+  <text x="363" y="109" text-anchor="middle" font-size="10" fill="#465c55">256 MB · Bank A EXT4</text>
+
+  <!-- p4 Extended Container wrapping p5 and p6 -->
+  <rect x="444" y="68" width="346" height="60" rx="5" fill="#f4f7f5" stroke="#8a9d96" stroke-width="1.2" stroke-dasharray="4 2"/>
+  <rect x="452" y="74" width="152" height="48" rx="4" fill="#e8f2fc" stroke="#2b6cb0" stroke-width="1.2"/>
+  <text x="528" y="94" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="11" font-weight="700" fill="#1e5494">p5 · rofs-b</text>
+  <text x="528" y="110" text-anchor="middle" font-size="10" fill="#465c55">256 MB · Bank B EXT4</text>
+
+  <rect x="610" y="74" width="172" height="48" rx="4" fill="#f4effe" stroke="#7c5bc4" stroke-width="1.2"/>
+  <text x="696" y="94" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="11" font-weight="700" fill="#5534a5">p6 · rwfs</text>
+  <text x="696" y="110" text-anchor="middle" font-size="10" fill="#5e5478">256 MB → 100% (EXT4)</text>
+
+  <!-- Zoom Connectors -->
+  <path d="M10 124 L10 148 M136 124 L328 148" stroke="#d6a32e" stroke-width="1" stroke-dasharray="3 3"/>
+  <path d="M140 124 L344 148 M790 128 L790 148" stroke="#08745f" stroke-width="1" stroke-dasharray="3 3"/>
+
+  <!-- Level 2 Left: Raw Sectors Offset Map -->
+  <rect x="10" y="148" width="318" height="244" rx="5" fill="#fffdf7" stroke="#e4c878" stroke-width="1.2"/>
+  <path d="M10 153 a5 5 0 0 1 5 -5 h308 a5 5 0 0 1 5 5 v21 h-318 z" fill="#fff4d6"/>
+  <line x1="10" y1="174" x2="328" y2="174" stroke="#e8d290"/>
+  <text x="20" y="165" font-size="11.5" font-weight="700" fill="#7c5300">Raw Bootloader / UBL Offset Map</text>
+  <text x="318" y="165" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#8f7230">0x0 – 4 MB</text>
+
+  <g font-size="10.5">
+    <text x="20" y="201" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#8a6820">0x00000</text>
+    <rect x="82" y="184" width="236" height="27" rx="3" fill="#fff" stroke="#e0c574"/>
+    <text x="90" y="201" font-weight="700" fill="#6b4700">MBR (msdos)</text>
+    <text x="310" y="201" text-anchor="end" font-size="10" fill="#7a6840">Sector 0 · Partition Table</text>
+
+    <text x="20" y="235" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#8a6820">0x00400</text>
+    <rect x="82" y="218" width="236" height="27" rx="3" fill="#fff7e0" stroke="#d6a32e"/>
+    <text x="90" y="235" font-weight="700" fill="#6b4700">IBR Header</text>
+    <text x="310" y="235" text-anchor="end" font-size="10" fill="#7a5d1f">Sector 2 (avoids GPT LBA 1–33)</text>
+
+    <text x="20" y="269" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#8a6820">0x20000</text>
+    <rect x="82" y="252" width="236" height="27" rx="3" fill="#fff" stroke="#e0c574"/>
+    <text x="90" y="269" font-weight="700" fill="#6b4700">BL2 DTB</text>
+    <text x="310" y="269" text-anchor="end" font-size="10" fill="#7a6840">Hardware Device Tree</text>
+
+    <text x="20" y="303" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#8a6820">0x30000</text>
+    <rect x="82" y="286" width="236" height="27" rx="3" fill="#fff" stroke="#e0c574"/>
+    <text x="90" y="303" font-weight="700" fill="#6b4700">BL2 Bin</text>
+    <text x="310" y="303" text-anchor="end" font-size="10" fill="#7a6840">TF-A Stage 2 Loader</text>
+
+    <text x="20" y="337" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#8a6820">0x50000</text>
+    <rect x="82" y="320" width="236" height="27" rx="3" fill="#eef2f0" stroke="#a6b8b0"/>
+    <text x="90" y="337" font-weight="700" fill="#3a4c46">U-Boot Env</text>
+    <text x="310" y="337" text-anchor="end" font-size="10" fill="#5e706a">bootside, bootcount</text>
+
+    <text x="20" y="371" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#8a6820">0xC0000</text>
+    <rect x="82" y="354" width="236" height="27" rx="3" fill="#fff" stroke="#e0c574"/>
+    <text x="90" y="371" font-weight="700" fill="#6b4700">FIP</text>
+    <text x="310" y="371" text-anchor="end" font-size="10" fill="#7a6840">BL31 + U-Boot</text>
+  </g>
+
+  <!-- Level 2 Right: EXT4 Partitions Detail -->
+  <rect x="344" y="148" width="446" height="244" rx="5" fill="#fff" stroke="#c3d6ce" stroke-width="1.2"/>
+  <path d="M344 153 a5 5 0 0 1 5 -5 h436 a5 5 0 0 1 5 5 v21 h-446 z" fill="#edf5f1"/>
+  <line x1="344" y1="174" x2="790" y2="174" stroke="#cfe0d8"/>
+  <text x="356" y="165" font-size="11.5" font-weight="700" fill="#243430">EXT4 Partitions (/dev/mmcblk1p1 – p6)</text>
+  <text x="778" y="165" text-anchor="end" font-size="10" fill="#64736d">Size</text>
+
+  <g font-size="10.5">
+    <rect x="356" y="184" width="422" height="27" rx="3" fill="#f3faf6" stroke="#a8d5c2"/>
+    <text x="364" y="201" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#08745f">p1 · boot-a</text>
+    <text x="476" y="201" fill="#465c55">Bank A Kernel (Image) + DTB</text>
+    <text x="770" y="201" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#243430">32 MB</text>
+
+    <rect x="356" y="218" width="422" height="27" rx="3" fill="#f2f7fd" stroke="#b0cee9"/>
+    <text x="364" y="235" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#1e5494">p2 · boot-b</text>
+    <text x="476" y="235" fill="#465c55">Bank B Standby Kernel + DTB</text>
+    <text x="770" y="235" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#243430">32 MB</text>
+
+    <rect x="356" y="252" width="422" height="27" rx="3" fill="#f3faf6" stroke="#a8d5c2"/>
+    <text x="364" y="269" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#08745f">p3 · rofs-a</text>
+    <text x="476" y="269" fill="#465c55">Bank A Read-Only RootFS (/)</text>
+    <text x="770" y="269" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#243430">256 MB</text>
+
+    <rect x="356" y="286" width="422" height="27" rx="3" fill="#f4f7f5" stroke="#9eb0a9" stroke-dasharray="3 2"/>
+    <text x="364" y="303" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#4f615b">p4 · Extended</text>
+    <text x="476" y="303" fill="#5e706a">MBR container for logical p5 &amp; p6</text>
+    <text x="770" y="303" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#4f615b">1 sector</text>
+
+    <rect x="356" y="320" width="422" height="27" rx="3" fill="#f2f7fd" stroke="#b0cee9"/>
+    <text x="364" y="337" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#1e5494">p5 · rofs-b</text>
+    <text x="476" y="337" fill="#465c55">Bank B Standby Read-Only RootFS</text>
+    <text x="770" y="337" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#243430">256 MB</text>
+
+    <rect x="356" y="354" width="422" height="27" rx="3" fill="#f4effe" stroke="#7c5bc4"/>
+    <text x="364" y="371" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#5534a5">p6 · rwfs</text>
+    <text x="476" y="371" fill="#5e5478">/var/persist &amp; /images (resizable)</text>
+    <text x="770" y="371" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-weight="700" fill="#5534a5">256 MB+</text>
+  </g>
+</svg>
+</div>
 <ul>
 <li><strong>Dual-Bank Update Flow</strong>:
 <ul>
@@ -534,8 +653,149 @@ ExtendedVersion=openbmc-build-20261021
 </code></pre>
 <hr />
 <h2 id="3-automated-test-scripts">3. Automated Test Scripts</h2>
-<p>All test scripts are located in <code>meta-numaker/doc/numaker-iot-ma35d05ki1/test-redfish-update/</code>.</p>
+<p>All test scripts are located in <code>meta-numaker/doc/numaker-iot-ma35d05ki1/test-redfish-update/</code>: <a href="https://github.com/OpenNuvoton/openbmc/blob/numaker/meta-numaker/doc/numaker-iot-ma35d05ki1/test-redfish-update/test-redfish-update.sh" target="_blank" rel="noopener"><code>test-redfish-update.sh</code></a> &middot; <a href="https://github.com/OpenNuvoton/openbmc/blob/numaker/meta-numaker/doc/numaker-iot-ma35d05ki1/test-redfish-update/test-rollback-guard.sh" target="_blank" rel="noopener"><code>test-rollback-guard.sh</code></a> &middot; <a href="https://github.com/OpenNuvoton/openbmc/blob/numaker/meta-numaker/doc/numaker-iot-ma35d05ki1/test-redfish-update/test-boot-fallback.sh" target="_blank" rel="noopener"><code>test-boot-fallback.sh</code></a>.</p>
 <div class="callout callout-note"><div class="callout-title">Note</div><p>Run these scripts from your <strong>Host Linux PC</strong> over the network—do not run them inside the BMC shell.</p></div>
+<div class="mmap-diagram" role="figure" aria-label="Automated Redfish OTA Test Network Topology and Workflow">
+<svg viewBox="0 0 800 356" xmlns="http://www.w3.org/2000/svg" font-family="Bahnschrift,Segoe UI,sans-serif">
+  <defs>
+    <marker id="arr-green" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 1 L7 4 L0 7 z" fill="#08745f"/>
+    </marker>
+    <marker id="arr-blue" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 1 L7 4 L0 7 z" fill="#2b6cb0"/>
+    </marker>
+    <marker id="arr-amber" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 1 L7 4 L0 7 z" fill="#b88214"/>
+    </marker>
+    <marker id="arr-step" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="5.5" markerHeight="5.5" orient="auto">
+      <path d="M0 1 L7 4 L0 7 z" fill="#6e827b"/>
+    </marker>
+  </defs>
+
+  <!-- Title & Legend -->
+  <text x="12" y="19" font-size="13" font-weight="700" fill="#243430">Automated Redfish OTA Test Network Topology &amp; Flow</text>
+  <text x="788" y="19" text-anchor="end" font-size="10.5" fill="#64736d">Run on Host Linux PC → Target BMC over LAN</text>
+  <g transform="translate(12,30)" font-size="10.5" fill="#4f615b">
+    <line x1="0" y1="5" x2="18" y2="5" stroke="#08745f" stroke-width="2"/>
+    <text x="23" y="8.5">HTTPS :443 (Redfish API)</text>
+    <line x1="158" y1="5" x2="176" y2="5" stroke="#2b6cb0" stroke-width="2"/>
+    <text x="181" y="8.5">SSH :22 (Bank / U-Boot Check)</text>
+    <line x1="342" y1="5" x2="360" y2="5" stroke="#8a9d96" stroke-width="1.5" stroke-dasharray="3 2"/>
+    <text x="365" y="8.5">LAN / DHCP / mDNS (.local)</text>
+    <line x1="518" y1="5" x2="536" y2="5" stroke="#b88214" stroke-width="1.6" stroke-dasharray="4 2"/>
+    <text x="541" y="8.5">UART0 Optional Console</text>
+  </g>
+
+  <!-- Left Node: Host Linux PC -->
+  <rect x="12" y="52" width="222" height="184" rx="5" fill="#fff" stroke="#08745f" stroke-width="1.4"/>
+  <path d="M12 57 a5 5 0 0 1 5 -5 h212 a5 5 0 0 1 5 5 v24 h-222 z" fill="#e5f3ec"/>
+  <line x1="12" y1="81" x2="234" y2="81" stroke="#b9d9ca"/>
+  <text x="22" y="71" font-size="12" font-weight="700" fill="#08745f">Host Linux PC</text>
+  <text x="224" y="71" text-anchor="end" font-size="10" fill="#465c55">Workstation</text>
+
+  <text x="22" y="97" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#5e706a">CLI: curl · sshpass · jq · tar</text>
+
+  <rect x="22" y="106" width="202" height="27" rx="3.5" fill="#f5fbf8" stroke="#a8d5c2"/>
+  <text x="30" y="123" font-family="Cascadia Code,Consolas,monospace" font-size="10" font-weight="700" fill="#08745f">test-redfish-update.sh</text>
+  <text x="216" y="123" text-anchor="end" font-size="9.5" fill="#465c55">OTA</text>
+
+  <rect x="22" y="139" width="202" height="27" rx="3.5" fill="#fffdf7" stroke="#e0c574"/>
+  <text x="30" y="156" font-family="Cascadia Code,Consolas,monospace" font-size="10" font-weight="700" fill="#7c5300">test-rollback-guard.sh</text>
+  <text x="216" y="156" text-anchor="end" font-size="9.5" fill="#7a6840">Guard</text>
+
+  <rect x="22" y="172" width="202" height="27" rx="3.5" fill="#f4f8fd" stroke="#b0cee9"/>
+  <text x="30" y="189" font-family="Cascadia Code,Consolas,monospace" font-size="10" font-weight="700" fill="#1e5494">test-boot-fallback.sh</text>
+  <text x="216" y="189" text-anchor="end" font-size="9.5" fill="#2b6cb0">WDT</text>
+
+  <rect x="22" y="206" width="202" height="21" rx="3" fill="#eef2f0"/>
+  <text x="123" y="220" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="9.5" fill="#465c55">*.mtd-ubi-tar / *.mmc-ext4-tar</text>
+
+  <!-- Center Zone: LAN Switch & Protocol Channels -->
+  <rect x="314" y="52" width="144" height="36" rx="4" fill="#f0f4f2" stroke="#9eb0a9" stroke-width="1.2"/>
+  <text x="386" y="67" text-anchor="middle" font-size="11" font-weight="700" fill="#3a4c46">LAN Switch / Router</text>
+  <text x="386" y="81" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="9.5" fill="#64736d">DHCP + mDNS (.local)</text>
+  <path d="M234 70 L314 70 M458 70 L538 70" stroke="#9eb0a9" stroke-width="1.3" stroke-dasharray="3 2"/>
+  <text x="498" y="64" text-anchor="middle" font-size="9" font-weight="600" fill="#5e706a">RJ45 U4</text>
+
+  <!-- Channel 1: HTTPS Redfish -->
+  <text x="386" y="109" text-anchor="middle" font-size="10.5" font-weight="700" fill="#08745f">HTTPS :443 · Redfish UpdateService</text>
+  <line x1="238" y1="118" x2="532" y2="118" stroke="#08745f" stroke-width="1.8" marker-end="url(#arr-green)" marker-start="url(#arr-green)"/>
+  <text x="386" y="131" text-anchor="middle" font-size="9.5" fill="#4f615b">POST tarball → Poll TaskMonitor → FirmwareInventory</text>
+
+  <!-- Channel 2: SSH -->
+  <text x="386" y="159" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1e5494">SSH :22 · Verification &amp; U-Boot Env</text>
+  <line x1="238" y1="168" x2="532" y2="168" stroke="#2b6cb0" stroke-width="1.7" marker-end="url(#arr-blue)" marker-start="url(#arr-blue)"/>
+  <text x="386" y="181" text-anchor="middle" font-size="9.5" fill="#4f615b">Check /proc/cmdline · fw_printenv / fw_setenv</text>
+
+  <!-- Channel 3: Optional UART0 Debug -->
+  <text x="386" y="209" text-anchor="middle" font-size="10" font-weight="700" fill="#8f6200">Optional · UART0 CON2 (115200 8N1)</text>
+  <line x1="238" y1="217" x2="532" y2="217" stroke="#b88214" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#arr-amber)" marker-start="url(#arr-amber)"/>
+  <text x="386" y="230" text-anchor="middle" font-size="9.5" fill="#7a6840">Watch U-Boot, kernel boot &amp; altbootcmd fallback logs</text>
+
+  <!-- Right Node: Target BMC Board -->
+  <rect x="538" y="52" width="250" height="184" rx="5" fill="#fff" stroke="#2b6cb0" stroke-width="1.4"/>
+  <path d="M538 57 a5 5 0 0 1 5 -5 h240 a5 5 0 0 1 5 5 v24 h-250 z" fill="#e8f2fc"/>
+  <line x1="538" y1="81" x2="788" y2="81" stroke="#b8d3ee"/>
+  <text x="548" y="71" font-size="11.5" font-weight="700" fill="#1e5494">NuMaker-IoT-MA35D05KI1</text>
+  <text x="778" y="71" text-anchor="end" font-size="10" fill="#2b6cb0">Target BMC</text>
+
+  <rect x="548" y="88" width="230" height="22" rx="3" fill="#eef2f0"/>
+  <text x="663" y="102" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="10" font-weight="700" fill="#243430">numaker-iot-ma35d05ki1.local</text>
+
+  <rect x="548" y="116" width="230" height="44" rx="3.5" fill="#f5fbf8" stroke="#a8d5c2"/>
+  <text x="556" y="131" font-size="10.5" font-weight="700" fill="#08745f">bmcweb + Software Manager</text>
+  <text x="556" y="144" font-size="9.5" fill="#465c55">Stream → /tmp/images (&lt;5 MB RSS)</text>
+  <text x="556" y="155" font-size="9.5" fill="#465c55">MANIFEST check (Machine &amp; SecurityVer)</text>
+
+  <rect x="548" y="166" width="230" height="60" rx="3.5" fill="#f8f6fe" stroke="#c7b5ec"/>
+  <text x="556" y="181" font-size="10.5" font-weight="700" fill="#5534a5">Dual-Bank Flash (UBI / EXT4)</text>
+  <rect x="556" y="187" width="94" height="20" rx="2.5" fill="#dff1e8" stroke="#08745f"/>
+  <text x="603" y="200" text-anchor="middle" font-size="9.5" font-weight="700" fill="#08745f">Bank A (Active)</text>
+  <text x="663" y="200" text-anchor="middle" font-size="11" font-weight="700" fill="#5534a5">↔</text>
+  <rect x="676" y="187" width="94" height="20" rx="2.5" fill="#dcebfa" stroke="#2b6cb0"/>
+  <text x="723" y="200" text-anchor="middle" font-size="9.5" font-weight="700" fill="#1e5494">Bank B (Standby)</text>
+  <text x="556" y="220" font-size="9.5" fill="#5e5478">U-Boot altbootcmd · obmc-boot-verify</text>
+
+  <!-- Bottom Strip: 5-Step End-to-End Automated Test Flow -->
+  <rect x="12" y="250" width="776" height="96" rx="5" fill="#f8fbf9" stroke="#cfe0d8" stroke-width="1.2"/>
+  <text x="24" y="268" font-size="11" font-weight="700" fill="#243430">Automated End-to-End Flow (test-redfish-update.sh)</text>
+  <text x="776" y="268" text-anchor="end" font-size="10" fill="#64736d">Typical reboot &amp; online recovery: ~30–50 s</text>
+
+  <!-- Step 1 -->
+  <rect x="24" y="278" width="138" height="56" rx="4" fill="#fff" stroke="#08745f" stroke-width="1.2"/>
+  <text x="93" y="295" text-anchor="middle" font-size="10.5" font-weight="700" fill="#08745f">1. Upload Tarball</text>
+  <text x="93" y="310" text-anchor="middle" font-size="9.5" fill="#4f615b">POST UpdateService</text>
+  <text x="93" y="324" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="9" fill="#64736d">202 Accepted + URI</text>
+  <line x1="163" y1="306" x2="175" y2="306" stroke="#6e827b" stroke-width="1.3" marker-end="url(#arr-step)"/>
+
+  <!-- Step 2 -->
+  <rect x="177" y="278" width="138" height="56" rx="4" fill="#fff" stroke="#d6a32e" stroke-width="1.2"/>
+  <text x="246" y="295" text-anchor="middle" font-size="10.5" font-weight="700" fill="#7c5300">2. Verify &amp; Flash</text>
+  <text x="246" y="310" text-anchor="middle" font-size="9.5" fill="#4f615b">Validate MANIFEST</text>
+  <text x="246" y="324" text-anchor="middle" font-size="9.5" fill="#64736d">Write Standby Bank</text>
+  <line x1="316" y1="306" x2="328" y2="306" stroke="#6e827b" stroke-width="1.3" marker-end="url(#arr-step)"/>
+
+  <!-- Step 3 -->
+  <rect x="330" y="278" width="138" height="56" rx="4" fill="#fff" stroke="#2b6cb0" stroke-width="1.2"/>
+  <text x="399" y="295" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1e5494">3. Poll &amp; Reboot</text>
+  <text x="399" y="310" text-anchor="middle" font-size="9.5" fill="#4f615b">Task 0% → 100%</text>
+  <text x="399" y="324" text-anchor="middle" font-size="9.5" fill="#64736d">Switch Pointer &amp; Boot</text>
+  <line x1="469" y1="306" x2="481" y2="306" stroke="#6e827b" stroke-width="1.3" marker-end="url(#arr-step)"/>
+
+  <!-- Step 4 -->
+  <rect x="483" y="278" width="138" height="56" rx="4" fill="#fff" stroke="#08745f" stroke-width="1.2"/>
+  <text x="552" y="295" text-anchor="middle" font-size="10.5" font-weight="700" fill="#08745f">4. Redfish Check</text>
+  <text x="552" y="310" text-anchor="middle" font-size="9.5" fill="#4f615b">Wait BMC Online</text>
+  <text x="552" y="324" text-anchor="middle" font-size="9.5" fill="#64736d">Query Inventory</text>
+  <line x1="622" y1="306" x2="634" y2="306" stroke="#6e827b" stroke-width="1.3" marker-end="url(#arr-step)"/>
+
+  <!-- Step 5 -->
+  <rect x="636" y="278" width="138" height="56" rx="4" fill="#fff" stroke="#7c5bc4" stroke-width="1.2"/>
+  <text x="705" y="295" text-anchor="middle" font-size="10.5" font-weight="700" fill="#5534a5">5. SSH Verify</text>
+  <text x="705" y="310" text-anchor="middle" font-size="9.5" fill="#4f615b">Active Bank Switched</text>
+  <text x="705" y="324" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="9" fill="#64736d">bootcount=0 (PASS)</text>
+</svg>
+</div>
 <h3 id="31-end-to-end-firmware-update-test-redfish-updatesh">3.1 End-to-End Firmware Update (<code>test-redfish-update.sh</code>)</h3>
 <div class="callout callout-caution"><div class="callout-title">Caution</div><p><strong>SPI-NAND Target Hardware Prerequisite</strong>:
 When testing SPI-NAND boot targets, confirm that the on-board flash has been upgraded to a <strong>512 MB (4G-bit)</strong> chip. Running this test on the default 256 MB chip will fail at 0% archive extraction due to <code>rwfs</code> exhaustion (<code>ENOSPC</code>), causing the task to terminate prematurely with HTTP 404. For 256 MB boards, use NuWriter USB flashing instead.</p></div>
@@ -652,10 +912,11 @@ Content-Type: application/json
 </code></pre>
 </li>
 </ul>
-</div><aside class="sidebar"><div class="side-group"><h3>MA35D05KI1</h3><ul class="side-list"><li><a class="" href="../quickstart.html">Quickstart Guide</a></li><li><a class="" href="../index.html">Power &amp; Boot Settings</a></li><li><a class="" href="../bom.html">Interactive BOM</a></li><li><a class="" href="../test-redfish.html">Redfish API</a></li><li><a class="active" href="index.html">Redfish OTA</a></li><li><a class="" href="../test-sol.html">SOL</a></li><li><a class="" href="../test-can.html">CAN-FD</a></li><li><a class="" href="../test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h3"><a href="#-hardware-prerequisite--critical-notice">⚠️ HARDWARE PREREQUISITE &amp; CRITICAL NOTICE</a></li><li class="toc-h2"><a href="#table-of-contents">Table of Contents</a></li><li class="toc-h2"><a href="#1-architecture--update-mechanism">1. Architecture &amp; Update Mechanism</a></li><li class="toc-h3"><a href="#11-spi-nand-pure-ubi-dual-bank-layout">1.1 SPI-NAND: Pure UBI Dual-Bank Layout</a></li><li class="toc-h3"><a href="#12-sd1--emmc-mbr-ext4-dual-bank-layout">1.2 SD1 / eMMC: MBR EXT4 Dual-Bank Layout</a></li><li class="toc-h3"><a href="#13-direct-to-disk-streaming-low-memory-oom-prevention">1.3 Direct-to-Disk Streaming (Low-Memory OOM Prevention)</a></li><li class="toc-h3"><a href="#14-target-verification--anti-rollback">1.4 Target Verification &amp; Anti-Rollback</a></li><li class="toc-h3"><a href="#15-watchdog-boot-fallback">1.5 Watchdog Boot Fallback</a></li><li class="toc-h2"><a href="#2-prerequisites">2. Prerequisites</a></li><li class="toc-h3"><a href="#21-host-pc-dependencies">2.1 Host PC Dependencies</a></li><li class="toc-h3"><a href="#22-default-bmc-connection-info">2.2 Default BMC Connection Info</a></li><li class="toc-h3"><a href="#23-firmware-update-tarball-format">2.3 Firmware Update Tarball Format</a></li><li class="toc-h2"><a href="#3-automated-test-scripts">3. Automated Test Scripts</a></li><li class="toc-h3"><a href="#31-end-to-end-firmware-update-test-redfish-updatesh">3.1 End-to-End Firmware Update (test-redfish-update.sh)</a></li><li class="toc-h3"><a href="#32-anti-rollback--machine-check-test-rollback-guardsh">3.2 Anti-Rollback &amp; Machine Check (test-rollback-guard.sh)</a></li><li class="toc-h3"><a href="#33-watchdog-boot-fallback-test-boot-fallbacksh">3.3 Watchdog Boot Fallback (test-boot-fallback.sh)</a></li><li class="toc-h2"><a href="#4-manual-redfish-update-via-curl">4. Manual Redfish Update via curl</a></li><li class="toc-h3"><a href="#step-1-query-current-firmware-inventory">Step 1: Query Current Firmware Inventory</a></li><li class="toc-h3"><a href="#step-2-upload-firmware-package">Step 2: Upload Firmware Package</a></li><li class="toc-h3"><a href="#step-3-monitor-task-progress">Step 3: Monitor Task Progress</a></li><li class="toc-h3"><a href="#step-4-verify-reboot--active-bank">Step 4: Verify Reboot &amp; Active Bank</a></li><li class="toc-h2"><a href="#5-diagnostics--troubleshooting">5. Diagnostics &amp; Troubleshooting</a></li><li class="toc-h3"><a href="#51-inspect-d-bus-software-manager-state">5.1 Inspect D-Bus Software Manager State</a></li><li class="toc-h3"><a href="#52-inspect-flash-backend-logs">5.2 Inspect Flash Backend Logs</a></li></ul></div></aside></div></main>
+</div><aside class="sidebar"><div class="side-group"><h3>MA35D05KI1</h3><ul class="side-list"><li><a class="" href="../quickstart.html">Quickstart Guide</a></li><li><a class="" href="../index.html">Power &amp; Boot Settings</a></li><li><a class="" href="../bom.html">Interactive BOM</a></li><li><a class="" href="../test-redfish.html">Redfish API</a></li><li><a class="active" href="index.html">Redfish OTA</a></li><li><a class="" href="../test-sol.html">SOL</a></li><li><a class="" href="../test-can.html">CAN-FD</a></li><li><a class="" href="../test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h3"><a href="#-hardware-prerequisite--critical-notice">⚠️ HARDWARE PREREQUISITE &amp; CRITICAL NOTICE</a></li><li class="toc-h2"><a href="#1-architecture--update-mechanism">1. Architecture &amp; Update Mechanism</a></li><li class="toc-h3"><a href="#11-spi-nand-pure-ubi-dual-bank-layout">1.1 SPI-NAND: Pure UBI Dual-Bank Layout</a></li><li class="toc-h3"><a href="#12-sd1--emmc-mbr-ext4-dual-bank-layout">1.2 SD1 / eMMC: MBR EXT4 Dual-Bank Layout</a></li><li class="toc-h3"><a href="#13-direct-to-disk-streaming-low-memory-oom-prevention">1.3 Direct-to-Disk Streaming (Low-Memory OOM Prevention)</a></li><li class="toc-h3"><a href="#14-target-verification--anti-rollback">1.4 Target Verification &amp; Anti-Rollback</a></li><li class="toc-h3"><a href="#15-watchdog-boot-fallback">1.5 Watchdog Boot Fallback</a></li><li class="toc-h2"><a href="#2-prerequisites">2. Prerequisites</a></li><li class="toc-h3"><a href="#21-host-pc-dependencies">2.1 Host PC Dependencies</a></li><li class="toc-h3"><a href="#22-default-bmc-connection-info">2.2 Default BMC Connection Info</a></li><li class="toc-h3"><a href="#23-firmware-update-tarball-format">2.3 Firmware Update Tarball Format</a></li><li class="toc-h2"><a href="#3-automated-test-scripts">3. Automated Test Scripts</a></li><li class="toc-h3"><a href="#31-end-to-end-firmware-update-test-redfish-updatesh">3.1 End-to-End Firmware Update (test-redfish-update.sh)</a></li><li class="toc-h3"><a href="#32-anti-rollback--machine-check-test-rollback-guardsh">3.2 Anti-Rollback &amp; Machine Check (test-rollback-guard.sh)</a></li><li class="toc-h3"><a href="#33-watchdog-boot-fallback-test-boot-fallbacksh">3.3 Watchdog Boot Fallback (test-boot-fallback.sh)</a></li><li class="toc-h2"><a href="#4-manual-redfish-update-via-curl">4. Manual Redfish Update via curl</a></li><li class="toc-h3"><a href="#step-1-query-current-firmware-inventory">Step 1: Query Current Firmware Inventory</a></li><li class="toc-h3"><a href="#step-2-upload-firmware-package">Step 2: Upload Firmware Package</a></li><li class="toc-h3"><a href="#step-3-monitor-task-progress">Step 3: Monitor Task Progress</a></li><li class="toc-h3"><a href="#step-4-verify-reboot--active-bank">Step 4: Verify Reboot &amp; Active Bank</a></li><li class="toc-h2"><a href="#5-diagnostics--troubleshooting">5. Diagnostics &amp; Troubleshooting</a></li><li class="toc-h3"><a href="#51-inspect-d-bus-software-manager-state">5.1 Inspect D-Bus Software Manager State</a></li><li class="toc-h3"><a href="#52-inspect-flash-backend-logs">5.2 Inspect Flash Backend Logs</a></li></ul></div></aside></div></main>
   <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
   <script>
-document.querySelectorAll('pre').forEach(function (pre) {
+document.querySelectorAll('pre > code.language-bash, pre > code.language-sh').forEach(function (code) {
+  var pre = code.parentNode;
   var wrap = document.createElement('div');
   wrap.className = 'code-wrap';
   pre.parentNode.insertBefore(wrap, pre);

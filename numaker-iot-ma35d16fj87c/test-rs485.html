@@ -187,6 +187,15 @@ td {
   margin: 12px 0 14px;
 }
 .flow-diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+.wiring-diagram {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  margin: 12px 0 14px;
+}
+.wiring-diagram svg { width: 100%; min-width: 560px; height: auto; display: block; }
 footer.site-footer {
   border-top: 1px solid var(--line);
   color: var(--muted);
@@ -266,6 +275,186 @@ footer.site-footer {
 </table></div>
 <hr />
 <h2 id="3-hardware-auto-direction-aud-operation-principle">3. Hardware Auto-Direction (AUD) Operation Principle</h2>
+<div class="wiring-diagram" role="figure" aria-label="MA35D16FJ87C UART12 AUD Mode and RS-485 PHY Wiring and Timing Diagram">
+<svg viewBox="0 0 800 364" xmlns="http://www.w3.org/2000/svg" font-family="Bahnschrift,Segoe UI,sans-serif">
+  <defs>
+    <marker id="rs-tx" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1 L7 4 L0 7 z" fill="#08745f"/>
+    </marker>
+    <marker id="rs-aud" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 1 L7 4 L0 7 z" fill="#b88214"/>
+    </marker>
+    <marker id="rs-rx" viewBox="0 0 8 8" refX="1" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M7 1 L0 4 L7 7 z" fill="#2b6cb0"/>
+    </marker>
+  </defs>
+
+  <!-- Title & Legend -->
+  <text x="12" y="19" font-size="13" font-weight="700" fill="#243430">UART12 Hardware AUD Mode ↔ On-Board RS-485 PHY (U9)</text>
+  <text x="788" y="19" text-anchor="end" font-size="10.5" fill="#64736d">/dev/ttyS12 · Half-Duplex Auto-Direction</text>
+
+  <g transform="translate(12,29)" font-size="10" fill="#5e706a">
+    <line x1="0" y1="5" x2="16" y2="5" stroke="#08745f" stroke-width="2"/>
+    <text x="21" y="8.5">TXD → DI</text>
+    <line x1="82" y1="5" x2="98" y2="5" stroke="#b88214" stroke-width="2"/>
+    <text x="103" y="8.5">nRTS (AUD) → DE + /RE</text>
+    <line x1="234" y1="5" x2="250" y2="5" stroke="#2b6cb0" stroke-width="2"/>
+    <text x="255" y="8.5">RXD ← RO</text>
+    <line x1="322" y1="5" x2="338" y2="5" stroke="#c04632" stroke-width="2"/>
+    <text x="343" y="8.5">RS-485 A (D+)</text>
+    <line x1="428" y1="5" x2="444" y2="5" stroke="#1f7a8c" stroke-width="2"/>
+    <text x="449" y="8.5">RS-485 B (D-)</text>
+  </g>
+
+  <!-- Left Block: MA35D16FJ87C UART12 -->
+  <rect x="12" y="50" width="224" height="172" rx="5" fill="#fff" stroke="#08745f" stroke-width="1.4"/>
+  <path d="M12 55 a5 5 0 0 1 5 -5 h214 a5 5 0 0 1 5 5 v28 h-224 z" fill="#e5f3ec"/>
+  <line x1="12" y1="83" x2="236" y2="83" stroke="#b9d9ca"/>
+  <text x="124" y="68" text-anchor="middle" font-size="11.5" font-weight="700" fill="#08745f">MA35D16FJ87C · UART12</text>
+  <text x="124" y="79" text-anchor="middle" font-size="9.5" fill="#465c55">Hardware AUD Controller (3.3V TTL)</text>
+
+  <rect x="22" y="92" width="204" height="27" rx="3.5" fill="#f5fbf8" stroke="#c6e3d5"/>
+  <text x="30" y="109" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#08745f">UART12_TXD</text>
+  <text x="218" y="109" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#465c55">PC15</text>
+
+  <rect x="22" y="126" width="204" height="27" rx="3.5" fill="#fffdf5" stroke="#e4cb86"/>
+  <text x="30" y="143" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#8f6200">UART12_nRTS</text>
+  <text x="218" y="143" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#7a6840">PC13 (AUD)</text>
+
+  <rect x="22" y="160" width="204" height="27" rx="3.5" fill="#f4f8fd" stroke="#c6dcf0"/>
+  <text x="30" y="177" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#1e5494">UART12_RXD</text>
+  <text x="218" y="177" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" fill="#465c55">PC14</text>
+
+  <rect x="22" y="194" width="204" height="21" rx="3" fill="#f2f5f4" stroke="#cfd9d5"/>
+  <text x="30" y="208" font-family="Cascadia Code,Consolas,monospace" font-size="10" font-weight="700" fill="#4f615b">GND</text>
+  <text x="218" y="208" text-anchor="end" font-size="9.5" fill="#64736d">10K pull-down on PC13</text>
+
+  <!-- SoC Pin Pads -->
+  <circle cx="236" cy="105" r="3.5" fill="#08745f"/>
+  <circle cx="236" cy="139" r="3.5" fill="#b88214"/>
+  <circle cx="236" cy="173" r="3.5" fill="#2b6cb0"/>
+  <circle cx="236" cy="204" r="3.5" fill="#6e7f79"/>
+
+  <!-- TTL Interconnect Wires -->
+  <!-- TXD -> DI -->
+  <line x1="240" y1="105" x2="322" y2="105" stroke="#08745f" stroke-width="2" marker-end="url(#rs-tx)"/>
+  <text x="281" y="98" text-anchor="middle" font-size="9.5" font-weight="600" fill="#08745f">TX Data</text>
+
+  <!-- nRTS -> split to DE (y=129) and /RE (y=151) -->
+  <line x1="240" y1="139" x2="302" y2="139" stroke="#b88214" stroke-width="2"/>
+  <text x="270" y="132" text-anchor="middle" font-size="9" font-weight="700" fill="#8f6200">AUD Dir</text>
+  <circle cx="302" cy="139" r="3" fill="#b88214"/>
+  <path d="M302 129 L302 151" stroke="#b88214" stroke-width="1.8"/>
+  <line x1="302" y1="129" x2="322" y2="129" stroke="#b88214" stroke-width="1.8" marker-end="url(#rs-aud)"/>
+  <line x1="302" y1="151" x2="322" y2="151" stroke="#b88214" stroke-width="1.8" marker-end="url(#rs-aud)"/>
+
+  <!-- RXD <- RO -->
+  <line x1="242" y1="173" x2="324" y2="173" stroke="#2b6cb0" stroke-width="2" marker-start="url(#rs-rx)"/>
+  <text x="281" y="167" text-anchor="middle" font-size="9.5" font-weight="600" fill="#1e5494">RX Data</text>
+
+  <!-- GND -->
+  <line x1="240" y1="204" x2="324" y2="204" stroke="#6e7f79" stroke-width="1.5"/>
+
+  <!-- Center Block: RS-485 PHY (U9 SN65HVD11DR) -->
+  <rect x="326" y="50" width="212" height="172" rx="5" fill="#fff" stroke="#2b6cb0" stroke-width="1.4"/>
+  <path d="M326 55 a5 5 0 0 1 5 -5 h202 a5 5 0 0 1 5 5 v28 h-212 z" fill="#e8f2fc"/>
+  <line x1="326" y1="83" x2="538" y2="83" stroke="#b8d3ee"/>
+  <text x="432" y="68" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1e5494">RS-485 PHY · U9</text>
+  <text x="432" y="79" text-anchor="middle" font-size="9.5" fill="#465c55">SN65HVD11DR (3.3V Half-Duplex)</text>
+
+  <!-- PHY Left Pin Labels -->
+  <text x="336" y="109" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#08745f">DI</text>
+  <text x="336" y="133" font-family="Cascadia Code,Consolas,monospace" font-size="10" font-weight="700" fill="#8f6200">DE</text>
+  <text x="336" y="155" font-family="Cascadia Code,Consolas,monospace" font-size="10" font-weight="700" fill="#8f6200">/RE</text>
+  <text x="336" y="177" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#1e5494">RO</text>
+  <text x="336" y="208" font-family="Cascadia Code,Consolas,monospace" font-size="10" font-weight="700" fill="#4f615b">GND</text>
+
+  <!-- PHY Center Mode Truth Pill -->
+  <rect x="378" y="102" width="108" height="78" rx="4" fill="#f7fafc" stroke="#c8dbee"/>
+  <text x="432" y="119" text-anchor="middle" font-size="9.5" font-weight="700" fill="#243430">Direction Logic</text>
+  <rect x="386" y="126" width="92" height="21" rx="3" fill="#fff4d6" stroke="#e0c574"/>
+  <text x="432" y="140" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="9" font-weight="700" fill="#7c5300">nRTS=H → TX</text>
+  <rect x="386" y="152" width="92" height="21" rx="3" fill="#e8f2fc" stroke="#b0cee9"/>
+  <text x="432" y="166" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="9" font-weight="700" fill="#1e5494">nRTS=L → RX</text>
+
+  <!-- PHY Right Pin Labels -->
+  <text x="528" y="116" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#c04632">A (D+)</text>
+  <text x="528" y="160" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10.5" font-weight="700" fill="#1f7a8c">B (D-)</text>
+  <text x="528" y="208" text-anchor="end" font-family="Cascadia Code,Consolas,monospace" font-size="10" font-weight="700" fill="#4f615b">GND</text>
+
+  <!-- PHY Pin Pads -->
+  <circle cx="326" cy="105" r="3.5" fill="#08745f"/>
+  <circle cx="326" cy="129" r="3" fill="#b88214"/>
+  <circle cx="326" cy="151" r="3" fill="#b88214"/>
+  <circle cx="326" cy="173" r="3.5" fill="#2b6cb0"/>
+  <circle cx="326" cy="204" r="3.5" fill="#6e7f79"/>
+  <circle cx="538" cy="112" r="3.5" fill="#c04632"/>
+  <circle cx="538" cy="156" r="3.5" fill="#1f7a8c"/>
+  <circle cx="538" cy="204" r="3.5" fill="#6e7f79"/>
+
+  <!-- Differential RS-485 Bus Wires -->
+  <line x1="542" y1="112" x2="674" y2="112" stroke="#c04632" stroke-width="2.2"/>
+  <text x="572" y="104" text-anchor="middle" font-size="9.5" font-weight="700" fill="#c04632">A (D+)</text>
+
+  <line x1="542" y1="156" x2="674" y2="156" stroke="#1f7a8c" stroke-width="2.2"/>
+  <text x="572" y="170" text-anchor="middle" font-size="9.5" font-weight="700" fill="#1f7a8c">B (D-)</text>
+
+  <line x1="542" y1="204" x2="674" y2="204" stroke="#6e7f79" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="608" y="216" text-anchor="middle" font-size="9.5" fill="#64736d">Common Ground</text>
+
+  <!-- 120 Ohm Termination Resistor across A and B -->
+  <circle cx="606" cy="112" r="3" fill="#b88214"/>
+  <circle cx="606" cy="156" r="3" fill="#b88214"/>
+  <line x1="606" y1="112" x2="606" y2="122" stroke="#b88214" stroke-width="1.6"/>
+  <rect x="599" y="122" width="14" height="24" rx="2" fill="#fff4d6" stroke="#b88214" stroke-width="1.5"/>
+  <line x1="606" y1="146" x2="606" y2="156" stroke="#b88214" stroke-width="1.6"/>
+  <text x="619" y="133" font-family="Cascadia Code,Consolas,monospace" font-size="10" font-weight="700" fill="#7c5300">120 Ω</text>
+  <text x="619" y="145" font-size="9" fill="#8f7230">Bus Term.</text>
+
+  <!-- Far-Right RS-485 Connector / Bus Box -->
+  <rect x="674" y="76" width="114" height="140" rx="5" fill="#f8fbf9" stroke="#9eb0a9" stroke-width="1.2" stroke-dasharray="4 2"/>
+  <text x="731" y="96" text-anchor="middle" font-size="11" font-weight="700" fill="#243430">CON16 · RS-485</text>
+  <text x="731" y="115" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="9.5" fill="#c04632">RS485_A (D+)</text>
+  <text x="731" y="159" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="9.5" fill="#1f7a8c">RS485_B (D-)</text>
+  <text x="731" y="186" text-anchor="middle" font-size="9" fill="#5e706a">Half-Duplex Bus</text>
+  <text x="731" y="200" text-anchor="middle" font-size="9" fill="#64736d">Peer / USB-RS485</text>
+
+  <!-- Bottom Zone: Hardware AUD Turnaround Timing Diagram -->
+  <rect x="12" y="236" width="776" height="118" rx="5" fill="#f8fbf9" stroke="#cfe0d8" stroke-width="1.2"/>
+  <text x="24" y="254" font-size="11" font-weight="700" fill="#243430">Hardware AUD Auto-Direction Timing (Wire-Speed Turnaround)</text>
+  <text x="776" y="254" text-anchor="end" font-size="10" font-weight="600" fill="#08745f">No software GPIO latency · No stop-bit truncation</text>
+
+  <!-- Vertical Sync Cursors -->
+  <line x1="286" y1="264" x2="286" y2="346" stroke="#b88214" stroke-width="1" stroke-dasharray="3 2"/>
+  <line x1="556" y1="264" x2="556" y2="346" stroke="#b88214" stroke-width="1" stroke-dasharray="3 2"/>
+
+  <!-- Track 1: UART12_TXD -->
+  <text x="24" y="281" font-family="Cascadia Code,Consolas,monospace" font-size="10" font-weight="700" fill="#08745f">UART12_TXD (PC15)</text>
+  <line x1="164" y1="274" x2="286" y2="274" stroke="#08745f" stroke-width="1.8"/>
+  <rect x="286" y="268" width="270" height="17" rx="2.5" fill="#e5f3ec" stroke="#08745f" stroke-width="1.5"/>
+  <text x="421" y="280" text-anchor="middle" font-family="Cascadia Code,Consolas,monospace" font-size="9.5" font-weight="700" fill="#08745f">Start · Data Bits · Stop Bit</text>
+  <line x1="556" y1="274" x2="770" y2="274" stroke="#08745f" stroke-width="1.8"/>
+  <text x="225" y="286" text-anchor="middle" font-size="8.5" fill="#64736d">Idle (H)</text>
+  <text x="663" y="286" text-anchor="middle" font-size="8.5" fill="#64736d">Idle (H)</text>
+
+  <!-- Track 2: UART12_nRTS (AUD) -->
+  <text x="24" y="311" font-family="Cascadia Code,Consolas,monospace" font-size="10" font-weight="700" fill="#8f6200">UART12_nRTS (AUD)</text>
+  <path d="M164 316 L286 316 L286 297 L556 297 L556 316 L770 316" fill="none" stroke="#b88214" stroke-width="2"/>
+  <rect x="287" y="298" width="268" height="17" fill="#fff4d6" opacity="0.65"/>
+  <text x="225" y="311" text-anchor="middle" font-size="9" fill="#64736d">LOW (RX)</text>
+  <text x="421" y="310" text-anchor="middle" font-size="9.5" font-weight="700" fill="#7c5300">HIGH · DE=1, /RE=1 (TX Enabled)</text>
+  <text x="663" y="311" text-anchor="middle" font-size="9" fill="#64736d">LOW (Auto Release → RX)</text>
+
+  <!-- Track 3: RS-485 Bus State -->
+  <text x="24" y="339" font-family="Cascadia Code,Consolas,monospace" font-size="10" font-weight="700" fill="#1e5494">RS-485 Bus (A/B)</text>
+  <rect x="164" y="326" width="120" height="18" rx="3" fill="#e8f2fc" stroke="#b0cee9"/>
+  <text x="224" y="338" text-anchor="middle" font-size="9.5" font-weight="600" fill="#1e5494">Listening (RX)</text>
+  <rect x="286" y="326" width="270" height="18" rx="3" fill="#dff1e8" stroke="#08745f"/>
+  <text x="421" y="338" text-anchor="middle" font-size="9.5" font-weight="700" fill="#08745f">Driving Differential Bus (TX)</text>
+  <rect x="558" y="326" width="212" height="18" rx="3" fill="#e8f2fc" stroke="#b0cee9"/>
+  <text x="664" y="338" text-anchor="middle" font-size="9.5" font-weight="600" fill="#1e5494">Bus Released · Ready for Peer RX</text>
+</svg>
+</div>
 <p>Software-driven GPIO direction control introduces scheduler latency and risk of truncating stop bits.
 On the MA35D1:</p>
 <ul>
@@ -291,7 +480,8 @@ On the MA35D1:</p>
 </div><aside class="sidebar"><div class="side-group"><h3>MA35D16FJ87C</h3><ul class="side-list"><li><a class="" href="quickstart.html">Quickstart Guide</a></li><li><a class="" href="index.html">Power &amp; Boot Settings</a></li><li><a class="" href="bom.html">Interactive BOM</a></li><li><a class="" href="test-redfish.html">Redfish API</a></li><li><a class="" href="test-redfish-update/index.html">Redfish OTA</a></li><li><a class="" href="test-sol.html">SOL</a></li><li><a class="" href="test-can.html">CAN-FD</a></li><li><a class="active" href="test-rs485.html">RS-485</a></li><li><a class="" href="test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#1-overview">1. Overview</a></li><li class="toc-h2"><a href="#2-hardware-signal-definitions">2. Hardware Signal Definitions</a></li><li class="toc-h2"><a href="#3-hardware-auto-direction-aud-operation-principle">3. Hardware Auto-Direction (AUD) Operation Principle</a></li><li class="toc-h2"><a href="#4-verification-commands">4. Verification Commands</a></li><li class="toc-h3"><a href="#41-device-node-check">4.1 Device Node Check</a></li><li class="toc-h3"><a href="#42-port-configuration">4.2 Port Configuration</a></li><li class="toc-h3"><a href="#43-send--receive-test">4.3 Send &amp; Receive Test</a></li></ul></div></aside></div></main>
   <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
   <script>
-document.querySelectorAll('pre').forEach(function (pre) {
+document.querySelectorAll('pre > code.language-bash, pre > code.language-sh').forEach(function (code) {
+  var pre = code.parentNode;
   var wrap = document.createElement('div');
   wrap.className = 'code-wrap';
   pre.parentNode.insertBefore(wrap, pre);

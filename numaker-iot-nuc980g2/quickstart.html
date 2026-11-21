@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>NuMaker-IoT-NUC980G2 OpenBMC Quickstart &amp; Reference - NuMaker OpenBMC</title>
+  <title>NuMaker-IIoT-NUC980G2 OpenBMC Quickstart &amp; Reference - NuMaker OpenBMC</title>
   <style>
 :root {
   color-scheme: light;
@@ -187,6 +187,27 @@ td {
   margin: 12px 0 14px;
 }
 .flow-diagram svg { width: 100%; min-width: 760px; height: auto; display: block; }
+.flow-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.flow-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-weight: 600;
+}
+.flow-nav a:hover { border-color: var(--green); background: var(--green-soft); color: var(--green); }
 footer.site-footer {
   border-top: 1px solid var(--line);
   color: var(--muted);
@@ -206,17 +227,16 @@ footer.site-footer {
     <div class="header-inner">
       <div>
         <div class="breadcrumbs"><a href="../index.html">NuMaker Guides</a> / <span>NuMaker-IIoT-NUC980G2</span></div>
-        <h1 class="header-title">NuMaker-IoT-NUC980G2 OpenBMC Quickstart &amp; Reference</h1>
+        <h1 class="header-title">NuMaker-IIoT-NUC980G2 OpenBMC Quickstart &amp; Reference</h1>
         <p class="header-sub">NUC980DK71YC &middot; ARM926EJ-S 300 MHz &middot; 128 MB DDR2 &middot; NK-980IOTG2</p>
       </div>
       <nav class="header-nav" aria-label="Site navigation"><a href="../index.html" class="active">Boards</a><a href="../openbmc.html" class="">Setup Guide</a><a href="../docker/index.html" class="">Docker Setup</a><a href="../meta-numaker/index.html" class="">BSP Layers</a></nav>
     </div>
   </header>
-  <main class="container"><div class="doc-layout"><div class="doc-body"><h1 id="numaker-iot-nuc980g2-openbmc-quickstart--reference">NuMaker-IoT-NUC980G2 OpenBMC Quickstart &amp; Reference</h1>
-<p>Operational guide for building, flashing, and verifying OpenBMC on the <strong>Nuvoton NuMaker-IoT-NUC980G2</strong> evaluation board. The board acts as an out-of-band BMC controlling an external host via Redfish, SSH CLI, and GPIO power signals (<code>POWER_OUT</code>, <code>RESET_OUT</code>, <code>PS_PWROK</code>).</p>
+  <main class="container"><div class="doc-layout"><div class="doc-body"><h1 id="numaker-iot-nuc980g2-openbmc-quickstart--reference">NuMaker-IIoT-NUC980G2 OpenBMC Quickstart &amp; Reference</h1>
+<p>Operational guide for building, flashing, and verifying OpenBMC on the <strong>Nuvoton NuMaker-IIoT-NUC980G2</strong> evaluation board. The board acts as an out-of-band BMC controlling an external host via Redfish, SSH CLI, and GPIO power signals (<code>POWER_OUT</code>, <code>RESET_OUT</code>, <code>PS_PWROK</code>).</p>
 <hr />
-<h2 id="1-hardware-specifications--setup">1. Hardware Specifications &amp; Setup</h2>
-<h3 id="11-specifications">1.1 Specifications</h3>
+<h2 id="1-hardware-specifications">1. Hardware Specifications</h2>
 <div class="table-scroll"><table>
 <thead>
 <tr>
@@ -227,7 +247,7 @@ footer.site-footer {
 <tbody>
 <tr>
 <td style="text-align:left"><strong>Board</strong></td>
-<td style="text-align:left">NuMaker-IoT-NUC980G2</td>
+<td style="text-align:left">NuMaker-IIoT-NUC980G2</td>
 </tr>
 <tr>
 <td style="text-align:left"><strong>SoC</strong></td>
@@ -238,8 +258,8 @@ footer.site-footer {
 <td style="text-align:left">128 MB DDR2 (stacked in MCP)</td>
 </tr>
 <tr>
-<td style="text-align:left"><strong>Flash</strong></td>
-<td style="text-align:left">128 MB SPI NAND (Winbond W25N01GV)</td>
+<td style="text-align:left"><strong>Storage Support</strong></td>
+<td style="text-align:left"><strong>SPI NAND</strong> (128 MB Winbond W25N01GV), <strong>microSD / SD1</strong> (Port F / GPF, back-side <code>CON8</code>)</td>
 </tr>
 <tr>
 <td style="text-align:left"><strong>Kernel</strong></td>
@@ -263,19 +283,6 @@ footer.site-footer {
 </tr>
 </tbody>
 </table></div>
-<h3 id="12-connectors">1.2 Connectors</h3>
-<ul>
-<li><strong>Debug Serial Console (UART0)</strong>: Micro-USB to board <strong>VCOM</strong> port (or header <code>PE14</code>/<code>PE15</code>), 115200 8N1.</li>
-<li><strong>NuWriter Programming Port (USB Device)</strong>: Micro-USB to board <strong>USB (Device)</strong> port. <em>(Do not connect NuWriter to VCOM or Host USB ports).</em></li>
-<li><strong>Ethernet (LAN)</strong>: RJ45 cable to local network (DHCP).</li>
-<li><strong>Power</strong>: 5V Micro-USB to dedicated power port.</li>
-<li><strong>Boot Mode DIP Switch</strong>:
-<ul>
-<li><strong>USB Boot (Download Mode)</strong>: Set DIP switch for USB download when flashing with NuWriter.</li>
-<li><strong>SPI NAND Boot (Normal Run Mode)</strong>: Set DIP switch for SPI NAND boot to run OpenBMC.</li>
-</ul>
-</li>
-</ul>
 <hr />
 <h2 id="2-build-environment--compilation">2. Build Environment &amp; Compilation</h2>
 <div class="callout callout-note"><div class="callout-title">Note</div><p>All build commands below are executed <strong>inside the Docker container</strong>.
@@ -306,40 +313,28 @@ If you have not set up the Docker build environment yet, please refer to <a href
 </code></pre></div>
 <h3 id="22-build-outputs">2.2 Build Outputs</h3>
 <p>Deploy directory: <code>build-nuc980/tmp/deploy/images/numaker-iot-nuc980g2/</code></p>
-<pre><code class="language-text">├── nuwriter-pack-numaker-iot-nuc980g2.bin   (SPI NAND pack image)
-├── install_nuwriter.bat                     (NuWriter environment installer)
-└── nuwriter_program.bat                     (One-click flasher script)
+<pre><code class="language-text">├── nuwriter-pack-spinand-numaker-iot-nuc980g2.bin  (SPI NAND pack image)
+├── nuwriter-pack-sd-numaker-iot-nuc980g2.bin       (SD1/eMMC pack image)
+├── obmc-phosphor-image-numaker-iot-nuc980g2.wic    (Bootable SD raw image)
+├── install_nuwriter.bat                            (NUC980_PyNuWriter installer)
+├── nuwriter_program_spinand.bat                    (SPI NAND one-click flasher)
+└── nuwriter_program_sd.bat                         (SD1/eMMC one-click flasher)
 </code></pre>
 <h3 id="23-prebuilt-artifacts-from-github-actions">2.3 Prebuilt Artifacts from GitHub Actions</h3>
 <p>Precompiled zip packages are available from the CI pipeline:</p>
 <ol>
 <li>Go to: <a href="https://github.com/OpenNuvoton/openbmc/actions/workflows/numaker.yml" target="_blank" rel="noopener">OpenBMC GitHub Actions Workflow</a>.</li>
-<li>Select the latest successful build.</li>
+<li>Sign in to your GitHub account (required to download Actions artifacts) and select the latest successful build.</li>
 <li>Download <code>openbmc-numaker-iot-nuc980g2.zip</code> from <strong>Artifacts</strong> and extract it on Windows.</li>
 </ol>
 <hr />
 <h2 id="3-firmware-flashing-nuwriter">3. Firmware Flashing (NuWriter)</h2>
-<p>Requires <a href="https://github.com/OpenNuvoton/NUC980_NuWriter" target="_blank" rel="noopener">NuWriter for NUC980 (Windows)</a>.</p>
-<div class="callout callout-tip"><div class="callout-title">Tip</div><p>If NuWriter reports <code>No device connected</code>:</p>
+<div class="callout callout-note"><div class="callout-title">Windows Flashing Flow</div><p>For step-by-step Windows batch script flashing (<code>install_nuwriter.bat</code>, <code>nuwriter_program_spinand.bat</code>, <code>nuwriter_program_sd.bat</code> using <a href="https://github.com/wosayttn/NUC980_PyNuWriter" target="_blank" rel="noopener">NUC980_PyNuWriter</a>), USB Device port wiring, and interactive SW1 DIP switch settings, refer to <a href="index.html"><strong>NUC980G2 Power &amp; Boot Settings</strong></a>.</p></div>
+<p>Both <strong>SPI NAND</strong> and <strong>microSD (SD1, back-side <code>CON8</code>)</strong> are bootable:</p>
 <ul>
-<li>Confirm the DIP switch is set to <strong>USB Boot (Download Mode)</strong>.</li>
-<li>Verify the cable is connected to <strong>USB (Device)</strong>, not VCOM.</li>
-<li>Check Windows Device Manager for the Nuvoton USB driver.</li>
-</ul></div>
-<h3 id="31-flashing-steps">3.1 Flashing Steps</h3>
-<ol>
-<li>Set the board DIP switch to <strong>USB Boot</strong> mode.</li>
-<li>Connect the board's USB Device port to the Windows PC and power on.</li>
-<li>In NuWriter:
-<ul>
-<li>Verify device is recognized as <code>NUC980</code>.</li>
-<li>Select <strong>Target</strong>: <code>SPI NAND</code>.</li>
-<li>In <strong>Erase</strong> tab → select <strong>Erase All</strong> → click <strong>Erase</strong>.</li>
-<li>In <strong>Burn</strong> tab → set <strong>Type</strong>: <code>Pack</code> → select <code>nuwriter-pack.bin</code> → click <strong>Burn</strong>.</li>
+<li><strong>SPI NAND Boot</strong>: Flash via <code>nuwriter_program_spinand.bat</code> in USB Download mode (<code>SW1_1=ON</code>, <code>SW1_2=ON</code>), then power off and switch to <code>SW1_1=OFF</code>, <code>SW1_2=OFF</code> (QSPI) before powering on.</li>
+<li><strong>microSD (SD1) Boot</strong>: Insert a microSD card into back-side <code>CON8</code> and flash via <code>nuwriter_program_sd.bat</code> in USB Download mode (or write <code>obmc-phosphor-image-numaker-iot-nuc980g2.wic</code> directly to the microSD card on PC), then power off and switch to <code>SW1_1=OFF</code>, <code>SW1_2=ON</code> (SD/eMMC on Port F / GPF) before powering on.</li>
 </ul>
-</li>
-<li>Power off → switch DIP switch to <strong>SPI NAND Boot</strong> mode → power on.</li>
-</ol>
 <hr />
 <h2 id="4-boot-verification--sanity-checks">4. Boot Verification &amp; Sanity Checks</h2>
 <h3 id="41-expected-serial-boot-log-uart0-115200-8n1">4.1 Expected Serial Boot Log (UART0, 115200 8N1)</h3>
@@ -363,6 +358,7 @@ Starting kernel ...
 OpenBMC Release 2.14.0-dev
 numaker-iot-nuc980g2 login:
 </code></pre>
+<p>When booting from <strong>microSD (SD1, <code>CON8</code>)</strong> with <code>SW1_1=OFF</code> and <code>SW1_2=ON</code>, U-Boot loads directly from SD1 (<code>mmc read</code>) with an ext4 root filesystem on <code>/dev/mmcblk0p1</code> and reaches the same <code>numaker-iot-nuc980g2 login:</code> prompt.</p>
 <h3 id="42-network--access">4.2 Network &amp; Access</h3>
 <ul>
 <li>
@@ -417,7 +413,7 @@ Test Summary: All Tests Passed!
 Report generated: test-redfish.md
 ====================================================
 </code></pre>
-<p>See <a href="test-redfish.html"><code>test-redfish.md</code></a> for full compliance results.</p>
+<p>See <a href="test-redfish.html">Redfish Integration Test Report</a> for full compliance results.</p>
 <h3 id="52-manual-redfish-api-checks">5.2 Manual Redfish API Checks</h3>
 <p>Service Root:</p>
 <pre><code class="language-bash">curl -k -s -u root:0penBmc https://numaker-iot-nuc980g2.local/redfish/v1/ | jq .
@@ -482,18 +478,21 @@ Report generated: test-redfish.md
   -H &quot;Content-Type: application/json&quot; \
   -d '{&quot;ResetType&quot;: &quot;ForceOff&quot;}' -i
 </code></pre>
-<p>See <a href="test-power-control.html"><code>test-power-control.md</code></a> for signal timings and wiring diagrams.</p>
+<p>See <a href="test-power-control.html">GPIO Power Control Guide</a> for signal timings and wiring diagrams.</p>
 <hr />
 <h2 id="6-document-index">6. Document Index</h2>
 <ul>
-<li><a href="test-redfish.html"><code>test-redfish.md</code></a>: Full Redfish integration test results and schema compliance matrix.</li>
 <li><a href="https://github.com/OpenNuvoton/openbmc/blob/numaker/meta-numaker/doc/numaker-iot-nuc980g2/test-redfish.sh" target="_blank" rel="noopener"><code>test-redfish.sh</code></a>: Automated curl test script for Redfish regression testing.</li>
-<li><a href="test-power-control.html"><code>test-power-control.md</code></a>: Wiring diagram, signal timings, and manual GPIO verification guide.</li>
+<li><a href="test-redfish.html">Redfish Integration Test Report</a>: Full Redfish integration test results and schema compliance matrix.</li>
+<li><a href="test-power-control.html">GPIO Power Control Guide</a>: Wiring diagram, signal timings, and manual GPIO verification guide.</li>
 </ul>
-</div><aside class="sidebar"><div class="side-group"><h3>NUC980G2</h3><ul class="side-list"><li><a class="active" href="quickstart.html">Quickstart Guide</a></li><li><a class="" href="index.html">Power &amp; Boot Settings</a></li><li><a class="" href="bom.html">Interactive BOM</a></li><li><a class="" href="test-redfish.html">Redfish API</a></li><li><a class="" href="test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#1-hardware-specifications--setup">1. Hardware Specifications &amp; Setup</a></li><li class="toc-h3"><a href="#11-specifications">1.1 Specifications</a></li><li class="toc-h3"><a href="#12-connectors">1.2 Connectors</a></li><li class="toc-h2"><a href="#2-build-environment--compilation">2. Build Environment &amp; Compilation</a></li><li class="toc-h3"><a href="#21-build-steps">2.1 Build Steps</a></li><li class="toc-h3"><a href="#22-build-outputs">2.2 Build Outputs</a></li><li class="toc-h3"><a href="#23-prebuilt-artifacts-from-github-actions">2.3 Prebuilt Artifacts from GitHub Actions</a></li><li class="toc-h2"><a href="#3-firmware-flashing-nuwriter">3. Firmware Flashing (NuWriter)</a></li><li class="toc-h3"><a href="#31-flashing-steps">3.1 Flashing Steps</a></li><li class="toc-h2"><a href="#4-boot-verification--sanity-checks">4. Boot Verification &amp; Sanity Checks</a></li><li class="toc-h3"><a href="#41-expected-serial-boot-log-uart0-115200-8n1">4.1 Expected Serial Boot Log (UART0, 115200 8N1)</a></li><li class="toc-h3"><a href="#42-network--access">4.2 Network &amp; Access</a></li><li class="toc-h2"><a href="#5-subsystem-verification">5. Subsystem Verification</a></li><li class="toc-h3"><a href="#51-redfish-regression-test-suite">5.1 Redfish Regression Test Suite</a></li><li class="toc-h3"><a href="#52-manual-redfish-api-checks">5.2 Manual Redfish API Checks</a></li><li class="toc-h3"><a href="#53-host-power-control-gpio">5.3 Host Power Control (GPIO)</a></li><li class="toc-h2"><a href="#6-document-index">6. Document Index</a></li></ul></div></aside></div></main>
+
+<nav class="flow-nav" aria-label="Guide progression"><a href="../docker/index.html">&larr; Docker Build Environment</a><a href="index.html">Next: NUC980G2 Power &amp; Boot &rarr;</a></nav>
+</div><aside class="sidebar"><div class="side-group"><h3>NUC980G2</h3><ul class="side-list"><li><a class="active" href="quickstart.html">Quickstart Guide</a></li><li><a class="" href="index.html">Power &amp; Boot Settings</a></li><li><a class="" href="bom.html">Interactive BOM</a></li><li><a class="" href="test-redfish.html">Redfish API</a></li><li><a class="" href="test-power-control.html">Power Control</a></li></ul></div><div class="side-group"><h3>Contents</h3><ul class="side-list toc"><li class="toc-h2"><a href="#1-hardware-specifications">1. Hardware Specifications</a></li><li class="toc-h2"><a href="#2-build-environment--compilation">2. Build Environment &amp; Compilation</a></li><li class="toc-h3"><a href="#21-build-steps">2.1 Build Steps</a></li><li class="toc-h3"><a href="#22-build-outputs">2.2 Build Outputs</a></li><li class="toc-h3"><a href="#23-prebuilt-artifacts-from-github-actions">2.3 Prebuilt Artifacts from GitHub Actions</a></li><li class="toc-h2"><a href="#3-firmware-flashing-nuwriter">3. Firmware Flashing (NuWriter)</a></li><li class="toc-h2"><a href="#4-boot-verification--sanity-checks">4. Boot Verification &amp; Sanity Checks</a></li><li class="toc-h3"><a href="#41-expected-serial-boot-log-uart0-115200-8n1">4.1 Expected Serial Boot Log (UART0, 115200 8N1)</a></li><li class="toc-h3"><a href="#42-network--access">4.2 Network &amp; Access</a></li><li class="toc-h2"><a href="#5-subsystem-verification">5. Subsystem Verification</a></li><li class="toc-h3"><a href="#51-redfish-regression-test-suite">5.1 Redfish Regression Test Suite</a></li><li class="toc-h3"><a href="#52-manual-redfish-api-checks">5.2 Manual Redfish API Checks</a></li><li class="toc-h3"><a href="#53-host-power-control-gpio">5.3 Host Power Control (GPIO)</a></li><li class="toc-h2"><a href="#6-document-index">6. Document Index</a></li></ul></div></aside></div></main>
   <footer class="site-footer">NuMaker OpenBMC Documentation</footer>
   <script>
-document.querySelectorAll('pre').forEach(function (pre) {
+document.querySelectorAll('pre > code.language-bash, pre > code.language-sh').forEach(function (code) {
+  var pre = code.parentNode;
   var wrap = document.createElement('div');
   wrap.className = 'code-wrap';
   pre.parentNode.insertBefore(wrap, pre);
