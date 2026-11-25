@@ -52,7 +52,7 @@ IMAGE_BOOT_FILES ?= "Image Image.dtb"
 FLASH_SIZE = "524288"
 
 # Output both UBI (SPI-NAND / NAND) and EXT4 / WIC (SD / eMMC) disk images
-IMAGE_FSTYPES += "ubi ubifs ext4 wic wic.gz"
+IMAGE_FSTYPES += "ubi ubifs ext4 wic"
 
 # UBI image settings for 512MB Flash (508MB rootfs partition = 4064 PEBs)
 MKUBIFS_ARGS ?= "-m 2048 -e 126976 -c 3950 -x zstd -F"

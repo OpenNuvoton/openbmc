@@ -139,7 +139,7 @@ jobs:
             build-numaker/tmp/deploy/images/**/u-boot*.bin
             build-numaker/tmp/deploy/images/${{ matrix.target_machine }}/bl2-*.bin
             build-numaker/tmp/deploy/images/${{ matrix.target_machine }}/bl2-*.dtb
-            build-numaker/tmp/deploy/images/**/obmc-phosphor-image-${{ matrix.target_machine }}-*.wic
+            build-numaker/tmp/deploy/images/**/obmc-phosphor-image-${{ matrix.target_machine }}.wic
             build-numaker/tmp/deploy/images/**/obmc-phosphor-image-${{ matrix.target_machine }}.mtd-ubi-tar
             build-numaker/tmp/deploy/images/**/obmc-phosphor-image-${{ matrix.target_machine }}.mmc-ext4-tar
             build-numaker/tmp/deploy/images/**/*.bat

@@ -468,26 +468,23 @@ EOF
             cp -f ${OTA_DIR_SD}/image-u-boot ${DEPLOY_DIR_IMAGE_MA35}/image-u-boot-sd.bin
             cp -f ${OTA_DIR_SD}/image-u-boot ${DEPLOYDIR}/image-u-boot-sd-${MACHINE}.bin
 
-            # Remove stale timestamped WIC images that do not match the canonical symlink target
-            if [ -L "${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}.wic" ]; then
-                CANONICAL_WIC=$(readlink -f "${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}.wic")
-                for wic_candidate in ${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}-*.wic; do
-                    if [ -f "${wic_candidate}" ] && [ ! -L "${wic_candidate}" ] && [ "$(readlink -f "${wic_candidate}")" != "${CANONICAL_WIC}" ]; then
-                        rm -f "${wic_candidate}" "${wic_candidate}.gz"
-                    fi
-                done
+            # Ensure only a single non-timestamped regular WIC image exists (no symlink, no .wic.gz)
+            WIC_CANONICAL="${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}.wic"
+            if [ -L "${WIC_CANONICAL}" ]; then
+                WIC_REAL=$(readlink -f "${WIC_CANONICAL}")
+                if [ -f "${WIC_REAL}" ] && [ "${WIC_REAL}" != "${WIC_CANONICAL}" ]; then
+                    rm -f "${WIC_CANONICAL}"
+                    mv -f "${WIC_REAL}" "${WIC_CANONICAL}"
+                fi
             fi
+            rm -f ${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}-*.wic \
+                  ${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}*.wic.gz
 
             # Inject SD composite bootloader into generated WIC image (preserving MBR/GPT header at 0~1KB)
-            for wic_target in ${DEPLOY_DIR_IMAGE_MA35}/obmc-phosphor-image-${MACHINE}*.wic ${DEPLOYDIR}/obmc-phosphor-image-${MACHINE}*.wic; do
-                if [ -f "${wic_target}" ] && [ ! -L "${wic_target}" ]; then
-                    bbnote "Injecting SD composite bootloader into ${wic_target}..."
-                    dd if=${OTA_DIR_SD}/image-u-boot of=${wic_target} bs=1 seek=1024 skip=1024 count=4193280 conv=notrunc status=none
-                    if [ -f "${wic_target}.gz" ]; then
-                        gzip -c -f "${wic_target}" > "${wic_target}.gz"
-                    fi
-                fi
-            done
+            if [ -f "${WIC_CANONICAL}" ] && [ ! -L "${WIC_CANONICAL}" ]; then
+                bbnote "Injecting SD composite bootloader into ${WIC_CANONICAL}..."
+                dd if=${OTA_DIR_SD}/image-u-boot of=${WIC_CANONICAL} bs=1 seek=1024 skip=1024 count=4193280 conv=notrunc status=none
+            fi
         fi
 
         # Provide image-rwfs required by OpenBMC item_updater validation

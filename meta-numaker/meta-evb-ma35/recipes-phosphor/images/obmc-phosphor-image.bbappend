@@ -160,4 +160,64 @@ EOF
 	fi
 }
 
+# Keep only a single non-timestamped regular .wic file in IMGDEPLOYDIR / DEPLOY_DIR_IMAGE
+# (no symlink, no timestamped .wic, no .wic.gz) to minimize disk usage.
+python ma35_clean_old_wic() {
+    from pathlib import Path
+
+    imgdeploydir = Path(d.getVar('IMGDEPLOYDIR'))
+    link_name = d.getVar('IMAGE_LINK_NAME')
+    if not link_name or not imgdeploydir.is_dir():
+        return
+
+    for old_wic in (
+        [imgdeploydir / f"{link_name}.wic"]
+        + list(imgdeploydir.glob(f"{link_name}-*.wic"))
+        + list(imgdeploydir.glob(f"{link_name}*.wic.gz"))
+    ):
+        if old_wic.is_symlink() or old_wic.is_file():
+            old_wic.unlink()
+}
+
+python ma35_strip_wic_timestamp() {
+    import json
+    from pathlib import Path
+
+    imgdeploydir = Path(d.getVar('IMGDEPLOYDIR')).resolve()
+    link_name = d.getVar('IMAGE_LINK_NAME')
+    if not link_name or not imgdeploydir.is_dir():
+        return
+
+    canonical = imgdeploydir / f"{link_name}.wic"
+    renamed_from = None
+
+    if canonical.is_symlink():
+        target = canonical.resolve()
+        if target.is_file() and target != canonical and target.parent == imgdeploydir:
+            renamed_from = target.name
+            canonical.unlink()
+            target.rename(canonical)
+
+    for extra in list(imgdeploydir.glob(f"{link_name}-*.wic")) + list(imgdeploydir.glob(f"{link_name}*.wic.gz")):
+        if extra != canonical and (extra.is_symlink() or extra.is_file()):
+            extra.unlink()
+
+    if renamed_from:
+        manifest_path = Path(d.getVar('IMGMANIFESTDIR')) / "do_image_wic.json"
+        if manifest_path.is_file():
+            with manifest_path.open("r") as f:
+                data = json.load(f)
+            for entry in data:
+                for image in entry.get("images", []):
+                    if image.get("filename") == renamed_from:
+                        image["filename"] = canonical.name
+            with manifest_path.open("w") as f:
+                json.dump(data, f)
+}
+
+MA35_WIC_PREFUNC = ""
+MA35_WIC_PREFUNC:ma35 = "ma35_clean_old_wic"
+do_image_wic[prefuncs] += "${MA35_WIC_PREFUNC}"
+IMAGE_POSTPROCESS_COMMAND:append:ma35 = " ma35_strip_wic_timestamp;"
+
 
